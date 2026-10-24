@@ -281,8 +281,16 @@ function statusBadge(status) {
   return el("span", { class: `badge ${status}` }, t(`status_${status}`) === `status_${status}` ? t("pending") : t(`status_${status}`));
 }
 
-function renderVideos() {
+let renderedList = "";
+
+function renderVideos(force = false) {
+  // The list refreshes every few seconds: repaint only when something shown changed,
+  // and keep the open player element, so a playing video isn't cut
+  const signature = JSON.stringify([lang, openPlayer, videos]);
+  if (!force && signature === renderedList) return;
+  renderedList = signature;
   const list = $("#videos");
+  const player = openPlayer ? list.querySelector(`video[data-id="${openPlayer}"]`) : null;
   $("#videos-empty").hidden = videos.length > 0;
   list.replaceChildren(...videos.map((v) => {
     const meta = [duration(v.duration), when(v.date)];
@@ -309,7 +317,8 @@ function renderVideos() {
       el("div", { class: "actions" }, actions));
     const item = el("li", { class: "video" }, row);
     if (openPlayer === v.id) {
-      item.append(el("video", { controls: true, preload: "metadata", src: `/videos/${v.id}/output.mp4` }));
+      item.append(player || el("video", { controls: true, preload: "metadata", "data-id": v.id,
+        src: `/videos/${v.id}/output.mp4` }));
     }
     return item;
   }));
