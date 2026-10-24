@@ -76,7 +76,7 @@ Common `dub` options:
 |---|---|---|
 | `--voice` | `es-ES-AlvaroNeural` | edge-tts voice (`es-ES-ElviraNeural`, `es-MX-JorgeNeural`…) |
 | `--tts` | `edge` | `edge`: the `--voice` voice · `clone`: the original speaker's voice, cloned from the separated vocals |
-| `--engine` | `chatterbox` | Cloning engine for `--tts clone`: `chatterbox` or `indextts` (see below) |
+| `--engine` | `chatterbox` | Cloning engine for `--tts clone`: `chatterbox`, `indextts` or `auto` (by the reference's pitch, see below) |
 | `--min-factor` | `0.7` | `indextts`: lowest `duration_factor` before shortening a sentence that doesn't fit |
 | `--clone-ref` | none | Fixed Spanish recording to clone from when a cloned clip fails the quality check |
 | `--bg-volume` | `-15` | Volume of the original audio, in dB |
@@ -146,11 +146,15 @@ indextts`. Neither won everywhere in the benchmark (details in
 [docs/v2-plan.md](docs/v2-plan.md)): IndexTTS fits its slots far better (41/42
 clips without atempo, against 30/42), and by ear it was preferred for the male
 voice but not for the female one, where Chatterbox sounded steadier (IndexTTS
-sometimes sounds as if trembling). So for now: `--engine indextts` for male
-voices, the default Chatterbox for female ones. With two
-videos that is not enough to pick the engine from the voice's pitch, so the
-choice is manual for now; the reference F0 recorded in `tts.json` is there to
-decide it later with more videos.
+sometimes sounds as if trembling). So: `--engine indextts` for low voices, the
+default Chatterbox for high ones.
+
+`--engine auto` applies that rule by itself: IndexTTS when the reference's mean
+F0 is below 165 Hz, Chatterbox otherwise (or when the pitch can't be measured).
+It comes from two voices, one of each, so it is opt-in and a low female or high
+male voice may land on the wrong side; the log line and `tts.json` record the
+engine, how it was chosen and the F0, so that after 8–10 videos the rule can be
+checked before it becomes the default.
 
 The two engines fit clips to their slot differently. Chatterbox has no length
 control, so clips that don't fit are sped up with atempo (up to `--max-tempo`)

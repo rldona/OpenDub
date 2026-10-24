@@ -103,7 +103,9 @@ today, voice cloning (the most uncertain part) last.
   below). Two videos are too few to pick the engine from the voice's pitch, so
   the reference's mean F0 is logged and kept in `tts.json` next to the engine;
   after 8–10 dubbed videos that data will say whether a pitch rule makes sense
-  as the default.
+  as the default. Meanwhile the rule is available as opt-in `--engine auto`
+  (IndexTTS below a 165 Hz reference F0, Chatterbox above), recorded in
+  `tts.json` as `engine_choice`.
 - IndexTTS fitting order: its speaking rate is calibrated at
   `duration_factor` 0.85 (its natural pace is slow, so calibrating at 1.0 made
   Claude cut translations more than needed: 9 sentences "probably too long" in

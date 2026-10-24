@@ -90,6 +90,8 @@ def test_voice_rate_dispatches_on_engine(tmp_path, monkeypatch):
     assert tts.voice_rate(wd, Settings()) == 17.0
     assert tts.voice_rate(wd, Settings(tts="clone")) == 14.0
     assert tts.voice_rate(wd, Settings(tts="clone", engine="indextts")) == 12.0
+    monkeypatch.setattr(reference, "mean_f0", lambda path: 139.0)
+    assert tts.voice_rate(wd, Settings(tts="clone", engine="auto")) == 12.0  # low voice → indextts
     with pytest.raises(SystemExit):
         tts.voice_rate(wd, Settings(tts="qwen"))
     with pytest.raises(SystemExit):

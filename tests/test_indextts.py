@@ -127,3 +127,17 @@ def test_indextts_shortens_before_going_below_the_floor(tmp_path, monkeypatch, s
 def test_worker_reports_missing_install(tmp_path):
     with pytest.raises(SystemExit, match="setup-indextts"):
         indextts.Worker(tmp_path / "nowhere", tmp_path / "ix.log")
+
+
+def test_engine_auto_picks_by_reference_pitch(tmp_path, monkeypatch):
+    from opentranslator import reference
+
+    ref = tmp_path / "ref.wav"
+    settings = Settings(tts="clone", engine="auto")
+    for f0, expected in ((139.0, "indextts"), (214.0, "chatterbox"), (None, "chatterbox")):
+        monkeypatch.setattr(reference, "mean_f0", lambda path, f0=f0: f0)
+        assert tts.resolve_engine(settings, ref) == expected
+        assert tts.Voice.clone(settings, ref).engine == expected
+    assert tts.resolve_engine(Settings(tts="edge", engine="auto")) == "edge"
+    with pytest.raises(ValueError):
+        tts.resolve_engine(settings)  # auto needs the reference

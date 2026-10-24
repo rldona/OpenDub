@@ -82,7 +82,7 @@ class Voice:
 
     @classmethod
     def clone(cls, settings: Settings, ref: Path, label: str | None = None, seed: int = SEED) -> Voice:
-        engine = resolve_engine(settings)
+        engine = resolve_engine(settings, ref)
         return cls(engine, settings.voice, settings.rate, ref=ref, seed=seed, label=label or engine)
 
 
@@ -262,25 +262,38 @@ def cloned_speaking_rate(settings: Settings, voice: Voice) -> float:
 
 def voice_rate(wd: WorkDir, settings: Settings) -> float:
     """Speaking rate of the voice the video will be dubbed with."""
-    if resolve_engine(settings) != "edge":
-        from . import clone
-
+    if settings.tts == "clone":  # Voice.clone resolves the engine (auto needs the reference)
         return cloned_speaking_rate(settings, Voice.clone(settings, reference.reference(wd)))
+    resolve_engine(settings)  # validates --tts
     return speaking_rate(settings.work_root, settings.voice, settings.rate)
 
 
 CLONE_ENGINES = ("chatterbox", "indextts")  # --engine; Settings.engine defaults to chatterbox
 
 
-def resolve_engine(settings: Settings) -> str:
-    """The engine that speaks: edge for --tts edge, the --engine choice for --tts clone."""
+AUTO_F0_HZ = 165.0  # --engine auto: references below it get IndexTTS, the rest Chatterbox
+
+
+def resolve_engine(settings: Settings, ref: Path | None = None) -> str:
+    """The engine that speaks: edge for --tts edge, the --engine choice for --tts clone.
+
+    `auto` picks by the reference's mean F0 (it needs `ref`): IndexTTS for low
+    voices, Chatterbox for high ones, which is what was preferred by ear on the
+    two benchmark videos (one voice of each). A rule from two voices, hence
+    opt-in; Chatterbox when the F0 can't be measured.
+    """
     if settings.tts not in ("edge", "clone"):
         raise SystemExit(f"--tts must be edge or clone (not {settings.tts!r})")
     if settings.tts == "edge":
         return "edge"
-    if settings.engine not in CLONE_ENGINES:
-        raise SystemExit(f"--engine must be {' or '.join(CLONE_ENGINES)} (not {settings.engine!r})")
-    return settings.engine
+    if settings.engine not in (*CLONE_ENGINES, "auto"):
+        raise SystemExit(f"--engine must be {', '.join(CLONE_ENGINES)} or auto (not {settings.engine!r})")
+    if settings.engine != "auto":
+        return settings.engine
+    if ref is None:
+        raise ValueError("--engine auto needs the reference to measure its pitch")
+    f0 = reference.mean_f0(ref)
+    return "indextts" if f0 is not None and f0 < AUTO_F0_HZ else "chatterbox"
 
 
 def calibration_factor(engine: str) -> float:
@@ -548,9 +561,9 @@ def run(wd: WorkDir, settings: Settings, force: bool = False) -> list[Clip]:
     from . import clone
 
     segments = load_segments(wd.translation)
-    engine = resolve_engine(settings)
-    cloned = engine != "edge"
+    cloned = settings.tts == "clone"
     ref = reference.reference(wd) if cloned else None
+    engine = resolve_engine(settings, ref)  # also validates --tts and --engine
     params = {
         "voice": settings.voice,
         "rate": check_rate(settings.rate),
@@ -569,8 +582,24 @@ def run(wd: WorkDir, settings: Settings, force: bool = False) -> list[Clip]:
         }
         if engine == "indextts":
             params["min_factor"] = settings.min_factor
+    ref_f0 = reference.mean_f0(ref) if cloned else None
+    choice = None
+    if cloned:
+        # logged (and kept in tts.json) to later relate the engine choice to the voice pitch
+        f0 = f"{ref_f0:.0f} Hz" if ref_f0 else "unknown"
+        how = ""
+        if settings.engine == "auto":
+            how = f" (auto: F0 {'below' if engine == 'indextts' else 'not below'} {AUTO_F0_HZ:.0f} Hz)"
+        choice = f"auto (F0 threshold {AUTO_F0_HZ:.0f} Hz)" if settings.engine == "auto" else "manual"
+        log.info(f"Cloned voice: engine {engine}{how} ({engine_model(engine)}) · reference mean F0 {f0} · "
+                 f"{len(segments)} segments")
     if not force and wd.is_done("tts", params) and wd.tts_index.exists():
         log.info("TTS cached, skipping")
+        index = json.loads(wd.tts_index.read_text(encoding="utf-8"))
+        if isinstance(index, dict) and index.get("engine_choice") != choice:
+            # same clips, chosen another way (e.g. --engine auto landing on the same engine)
+            index["engine_choice"] = choice
+            wd.tts_index.write_text(json.dumps(index, ensure_ascii=False, indent=1), encoding="utf-8")
         return load_clips(wd)
 
     asyncio.run(_check_voice(settings.voice))  # edge-tts is also the cloned voice's last resort
@@ -583,13 +612,7 @@ def run(wd: WorkDir, settings: Settings, force: bool = False) -> list[Clip]:
     by_id = {s.id: s for s in segments}
     voice = Voice.clone(settings, ref) if cloned else Voice.edge(settings)
     voices = {s.id: voice for s in segments}
-    ref_f0 = reference.mean_f0(ref) if cloned else None
-    if cloned:
-        # logged (and kept in tts.json) to later relate the engine choice to the voice pitch
-        f0 = f"{ref_f0:.0f} Hz" if ref_f0 else "unknown"
-        log.info(f"Cloned voice: engine {engine} ({engine_model(engine)}) · reference mean F0 {f0} · "
-                 f"{len(segments)} segments")
-    else:
+    if not cloned:
         log.info(f"Voice {settings.voice} ({settings.rate}) · {len(segments)} segments")
     jobs = [(s, voice) for s in segments]
     clips = {c.id: c for c in _render_each(wd, jobs, slots, settings, regenerate=force)}
@@ -616,6 +639,7 @@ def run(wd: WorkDir, settings: Settings, force: bool = False) -> list[Clip]:
     result = [clips[s.id] for s in segments]
     index = {
         "engine": engine,
+        "engine_choice": choice,
         "model": engine_model(engine) if cloned else f"edge-tts {settings.voice}",
         "reference_f0_hz": ref_f0,
         "clips": [asdict(c) for c in result],

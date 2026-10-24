@@ -45,7 +45,12 @@ Tts = Annotated[
     typer.Option("--tts", help="edge (edge-tts voice) or clone (the original speaker's voice; needs `separate`)"),
 ]
 Engine = Annotated[
-    str, typer.Option("--engine", help="Cloning engine for --tts clone: chatterbox or indextts")
+    str,
+    typer.Option(
+        "--engine",
+        help="Cloning engine for --tts clone: chatterbox, indextts, or auto (by the reference's pitch: "
+        "IndexTTS below 165 Hz, Chatterbox above)",
+    ),
 ]
 MinFactor = Annotated[
     float,
