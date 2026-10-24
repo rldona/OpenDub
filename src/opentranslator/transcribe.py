@@ -36,15 +36,54 @@ def _load_wav(path: Path) -> np.ndarray:
     return np.frombuffer(frames, dtype=np.int16).astype(np.float32) / 32768.0
 
 
+# CUDA libraries CTranslate2 opens at runtime (cuBLAS for CUDA 12, cuDNN 9)
+CUDA_LIBS = {"cublas": ["libcublasLt.so.12", "libcublas.so.12"], "cudnn": ["libcudnn*.so.9"]}
+
+
+def _load_cuda_libs() -> bool:
+    """Make cuBLAS and cuDNN loadable for CTranslate2; False if they can't be found.
+
+    CTranslate2 looks them up in the system library path, but they usually come
+    as pip wheels (nvidia-cublas-cu12, nvidia-cudnn-cu12, pulled in by torch with
+    the `separate` extra) that live inside the venv. Loading them globally by
+    absolute path first lets CTranslate2's later dlopen find them by soname.
+    """
+    import ctypes
+    import importlib.util
+
+    for package, patterns in CUDA_LIBS.items():
+        try:
+            ctypes.CDLL(patterns[-1].replace("*", ""), mode=ctypes.RTLD_GLOBAL)
+            continue  # already on the system library path
+        except OSError:
+            pass
+        spec = importlib.util.find_spec(f"nvidia.{package}")
+        if spec is None or not spec.submodule_search_locations:
+            return False
+        lib_dir = Path(next(iter(spec.submodule_search_locations))) / "lib"
+        try:
+            for pattern in patterns:
+                for lib in sorted(lib_dir.glob(pattern)):
+                    ctypes.CDLL(str(lib), mode=ctypes.RTLD_GLOBAL)
+        except OSError:
+            return False
+    return True
+
+
 def whisper_device() -> tuple[str, str]:
-    """(device, compute_type): CUDA in float16 when an NVIDIA GPU is visible, else CPU in int8.
+    """(device, compute_type): CUDA in float16 when an NVIDIA GPU is usable, else CPU in int8.
 
     CTranslate2 has no Metal backend, so Apple Silicon always runs on the CPU.
     """
     import ctranslate2
 
     if ctranslate2.get_cuda_device_count() > 0:
-        return "cuda", "float16"
+        if _load_cuda_libs():
+            return "cuda", "float16"
+        log.warning(
+            "NVIDIA GPU found but cuBLAS/cuDNN are missing, transcribing on the CPU. "
+            "Install them with: uv sync --extra separate"
+        )
     return "cpu", "int8"
 
 

@@ -105,8 +105,10 @@ delete it to measure again.
   `small` transcribes about 2 minutes of audio in ~20 s.
 - edge-tts relies on an unofficial Microsoft service and could stop working.
 - No voice cloning yet (planned for v2, see [docs/v2-plan.md](docs/v2-plan.md)).
-- The CUDA paths (whisper and PyTorch separation on an NVIDIA GPU) have not been
-  tested on real hardware yet.
+- On Linux, whisper uses the GPU only when cuBLAS and cuDNN can be loaded: they
+  come with `uv sync --extra separate` (PyTorch's CUDA wheels) or a system CUDA
+  install; otherwise it falls back to the CPU with a warning. Tested on an RTX
+  5080: `large-v3` transcribes 2.5 minutes of audio in ~10 s.
 
 ## Tests
 

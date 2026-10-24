@@ -21,8 +21,12 @@ today, voice cloning (the most uncertain part) last.
   Mel-Band RoFormer 73–85 s and BS-RoFormer 480–600 s. HTDemucs and Mel-Band
   left equally clean backgrounds (whisper found no speech in either), so HTDemucs
   was chosen: demucs-mlx on Apple Silicon, demucs on PyTorch/CUDA elsewhere.
-- Pending: repeat the benchmark on the RTX 5080, where RoFormer models may be
-  fast enough to compete.
+- Repeated on an RTX 5080 (CUDA 12.8, same videos): HTDemucs 3.7–6.4 s including
+  model load, Mel-Band RoFormer 4.5–5.9 s (+1.4 s load), BS-RoFormer 32–40 s
+  (+7 s load). Whisper large-v3 found no speech in any of the backgrounds, and
+  under speech HTDemucs left 0.6–1.5 dB less residue than both RoFormers. Mel-Band
+  is now as fast, but with no measurable quality gain it doesn't justify a second
+  backend: HTDemucs stays.
 - `mix` uses `background.wav` at 0 dB when it exists (`--separate`).
 - Heavy dependencies in an optional extra.
 
