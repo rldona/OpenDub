@@ -99,6 +99,25 @@ Each phase can also run on its own: `download`, `transcribe`, `translate`, `tts`
 `download`, so it can run at any point before `mix --separate`. Run
 `uv run opentranslator <phase> --help` to see its options.
 
+## Web frontend
+
+A local page to dub without the command line: paste a YouTube link, pick the
+voice (edge-tts or cloned, with the engine on *Automatic* by default), whether
+to keep the music and the background volume, and follow each phase live. Below,
+the dubbed videos with a player and a download button; each video's page shows
+the translation segment by segment (original, Spanish, slot and characters
+against the limit Claude got), lets you edit it and regenerate only the voice
+and the mix, and lists the clips with problems with a player for each.
+
+```bash
+uv sync --extra web          # plus --extra separate --extra clone for cloned voices
+uv run opentranslator web    # http://127.0.0.1:8000, opens the browser
+```
+
+It only listens on 127.0.0.1 and runs one job at a time (the others wait in
+order); it uses the same `work/` folder and cache as the CLI. The interface is
+in English, with Spanish under Preferences.
+
 ## Cache and working folder
 
 Everything is stored in `work/<video id>/`. A phase is skipped if it already ran
@@ -116,6 +135,7 @@ but neither the translation nor the separation).
 | `stems/vocals.wav`, `stems/background.wav` | Separated original voice and background |
 | `clone_ref.wav` | 10–15 s of the original speaker used as the cloning reference (`--tts clone`) |
 | `dub.wav`, `output.mp4` | Dubbed track and final video |
+| `thumbnail.jpg`, `job.json` | Web frontend: thumbnail, and the last job's options and outcome |
 
 Each voice's calibrated speaking rate is stored in `work/voice_rates.json`;
 delete it to measure again.

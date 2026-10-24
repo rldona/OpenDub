@@ -8,10 +8,10 @@ from pathlib import Path
 from typing import Any
 
 import numpy as np
-from rich.progress import BarColumn, Progress, TimeElapsedColumn
+from rich.progress import BarColumn, TimeElapsedColumn
 
 from .config import Settings
-from .log import console, log
+from .log import Progress, console, log
 from .models import Segment, load_segments, save_segments
 from .segments import Piece, parse_subtitles, regroup
 from .workdir import WorkDir

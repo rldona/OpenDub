@@ -8,6 +8,7 @@ from typing import Annotated
 import typer
 
 from . import download as download_mod
+from . import pipeline
 from . import mix as mix_mod
 from . import separate as separate_mod
 from . import transcribe as transcribe_mod
@@ -245,6 +246,30 @@ def mix(
         mix_mod.run(wd, settings, force=force, output=output)
 
 
+@app.command()
+def web(
+    work: WorkRoot = Path("work"),
+    port: Annotated[int, typer.Option("--port", help="Port on 127.0.0.1")] = 8000,
+    browser: Annotated[bool, typer.Option("--browser/--no-browser", help="Open the page in the browser")] = True,
+) -> None:
+    """Local web frontend: paste a URL, follow the progress, watch and fix the dubs."""
+    try:
+        import uvicorn
+
+        from .web.app import create_app
+    except ImportError:
+        raise SystemExit("The web frontend needs its optional dependencies: uv sync --extra web")
+    require_ffmpeg()
+    url = f"http://127.0.0.1:{port}/"
+    if browser:
+        import threading
+        import webbrowser
+
+        threading.Timer(1.0, webbrowser.open, args=(url,)).start()
+    log.info(f"OpenTranslator web on [bold]{url}[/] (Ctrl+C to stop)")
+    uvicorn.run(create_app(work), host="127.0.0.1", port=port, log_level="warning")
+
+
 @app.command("setup-indextts")
 def setup_indextts(
     path: Annotated[
@@ -300,22 +325,7 @@ def dub(
         bg_volume_db=bg_volume, mute_original=mute_original,
         separate=separate, separator=separator, music_volume_db=music_volume,
     )
-    wd = _setup(url, settings)
-    if force:
-        wd.invalidate_from("download")
-    with phase("Download"):
-        download_mod.run(url, wd, settings)
-    with phase("Transcription"):
-        transcribe_mod.run(wd, settings)
-    if separate or tts != "edge":
-        with phase("Separation"):
-            separate_mod.run(wd, settings)
-    with phase("Translation"):
-        translate_mod.run(wd, settings)
-    with phase("TTS"):
-        tts_mod.run(wd, settings)
-    with phase("Mix"):
-        mix_mod.run(wd, settings, output=output)
+    pipeline.dub(url, settings, output=output, force=force)
 
 
 if __name__ == "__main__":

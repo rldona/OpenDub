@@ -43,9 +43,10 @@ def params_hash(params: dict[str, Any]) -> str:
 
 
 class WorkDir:
-    def __init__(self, root: Path, video_id: str):
+    def __init__(self, root: Path, video_id: str, create: bool = True):
         self.path = root / video_id
-        self.path.mkdir(parents=True, exist_ok=True)
+        if create:
+            self.path.mkdir(parents=True, exist_ok=True)
         self.manifest_path = self.path / "manifest.json"
 
     # Paths of each phase's artifacts
@@ -61,6 +62,8 @@ class WorkDir:
     dub = property(lambda self: self.path / "dub.wav")
     overflow_log = property(lambda self: self.path / "overflow.log")
     output = property(lambda self: self.path / "output.mp4")
+    thumbnail = property(lambda self: self.path / "thumbnail.jpg")
+    job = property(lambda self: self.path / "job.json")  # web frontend: last job's options and outcome
 
     def _read(self) -> dict[str, Any]:
         if self.manifest_path.exists():

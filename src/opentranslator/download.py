@@ -8,10 +8,10 @@ import re
 from typing import Any
 
 import yt_dlp
-from rich.progress import BarColumn, DownloadColumn, Progress, TransferSpeedColumn
+from rich.progress import BarColumn, DownloadColumn, TransferSpeedColumn
 
 from .config import Settings
-from .log import console, log
+from .log import Progress, console, log
 from .media import ffmpeg, probe
 from .workdir import WorkDir
 
@@ -76,6 +76,26 @@ def _download_subs(raw: dict[str, Any], wd: WorkDir, kind: str, key: str) -> str
     return found[0].name if found else None
 
 
+def thumbnail(wd: WorkDir) -> bool:
+    """Save the video's thumbnail as thumbnail.jpg (for the web frontend); False if it can't."""
+    if wd.thumbnail.exists():
+        return True
+    opts = {
+        **_BASE_OPTS,
+        "skip_download": True,
+        "writethumbnail": True,
+        "outtmpl": str(wd.path / "thumbnail.%(ext)s"),
+        # skip_download: postprocessors must run before the (skipped) download
+        "postprocessors": [{"key": "FFmpegThumbnailsConvertor", "format": "jpg", "when": "before_dl"}],
+    }
+    try:
+        with yt_dlp.YoutubeDL(opts) as ydl:
+            ydl.download([f"https://www.youtube.com/watch?v={wd.path.name}"])
+    except Exception as e:  # cosmetic: never fail a phase over it
+        log.warning(f"Could not get the thumbnail: {e}")
+    return wd.thumbnail.exists()
+
+
 def run(url: str, wd: WorkDir, settings: Settings, force: bool = False) -> dict[str, Any]:
     params = {"max_height": settings.max_height, "source_lang": settings.source_lang}
     if not force and wd.is_done("download", params) and wd.meta.exists():
@@ -131,5 +151,6 @@ def run(url: str, wd: WorkDir, settings: Settings, force: bool = False) -> dict[
         "subs": subs,
     }
     wd.meta.write_text(json.dumps(meta, ensure_ascii=False, indent=2), encoding="utf-8")
+    thumbnail(wd)
     wd.mark_done("download", params)
     return meta

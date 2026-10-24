@@ -22,6 +22,11 @@ separate = [
     "demucs>=4.1.0; sys_platform == 'linux'",
     "torch>=2.7; sys_platform == 'linux'",
 ]
+# Local web frontend: `opentranslator web`
+web = [
+    "fastapi>=0.115",
+    "uvicorn>=0.30",
+]
 # Voice cloning with Chatterbox Multilingual V3 (not on PyPI yet: pinned GitHub commit)
 clone = [
     "chatterbox-tts",
@@ -38,6 +43,7 @@ build-backend = "hatchling.build"
 
 [dependency-groups]
 dev = [
+    "httpx>=0.27",
     "pytest>=9.1.1",
 ]
 

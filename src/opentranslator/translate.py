@@ -14,10 +14,10 @@ from dataclasses import replace
 from pathlib import Path
 from typing import Any
 
-from rich.progress import BarColumn, MofNCompleteColumn, Progress, TimeElapsedColumn
+from rich.progress import BarColumn, MofNCompleteColumn, TimeElapsedColumn
 
 from .config import Settings
-from .log import console, log
+from .log import Progress, console, log
 from .models import Segment, load_segments, save_segments
 from .workdir import WorkDir, params_hash
 

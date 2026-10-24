@@ -29,11 +29,11 @@ from concurrent.futures import ThreadPoolExecutor
 from dataclasses import asdict, dataclass, replace
 from pathlib import Path
 
-from rich.progress import BarColumn, MofNCompleteColumn, Progress, TimeElapsedColumn
+from rich.progress import BarColumn, MofNCompleteColumn, TimeElapsedColumn
 
 from . import reference
 from .config import Settings
-from .log import console, log
+from .log import Progress, console, log
 from .media import ffmpeg
 from .models import Segment, load_segments
 from .workdir import WorkDir
@@ -247,17 +247,34 @@ def cloned_speaking_rate(settings: Settings, voice: Voice) -> float:
     IndexTTS is measured at indextts.CALIBRATION_FACTOR, the pace its clips are
     planned around; Chatterbox at its only pace.
     """
-    from . import clone
-
     factor = calibration_factor(voice.engine)
     cache = settings.work_root / "voice_rates.json"
     rates = json.loads(cache.read_text()) if cache.exists() else {}
-    key = f"{engine_model(voice.engine)} {clone.file_hash(voice.ref)}" + (f" @{factor}" if factor != 1.0 else "")
+    key = cloned_rate_key(voice.engine, voice.ref)
     if key not in rates:
         rates[key] = _calibrate(settings, replace(voice, factor=factor, seed=SEED))
         cache.write_text(json.dumps(rates, indent=1))
         log.info(f"Calibrated rate for the cloned voice ({voice.engine}): {rates[key]} chars/s")
     return rates[key]
+
+
+def cloned_rate_key(engine: str, ref: Path) -> str:
+    """Key of a cloned voice's speaking rate in voice_rates.json."""
+    from . import clone
+
+    factor = calibration_factor(engine)
+    return f"{engine_model(engine)} {clone.file_hash(ref)}" + (f" @{factor}" if factor != 1.0 else "")
+
+
+def cached_rate(work_root: Path, engine: str, ref: Path | None, voice: str, rate: str) -> float | None:
+    """The calibrated speaking rate if it was already measured; never calibrates."""
+    cache = work_root / "voice_rates.json"
+    if not cache.exists():
+        return None
+    rates = json.loads(cache.read_text())
+    if engine == "edge":
+        return rates.get(f"{voice} {rate}")
+    return rates.get(cloned_rate_key(engine, ref)) if ref and ref.exists() else None
 
 
 def voice_rate(wd: WorkDir, settings: Settings) -> float:
