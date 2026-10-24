@@ -134,3 +134,29 @@ today, voice cloning (the most uncertain part) last.
 - The benchmark scripts (generators per model, CER, accent, similarity, F0,
   jitter and tremor) live in [bench/](bench/README.md); `uv run
   docs/bench/run.py <name>` scores a new model against the stored results.
+
+## Phase D — Speed
+- Where the time goes, on a 28-minute video with IndexTTS: download 0.2 min,
+  transcription 0.3, separation 0.4, translation 2.2, voice 21.7, mix 0.5. The
+  voice phase is 86% of it, so that is where to work; overlapping translation
+  with the voice would save at most 2 minutes.
+- First, fewer clips to redo: figures written out in words, an overhead-plus-rate
+  calibration (robust to a garbled calibration clip) and GPU memory released
+  between jobs took the same video from 25.3 to 19.9 minutes (voice phase 21.7 →
+  17.2), with 48 shortened sentences instead of 67 and 1 clip on edge-tts
+  instead of 5.
+- IndexTTS's own GPT2 acceleration engine (flash-attn, its `accel` extra): RTF
+  0.367 → 0.280 (1.31×) over 3 seeds × 24 clips, with the same CER (0.009 vs
+  0.010), Spanish probability (0.988 vs 0.983), similarity (ECAPA 0.577 vs 0.576)
+  and no clip above 10% CER in either; +1.5 GB of VRAM (7.4 GB) and +7 s to
+  load. A first single-seed run looked worse (CER 0.047), which more seeds showed
+  to be sampling noise. torch.compile added only 4% and is left off; BigVGAN's
+  fused CUDA kernel needs nvcc, not installed. flash-attn's prebuilt wheel runs on
+  the RTX 5080 (sm_120) once its build script is told not to look for nvcc.
+  Enabled by default when flash-attn is installed (`setup-indextts` does it).
+- Quality-check whisper: loading the model once saves little (0.6 s per load from
+  cache); greedy decoding halves the check (23.6 → 12.3 s on 353 clips) with the
+  same verdict on 352 of them. Enabled.
+- Chatterbox with two processes on the GPU: 3.64× → 5.00× real time (1.37×),
+  3.6 GB each. About 10% of a long Chatterbox dub, for a pool of worker
+  processes and tighter VRAM: not done for now.

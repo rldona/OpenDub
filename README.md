@@ -48,7 +48,9 @@ The other cloning engine, IndexTTS-2.5 (`--tts clone --engine indextts`), needs 
 its own pinned PyTorch, so it lives in a separate venv and runs as a separate
 process. This clones a pinned commit of its repo, creates that venv and downloads
 the checkpoints (~5 GB, plus ~5 GB of auxiliary models on the first run) into
-`~/.local/share/opentranslator/indextts` (or `$OPENTRANSLATOR_INDEXTTS_DIR`):
+`~/.local/share/opentranslator/indextts` (or `$OPENTRANSLATOR_INDEXTTS_DIR`). It also
+installs flash-attn for IndexTTS's acceleration engine (1.3× faster, same quality);
+if that fails, IndexTTS runs without it:
 
 ```bash
 uv run opentranslator setup-indextts

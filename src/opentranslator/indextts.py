@@ -17,6 +17,7 @@ from __future__ import annotations
 
 import atexit
 import json
+import os
 import subprocess
 from pathlib import Path
 
@@ -52,7 +53,13 @@ def setup(home: Path) -> None:
         subprocess.run(["git", "clone", "-q", REPO_URL, str(repo)], check=True)
     subprocess.run(["git", "-C", str(repo), "checkout", "-q", REPO_REV], check=True)
     log.info("Creating its venv (Python 3.11, PyTorch with CUDA)…")
-    subprocess.run(["uv", "sync"], cwd=repo, check=True)
+    # The `accel` extra brings flash-attn for its 1.3x faster engine. Its prebuilt wheel
+    # runs on RTX 50-series too, but its build script wants nvcc unless told to only
+    # download it; without a wheel for this setup, carry on without acceleration.
+    env = {**os.environ, "FLASH_ATTENTION_SKIP_CUDA_BUILD": "TRUE"}
+    if subprocess.run(["uv", "sync", "--extra", "accel"], cwd=repo, env=env).returncode != 0:
+        log.warning("flash-attn could not be installed: IndexTTS will run without its acceleration")
+        subprocess.run(["uv", "sync"], cwd=repo, check=True)
     log.info(f"Downloading {HF_REPO} checkpoints…")
     subprocess.run(
         [str(python), "-c", "import sys; from huggingface_hub import snapshot_download; "
@@ -79,7 +86,8 @@ class Worker:
             stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=self._stderr, text=True, bufsize=1,
         )
         hello = self._read()
-        log.info(f"{MODEL} loaded in {hello['load_s']}s ({hello['device']})")
+        accel = ", accelerated" if hello.get("accel") else ""
+        log.info(f"{MODEL} loaded in {hello['load_s']}s ({hello['device']}{accel})")
         self._next_id = 0
 
     def _read(self) -> dict:

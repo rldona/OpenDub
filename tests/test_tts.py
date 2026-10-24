@@ -181,3 +181,12 @@ def test_shorten_target_leaves_out_the_overhead():
     clip = _c(1, "x" * 50, raw=4.0, slot=3.0)  # 1.5 s overhead + 2.5 s for 50 chars
     assert tts.shorten_target("x" * 50, clip, 1.0) == 35  # proportional: 50·3/4, minus 5%
     assert tts.shorten_target("x" * 50, clip, 1.0, overhead=1.5) == 28  # (3-1.5)/(4-1.5)·50, minus 5%
+
+
+def test_fit_pace_ignores_a_garbled_calibration_clip():
+    # real IndexTTS calibration: "Vamos allá." (11 chars) came out 8 s long
+    samples = [(55, 5.53), (78, 6.97), (62, 5.43), (51, 4.57), (57, 6.87), (10, 2.46), (11, 8.07), (24, 4.34),
+               (134, 9.80)]
+    pace = tts.fit_pace(samples)
+    assert pace.overhead <= tts.MAX_OVERHEAD_S and 15 < pace.cps < 21
+    assert tts.fit_pace(samples + [(11, 2.0)]).overhead < 2.5  # still sane with more points

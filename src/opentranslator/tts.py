@@ -319,15 +319,46 @@ def cloned_speaking_rate(settings: Settings, voice: Voice) -> Pace:
 
 
 def fit_pace(samples: list[tuple[int, float]]) -> Pace:
-    """Least-squares fit of seconds = overhead + chars / cps over (chars, seconds) samples."""
-    n = len(samples)
-    mean_c = sum(c for c, _ in samples) / n
-    mean_s = sum(s for _, s in samples) / n
-    var = sum((c - mean_c) ** 2 for c, _ in samples)
-    slope = sum((c - mean_c) * (s - mean_s) for c, s in samples) / var if var else 0.0
+    """Fit seconds = overhead + chars / cps over (chars, seconds) samples, robust to a bad clip.
+
+    A cloned voice sometimes garbles a calibration sentence (IndexTTS once took 8 s to
+    say "Vamos allá."), which drags a least-squares fit far off: the worst sample is
+    dropped while it is more than 1 s off (up to 2, keeping at least 5), and the
+    overhead is capped at MAX_OVERHEAD_S, the most measured on real clips was 1.5 s.
+    """
+    points = list(samples)
+    pace = _least_squares(points)
+    for _ in range(2):
+        if len(points) <= 5:
+            break
+        worst = max(points, key=lambda p: abs(p[1] - pace.seconds(p[0])))
+        if abs(worst[1] - pace.seconds(worst[0])) <= 1.0:
+            break
+        points.remove(worst)
+        pace = _least_squares(points)
+    if pace.overhead > MAX_OVERHEAD_S:
+        chars = sum(c for c, _ in points)
+        speech = sum(s - MAX_OVERHEAD_S for _, s in points)
+        pace = Pace(round(chars / speech, 2), MAX_OVERHEAD_S) if speech > 0 else _plain_rate(points)
+    return pace
+
+
+MAX_OVERHEAD_S = 2.5
+
+
+def _plain_rate(points: list[tuple[int, float]]) -> Pace:
+    return Pace(round(sum(c for c, _ in points) / sum(s for _, s in points), 2))
+
+
+def _least_squares(points: list[tuple[int, float]]) -> Pace:
+    n = len(points)
+    mean_c = sum(c for c, _ in points) / n
+    mean_s = sum(s for _, s in points) / n
+    var = sum((c - mean_c) ** 2 for c, _ in points)
+    slope = sum((c - mean_c) * (s - mean_s) for c, s in points) / var if var else 0.0
     overhead = mean_s - slope * mean_c
     if slope <= 0 or overhead < 0:  # degenerate: fall back to a plain rate
-        return Pace(round(sum(c for c, _ in samples) / sum(s for _, s in samples), 2))
+        return _plain_rate(points)
     return Pace(round(1 / slope, 2), round(overhead, 3))
 
 
@@ -336,8 +367,9 @@ def cloned_rate_key(engine: str, ref: Path) -> str:
     from . import clone
 
     factor = calibration_factor(engine)
-    # "pace": overhead + rate (Pace); older entries hold a plain rate
-    return f"{engine_model(engine)} {clone.file_hash(ref)}" + (f" @{factor}" if factor != 1.0 else "") + " pace"
+    # "pace-v2": overhead + rate (Pace) with the outlier-robust fit; older entries hold a plain
+    # rate ("" ) or a fit a garbled calibration clip could skew ("pace")
+    return f"{engine_model(engine)} {clone.file_hash(ref)}" + (f" @{factor}" if factor != 1.0 else "") + " pace-v2"
 
 
 def cached_rate(work_root: Path, engine: str, ref: Path | None, voice: str, rate: str) -> Pace | None:

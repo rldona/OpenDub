@@ -3,7 +3,7 @@
 It must stay self-contained (standard library, torch and indextts only), since
 OpenTranslator is not installed in that venv. Protocol, one JSON object per line:
 
-    worker → {"ready": true, "device": "...", "load_s": 12.3}
+    worker → {"ready": true, "device": "...", "accel": true, "load_s": 12.3}
     client → {"id": 1, "text": "...", "ref": "/abs/ref.wav", "out": "/abs/out.wav",
               "lang": "ES", "duration_factor": 1.0, "seed": 0}
     worker → {"id": 1, "ok": true, "seconds": 2.1} or {"id": 1, "ok": false, "error": "..."}
@@ -30,10 +30,19 @@ def main() -> None:
     import torch
     from indextts.infer_v2_5 import IndexTTS2
 
+    # IndexTTS's GPT2 acceleration engine: 1.3x faster with the same quality on the
+    # benchmark (docs/v2-plan.md); it needs flash-attn, installed by setup-indextts
+    try:
+        import flash_attn  # noqa: F401
+
+        accel = torch.cuda.is_available()
+    except ImportError:
+        accel = False
     tts = IndexTTS2(cfg_path=os.path.join(model_dir, "config.yaml"), model_dir=model_dir,
-                    use_bf16=torch.cuda.is_available())
+                    use_bf16=torch.cuda.is_available(), use_accel=accel)
     device = torch.cuda.get_device_name(0) if torch.cuda.is_available() else "cpu"
-    protocol.write(json.dumps({"ready": True, "device": device, "load_s": round(time.monotonic() - t0, 1)}) + "\n")
+    protocol.write(json.dumps({"ready": True, "device": device, "accel": accel,
+                               "load_s": round(time.monotonic() - t0, 1)}) + "\n")
 
     for line in sys.stdin:
         if not line.strip():
