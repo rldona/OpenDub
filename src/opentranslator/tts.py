@@ -13,6 +13,7 @@ from __future__ import annotations
 import asyncio
 import hashlib
 import json
+import re
 import wave
 from concurrent.futures import ThreadPoolExecutor
 from dataclasses import asdict, dataclass
@@ -71,12 +72,19 @@ def _wav_duration(path: Path) -> float:
         return w.getnframes() / w.getframerate()
 
 
-def _raw_path(wd: WorkDir, voice: str, text: str) -> Path:
-    key = hashlib.sha256(f"{voice}\n{text}".encode()).hexdigest()[:16]
+def check_rate(rate: str) -> str:
+    """Valida el formato de velocidad de edge-tts: "+0%", "-10%"…"""
+    if not re.fullmatch(r"[+-]\d{1,2}%", rate):
+        raise SystemExit(f"--rate debe tener la forma -10% o +5% (no {rate!r})")
+    return rate
+
+
+def _raw_path(wd: WorkDir, voice: str, rate: str, text: str) -> Path:
+    key = hashlib.sha256(f"{voice}\n{rate}\n{text}".encode()).hexdigest()[:16]
     return wd.tts_dir / "raw" / f"{key}.mp3"
 
 
-async def _synthesize_all(jobs: list[tuple[str, Path]], voice: str) -> None:
+async def _synthesize_all(jobs: list[tuple[str, Path]], voice: str, rate: str) -> None:
     import edge_tts
 
     sem = asyncio.Semaphore(CONCURRENCY)
@@ -91,7 +99,7 @@ async def _synthesize_all(jobs: list[tuple[str, Path]], voice: str) -> None:
                 for attempt in range(1, MAX_ATTEMPTS + 1):
                     try:
                         tmp = path.with_suffix(".part")
-                        await edge_tts.Communicate(text, voice).save(str(tmp))
+                        await edge_tts.Communicate(text, voice, rate=rate).save(str(tmp))
                         tmp.rename(path)
                         break
                     except Exception as e:  # edge-tts no tipa bien sus errores de red
@@ -140,6 +148,7 @@ def run(wd: WorkDir, settings: Settings, force: bool = False) -> list[Clip]:
     segments = load_segments(wd.translation)
     params = {
         "voice": settings.voice,
+        "rate": check_rate(settings.rate),
         "min_tempo": settings.min_tempo,
         "max_tempo": settings.max_tempo,
         "texts": [(s.id, s.start, s.text) for s in segments],
@@ -153,14 +162,14 @@ def run(wd: WorkDir, settings: Settings, force: bool = False) -> list[Clip]:
     for old in wd.tts_dir.glob("*.wav"):
         old.unlink()
 
-    raws = [_raw_path(wd, settings.voice, s.text) for s in segments]
+    raws = [_raw_path(wd, settings.voice, settings.rate, s.text) for s in segments]
     if force:
         for p in raws:
             p.unlink(missing_ok=True)
     pending = {p: s.text for s, p in zip(segments, raws) if not p.exists()}
-    log.info(f"Voz {settings.voice} · {len(segments)} segmentos, {len(pending)} por sintetizar")
+    log.info(f"Voz {settings.voice} ({settings.rate}) · {len(segments)} segmentos, {len(pending)} por sintetizar")
     if pending:
-        asyncio.run(_synthesize_all([(t, p) for p, t in pending.items()], settings.voice))
+        asyncio.run(_synthesize_all([(t, p) for p, t in pending.items()], settings.voice, settings.rate))
 
     meta = json.loads(wd.meta.read_text(encoding="utf-8"))
     slots = _slots(segments, meta.get("duration"))

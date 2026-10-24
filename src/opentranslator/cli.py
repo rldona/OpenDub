@@ -40,6 +40,13 @@ Backend = Annotated[
 ClaudeModel = Annotated[str, typer.Option("--model", help="Modelo de Claude para traducir")]
 Voice = Annotated[str, typer.Option("--voice", help="Voz de edge-tts (es-ES-…, es-MX-…)")]
 BatchSize = Annotated[int, typer.Option("--batch-size", help="Segmentos por llamada de traducción")]
+CharsPerSecond = Annotated[
+    float,
+    typer.Option("--chars-per-second", help="Velocidad de locución para calcular la longitud de la traducción"),
+]
+Rate = Annotated[
+    str, typer.Option("--rate", help="Velocidad de la voz en edge-tts, p. ej. -10% (más lenta) o +5%")
+]
 MinTempo = Annotated[
     float, typer.Option("--min-tempo", help="Tempo mínimo (<1 ralentiza clips cortos; 1 = nunca)")
 ]
@@ -104,11 +111,13 @@ def translate(
     model: ClaudeModel = "claude-sonnet-5-5",
     voice: Voice = "es-ES-AlvaroNeural",
     batch_size: BatchSize = 30,
+    chars_per_second: CharsPerSecond = 17.0,
     force: Force = False,
 ) -> None:
     """Traduce los segmentos al español con Claude. Requiere `transcribe`."""
     settings = Settings(
-        work_root=work, backend=backend, claude_model=model, voice=voice, batch_size=batch_size
+        work_root=work, backend=backend, claude_model=model, voice=voice, batch_size=batch_size,
+        chars_per_second=chars_per_second,
     )
     wd = _setup(url, settings)
     _require(wd, "transcribe")
@@ -121,12 +130,15 @@ def tts(
     url: Url,
     work: WorkRoot = Path("work"),
     voice: Voice = "es-ES-AlvaroNeural",
+    rate: Rate = "+0%",
     min_tempo: MinTempo = 1.0,
     max_tempo: MaxTempo = 1.25,
     force: Force = False,
 ) -> None:
     """Genera un clip de voz por segmento y lo ajusta a su hueco. Requiere `translate`."""
-    settings = Settings(work_root=work, voice=voice, min_tempo=min_tempo, max_tempo=max_tempo)
+    settings = Settings(
+        work_root=work, voice=voice, rate=rate, min_tempo=min_tempo, max_tempo=max_tempo
+    )
     wd = _setup(url, settings)
     _require(wd, "translate")
     with phase("TTS"):
@@ -162,6 +174,8 @@ def dub(
     model: ClaudeModel = "claude-sonnet-5-5",
     voice: Voice = "es-ES-AlvaroNeural",
     batch_size: BatchSize = 30,
+    chars_per_second: CharsPerSecond = 17.0,
+    rate: Rate = "+0%",
     min_tempo: MinTempo = 1.0,
     max_tempo: MaxTempo = 1.25,
     bg_volume: BgVolume = -20.0,
@@ -173,7 +187,8 @@ def dub(
     settings = Settings(
         work_root=work, source_lang=source_lang, max_height=max_height,
         subs=subs, whisper_model=whisper_model, backend=backend, claude_model=model,
-        voice=voice, batch_size=batch_size, min_tempo=min_tempo, max_tempo=max_tempo,
+        voice=voice, batch_size=batch_size, chars_per_second=chars_per_second, rate=rate,
+        min_tempo=min_tempo, max_tempo=max_tempo,
         bg_volume_db=bg_volume, mute_original=mute_original,
     )
     wd = _setup(url, settings)

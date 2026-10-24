@@ -29,7 +29,7 @@ def test_slot_borrows_at_most_one_second_of_silence():
 
 def test_user_prompt_includes_limits_and_context():
     seg = Segment(4, 0.0, 2.0, "Hello there.")
-    data = json.loads(translate._user_prompt([(seg, 2.0)], [("Hi.", "Hola.")]))
+    data = json.loads(translate._user_prompt([(seg, 2.0)], [("Hi.", "Hola.")], 15.0))
     assert data["contexto_previo"] == [{"original": "Hi.", "traduccion": "Hola."}]
     assert data["segmentos"] == [{"id": 4, "duracion_s": 2.0, "max_chars": 30, "texto": "Hello there."}]
 

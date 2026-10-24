@@ -56,3 +56,24 @@ def test_process_logs_overflow_when_too_long(tmp_path):
     clip = tts._process(Segment(1, 0.0, 1.5, "x"), 1.5, raw, tmp_path, Settings())
     assert clip.tempo == 1.25
     assert clip.overflow > 0.8
+
+
+@pytest.mark.parametrize("rate", ["+0%", "-10%", "+5%", "-50%"])
+def test_check_rate_accepts_edge_tts_format(rate):
+    assert tts.check_rate(rate) == rate
+
+
+@pytest.mark.parametrize("rate", ["-10", "10%", "-0.9", "-100%", ""])
+def test_check_rate_rejects_bad_values(rate):
+    with pytest.raises(SystemExit):
+        tts.check_rate(rate)
+
+
+def test_raw_cache_key_depends_on_rate(tmp_path):
+    from opentranslator.workdir import WorkDir
+
+    wd = WorkDir(tmp_path, "vid")
+    a = tts._raw_path(wd, "es-ES-AlvaroNeural", "+0%", "Hola.")
+    b = tts._raw_path(wd, "es-ES-AlvaroNeural", "-10%", "Hola.")
+    assert a != b
+    assert a == tts._raw_path(wd, "es-ES-AlvaroNeural", "+0%", "Hola.")

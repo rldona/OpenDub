@@ -21,8 +21,6 @@ from .log import console, log
 from .models import Segment, load_segments, save_segments
 from .workdir import WorkDir, params_hash
 
-# Velocidad aproximada de locución de las voces neuronales en español (caracteres/s)
-CHARS_PER_SECOND = 15.0
 CONTEXT_SEGMENTS = 5
 MAX_ATTEMPTS = 3
 
@@ -57,7 +55,8 @@ Reglas:
 No unas, partas ni omitas segmentos.
 - La traducción se leerá en el mismo tiempo que el original: no superes max_chars \
 (caracteres que caben en el hueco). Si el original no cabe, condensa sin perder el \
-sentido. Prefiere frases naturales y habladas a traducciones literales.
+sentido. Si cabe, traduce completo sin resumir: max_chars es un límite, no un objetivo \
+de recorte. Prefiere frases naturales y habladas a traducciones literales.
 - Un segmento puede empezar o terminar a mitad de frase: tradúcelo para que encaje \
 con sus vecinos.
 - Mantén el registro del original (tuteo o trato de usted, tono formal o coloquial).
@@ -79,7 +78,9 @@ def _slot(segments: list[Segment], i: int) -> float:
     return seg.duration + 1.0
 
 
-def _user_prompt(block: list[tuple[Segment, float]], context: list[tuple[str, str]]) -> str:
+def _user_prompt(
+    block: list[tuple[Segment, float]], context: list[tuple[str, str]], chars_per_second: float
+) -> str:
     payload: dict[str, Any] = {}
     if context:
         payload["contexto_previo"] = [{"original": o, "traduccion": t} for o, t in context]
@@ -87,7 +88,7 @@ def _user_prompt(block: list[tuple[Segment, float]], context: list[tuple[str, st
         {
             "id": s.id,
             "duracion_s": round(slot, 1),
-            "max_chars": round(slot * CHARS_PER_SECOND),
+            "max_chars": round(slot * chars_per_second),
             "texto": s.text,
         }
         for s, slot in block
@@ -152,7 +153,7 @@ def _call_api(system: str, prompt: str, model: str, api_key: str | None) -> tupl
 def _translate_block(
     block: list[tuple[Segment, float]], context: list[tuple[str, str]], system: str, settings: Settings
 ) -> tuple[dict[int, str], float]:
-    prompt = _user_prompt(block, context)
+    prompt = _user_prompt(block, context, settings.chars_per_second)
     expected = [s.id for s, _ in block]
     cost = 0.0
     for attempt in range(1, MAX_ATTEMPTS + 1):
@@ -181,6 +182,7 @@ def run(wd: WorkDir, settings: Settings, force: bool = False) -> list[Segment]:
     params = {
         "model": settings.claude_model,
         "batch": settings.batch_size,
+        "chars_per_second": settings.chars_per_second,
         "target": target,
         "source": [(s.id, s.text) for s in segments],
     }
@@ -224,7 +226,7 @@ def run(wd: WorkDir, settings: Settings, force: bool = False) -> list[Segment]:
     save_segments(wd.translation, result)
 
     over = [
-        (s, slot) for s, slot in zip(result, slots) if len(s.text) > slot * CHARS_PER_SECOND * 1.25
+        (s, slot) for s, slot in zip(result, slots) if len(s.text) > slot * settings.chars_per_second * 1.25
     ]
     ratio = sum(len(s.text) for s in result) / sum(len(s.text) for s in segments)
     log.info(f"Longitud ES/original: {ratio:.0%} · segmentos probablemente largos: {len(over)}")

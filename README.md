@@ -42,7 +42,9 @@ Opciones habituales de `dub`:
 | `--source-lang` | el de YouTube | Idioma original (si no se sabe, lo detecta whisper) |
 | `--whisper-model` | `small` | Modelo de faster-whisper (`medium`, `large-v3`… más lentos) |
 | `--backend` / `--model` | `cli` / `claude-sonnet-5-5` | Cómo y con qué modelo traducir |
-| `--max-tempo` / `--min-tempo` | `1.25` / `1.0` | Rango de atempo (`--min-tempo 0.85` permite ralentizar) |
+| `--rate` | `+0%` | Velocidad nativa de la voz en edge-tts; `--rate=-10%` habla más despacio sin estirar el audio |
+| `--chars-per-second` | `17` | Velocidad de locución con la que se limita la longitud de cada traducción |
+| `--max-tempo` / `--min-tempo` | `1.25` / `1.0` | Rango de atempo (`--min-tempo 0.9` permite ralentizar estirando el audio) |
 | `--force` | no | Rehace todas las fases |
 
 Cada fase también se puede lanzar sola, en orden: `download`, `transcribe`,
