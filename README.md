@@ -36,6 +36,14 @@ uv sync --extra separate
 On Linux, whisper and the separator use the NVIDIA GPU automatically when one is
 available; on a Mac, whisper runs on the CPU and the separator on the Apple GPU.
 
+Voice cloning (`--tts clone`) needs another extra, with Chatterbox Multilingual V3
+(installed from a pinned GitHub commit, since it isn't on PyPI yet). It also needs
+the separation, so install both:
+
+```bash
+uv sync --extra separate --extra clone
+```
+
 There are two ways to translate:
 
 - **Claude subscription (default, `--backend cli`)**: uses your Claude Code
@@ -57,6 +65,8 @@ Common `dub` options:
 | Option | Default | What it does |
 |---|---|---|
 | `--voice` | `es-ES-AlvaroNeural` | edge-tts voice (`es-ES-ElviraNeural`, `es-MX-JorgeNeural`…) |
+| `--tts` | `edge` | `edge`: the `--voice` voice · `clone`: the original speaker's voice, cloned from the separated vocals |
+| `--clone-ref` | none | Fixed Spanish recording to clone from when a cloned clip fails the quality check |
 | `--bg-volume` | `-15` | Volume of the original audio, in dB |
 | `--mute-original` | off | Drops the original audio |
 | `--separate` | off | Mixes over the separated background (music and effects, without the original voice) instead of the turned-down original |
@@ -92,10 +102,28 @@ but neither the translation nor the separation).
 | `tts/`, `tts.json` | One clip per sentence, with its tempo, duration and spoken text (shortened if needed) |
 | `overflow.log` | Sentences that didn't fit their slot, clips with abnormal duration and delayed clips |
 | `stems/vocals.wav`, `stems/background.wav` | Separated original voice and background |
+| `clone_ref.wav` | 10–15 s of the original speaker used as the cloning reference (`--tts clone`) |
 | `dub.wav`, `output.mp4` | Dubbed track and final video |
 
 Each voice's calibrated speaking rate is stored in `work/voice_rates.json`;
 delete it to measure again.
+
+## Voice cloning
+
+With `--tts clone`, `dub` separates the audio right after transcribing it,
+picks the 10–15 s stretch of the original speaker with the fewest pauses as the
+reference and measures the cloned voice's speaking rate before translating.
+Every cloned clip is transcribed back with whisper (`--whisper-model`); one
+whose text doesn't match, or whose duration is abnormal, goes down a fallback
+chain that keeps the same voice as long as possible:
+
+1. Regenerate with another seed.
+2. Regenerate with a shorter version of the sentence, written by Claude.
+3. Clone from the fixed reference (`--clone-ref`), if one was given.
+4. edge-tts (`--voice`) as a last resort, recorded in `overflow.log`.
+
+`tts.json` records which of these produced each clip. Chatterbox adds Resemble
+AI's inaudible Perth watermark to everything it generates.
 
 ## Known limitations
 
@@ -104,7 +132,8 @@ delete it to measure again.
 - On a Mac, faster-whisper runs on the CPU (CTranslate2 doesn't use Metal):
   `small` transcribes about 2 minutes of audio in ~20 s.
 - edge-tts relies on an unofficial Microsoft service and could stop working.
-- No voice cloning yet (planned for v2, see [docs/v2-plan.md](docs/v2-plan.md)).
+- Voice cloning follows a single speaker (the one in the reference); videos
+  with several voices are all dubbed with that one.
 - On Linux, whisper uses the GPU only when cuBLAS and cuDNN can be loaded: they
   come with `uv sync --extra separate` (PyTorch's CUDA wheels) or a system CUDA
   install; otherwise it falls back to the CPU with a warning. Tested on an RTX

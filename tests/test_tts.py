@@ -43,7 +43,7 @@ def _tone(path, seconds, silence=0.3, rate=24000):
 def test_process_trims_silence_and_speeds_up(tmp_path):
     raw = tmp_path / "raw.wav"
     _tone(raw, 2.0)
-    clip = tts._process(Segment(7, 1.0, 2.5, "x"), 1.8, raw, tmp_path, Settings())
+    clip = tts._process(Segment(7, 1.0, 2.5, "x"), 1.8, raw, tmp_path, Settings(), "edge")
     assert 1.9 < clip.raw_duration < 2.15  # without the silence at the edges
     assert math.isclose(clip.tempo, clip.raw_duration / 1.8, abs_tol=0.01)
     assert clip.overflow < 0.05
@@ -53,7 +53,7 @@ def test_process_trims_silence_and_speeds_up(tmp_path):
 def test_process_logs_overflow_when_too_long(tmp_path):
     raw = tmp_path / "raw.wav"
     _tone(raw, 3.0)
-    clip = tts._process(Segment(1, 0.0, 1.5, "x"), 1.5, raw, tmp_path, Settings())
+    clip = tts._process(Segment(1, 0.0, 1.5, "x"), 1.5, raw, tmp_path, Settings(), "edge")
     assert clip.tempo == 1.25
     assert clip.overflow > 0.8
 
@@ -73,10 +73,25 @@ def test_raw_cache_key_depends_on_rate(tmp_path):
     from opentranslator.workdir import WorkDir
 
     wd = WorkDir(tmp_path, "vid")
-    a = tts._raw_path(wd, "es-ES-AlvaroNeural", "+0%", "Hola.")
-    b = tts._raw_path(wd, "es-ES-AlvaroNeural", "-10%", "Hola.")
+    a = tts._raw_path(wd, tts.Voice("edge", "es-ES-AlvaroNeural", "+0%"), "Hola.")
+    b = tts._raw_path(wd, tts.Voice("edge", "es-ES-AlvaroNeural", "-10%"), "Hola.")
     assert a != b
-    assert a == tts._raw_path(wd, "es-ES-AlvaroNeural", "+0%", "Hola.")
+    assert a == tts._raw_path(wd, tts.Voice("edge", "es-ES-AlvaroNeural", "+0%"), "Hola.")
+
+
+def test_raw_cache_key_of_cloned_voice_depends_on_reference_and_seed(tmp_path):
+    from opentranslator.workdir import WorkDir
+
+    wd = WorkDir(tmp_path, "vid")
+    ref_a, ref_b = tmp_path / "a.wav", tmp_path / "b.wav"
+    ref_a.write_bytes(b"a")
+    ref_b.write_bytes(b"b")
+    voice = tts.Voice.clone(Settings(), ref_a)
+    a = tts._raw_path(wd, voice, "Hola.")
+    assert a.suffix == ".wav"
+    assert a == tts._raw_path(wd, tts.Voice.clone(Settings(), ref_a, label="other"), "Hola.")
+    assert a != tts._raw_path(wd, tts.Voice.clone(Settings(), ref_b), "Hola.")
+    assert a != tts._raw_path(wd, tts.Voice.clone(Settings(), ref_a, seed=1), "Hola.")
 
 
 def _c(id, text, raw, slot=10.0, overflow=0.0):
@@ -113,7 +128,7 @@ def test_run_shortens_clips_that_do_not_fit(tmp_path, monkeypatch):
     async def no_check(voice):
         return None
 
-    def fake_render(wd_, segments, slots, settings, regenerate=False):
+    def fake_render(wd_, segments, slots, settings, voice, regenerate=False):
         # 20 chars/s unaccelerated: the clip fits if len(text)/20 <= slot·1.25
         out = []
         for s in segments:

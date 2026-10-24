@@ -17,10 +17,10 @@ today, voice cloning (the most uncertain part) last.
 ## Phase B — Voice and music separation
 - New `separate` phase (cached and runnable on its own, like the others) that
   produces `stems/vocals.wav` and `stems/background.wav`.
-- Benchmark on an M1 Pro (122 s and 155 s videos): HTDemucs on MLX took 8–10 s,
+- Benchmark on an M1 Pro (122 s and 155 s videos): HTDemucs took 8–10 s,
   Mel-Band RoFormer 73–85 s and BS-RoFormer 480–600 s. HTDemucs and Mel-Band
   left equally clean backgrounds (whisper found no speech in either), so HTDemucs
-  was chosen: demucs-mlx on Apple Silicon, demucs on PyTorch/CUDA elsewhere.
+  was chosen.
 - Repeated on an RTX 5080 (CUDA 12.8, same videos): HTDemucs 3.7–6.4 s including
   model load, Mel-Band RoFormer 4.5–5.9 s (+1.4 s load), BS-RoFormer 32–40 s
   (+7 s load). Whisper large-v3 found no speech in any of the backgrounds, and
@@ -31,11 +31,34 @@ today, voice cloning (the most uncertain part) last.
 - Heavy dependencies in an optional extra.
 
 ## Phase C — Voice cloning
-- Benchmark: Qwen3-TTS (MLX; confirm the Apache 2.0 license on the model card)
-  vs Chatterbox Multilingual (MIT, with Perth audio watermarking).
-- `--tts edge|clone` engine; edge-tts stays the default and the fallback.
+- Benchmark three candidates on CUDA: Qwen3-TTS 1.7B Base (Apache 2.0),
+  Chatterbox Multilingual V3 (MIT, with Perth audio watermarking) and its Spain
+  Spanish finetune (`ResembleAI/Chatterbox-Multilingual-es-es`, MIT), which is
+  the most likely to fix the main risk: an English accent carried over from the
+  reference.
+- Measure speed, VRAM, intelligibility (whisper transcribes the Spanish output
+  back and it's compared with the text), speaking rate and voice similarity to
+  the reference with speaker embeddings (resemblyzer or SpeechBrain ECAPA). The
+  embedding score gives a comparable number across candidates and references,
+  but doesn't replace listening.
+- Results on the RTX 5080 (12 Spanish sentences per candidate, references from
+  both videos): Qwen3-TTS was the closest to the original voice (ECAPA 0.77
+  against a 0.88 same-speaker ceiling) but carried the English accent over:
+  whisper took several sentences for English (Spanish probability 0.55 on
+  average, down to 0.08). Both Chatterbox models sounded native (0.99) with
+  ECAPA 0.54–0.57, a third of the time on the GPU (real-time factor ~0.3 vs
+  0.69) and less VRAM (3.6 vs 4.6 GB). With the fixed Spanish reference all
+  three just sounded like that reference. **Chatterbox Multilingual V3 was
+  chosen after listening.** Its pins (torch 2.6, numpy 1.x, gradio) are lifted
+  with uv overrides in the `clone` extra.
+- `--tts edge|clone` engine; edge-tts stays the default.
 - Reference: a 10–15 s sample extracted from `vocals.wav` with its transcript,
   **or a fixed Spanish reference** (your own file or a stock voice) as plan B if
   the English accent isn't convincing.
 - A single speaker (the main one); diarization left for v3.
-- Optional whisper-based quality check; recalibrate the speaking rate per engine.
+- Whisper-based quality check; recalibrate the speaking rate per engine and
+  reference.
+- A clip that fails the check must not switch voices mid-video, so the fallback
+  order is: regenerate with another seed → regenerate with a sentence shortened
+  by Claude → clone with the fixed Spanish reference → edge-tts only as a last
+  resort, logged in `overflow.log`.

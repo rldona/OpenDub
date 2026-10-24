@@ -22,6 +22,12 @@ separate = [
     "demucs>=4.1.0; sys_platform == 'linux'",
     "torch>=2.7; sys_platform == 'linux'",
 ]
+# Voice cloning with Chatterbox Multilingual V3 (not on PyPI yet: pinned GitHub commit)
+clone = [
+    "chatterbox-tts",
+    "torch>=2.7",
+    "torchaudio>=2.7",
+]
 
 [project.scripts]
 opentranslator = "opentranslator.cli:app"
@@ -38,6 +44,8 @@ dev = [
 # CUDA 12.8 builds of PyTorch: required by RTX 50-series (Blackwell) GPUs
 [tool.uv.sources]
 torch = [{ index = "pytorch-cu128", marker = "sys_platform == 'linux'" }]
+torchaudio = [{ index = "pytorch-cu128", marker = "sys_platform == 'linux'" }]
+chatterbox-tts = { git = "https://github.com/resemble-ai/chatterbox", rev = "5de7a54aa4e5e2baadb0182dde554908b48b85c2" }
 
 [[tool.uv.index]]
 name = "pytorch-cu128"
@@ -45,6 +53,14 @@ url = "https://download.pytorch.org/whl/cu128"
 explicit = true
 
 [tool.uv]
+# chatterbox-tts pins torch 2.6 (no RTX 50-series support), numpy 1.x and gradio
+# (only used by its demos): lift the pins and drop gradio
+override-dependencies = [
+    "torch>=2.7",
+    "torchaudio>=2.7",
+    "numpy>=2.4.6",
+    "gradio; sys_platform == 'never'",
+]
 # Supported platforms: Apple Silicon Macs and Linux (with or without an NVIDIA GPU)
 environments = [
     "sys_platform == 'darwin' and platform_machine == 'arm64'",

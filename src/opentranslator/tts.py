@@ -1,15 +1,19 @@
-"""Phase 4: per-segment TTS with edge-tts and speed fitting with atempo.
+"""Phase 4: per-segment TTS (edge-tts or a cloned voice) and speed fitting with atempo.
 
 For each translated segment:
-1. Synthesize the mp3 with edge-tts (cached by voice+rate+text, so editing one
-   sentence only regenerates that one).
+1. Synthesize the clip with edge-tts or, with `--tts clone`, with the original
+   speaker's cloned voice (cached by voice+text, so editing one sentence only
+   regenerates that one).
 2. Trim leading and trailing silence and convert to 24 kHz mono wav.
 3. If it does not fit its slot (up to the start of the next segment), speed it
    up with atempo up to max_tempo.
 4. If it still does not fit, ask Claude for a shorter version of the sentence
    and re-synthesize it (up to SHORTEN_ROUNDS rounds).
 5. Quality check: clips whose speed is abnormal for their text (empty, cut off,
-   repetitions) are regenerated once.
+   repetitions) are regenerated once. Cloned clips are also transcribed with
+   whisper, and a failing one goes down a fallback chain that keeps the voice
+   as long as possible: another seed → a shorter sentence → the fixed
+   reference (`--clone-ref`) → edge-tts as a last resort.
 Whatever still does not fit or fails the check is written to overflow.log.
 """
 
@@ -56,6 +60,29 @@ CALIBRATION_SENTENCES = [
 ]
 
 
+SEED = 0  # cloned voices: base seed, so a rerun reproduces the same clips
+
+
+@dataclass(frozen=True)
+class Voice:
+    """How a clip is spoken: an edge-tts voice or a clone of a reference recording."""
+
+    engine: str  # edge | clone
+    name: str  # edge-tts voice; also gives the target Spanish variant
+    rate: str
+    ref: Path | None = None  # clone: reference recording
+    seed: int = SEED
+    label: str = "edge"  # recorded in tts.json
+
+    @classmethod
+    def edge(cls, settings: Settings) -> Voice:
+        return cls("edge", settings.voice, settings.rate)
+
+    @classmethod
+    def clone(cls, settings: Settings, ref: Path, label: str = "clone", seed: int = SEED) -> Voice:
+        return cls("clone", settings.voice, settings.rate, ref=ref, seed=seed, label=label)
+
+
 @dataclass
 class Clip:
     id: int
@@ -67,6 +94,7 @@ class Clip:
     overflow: float  # seconds that still do not fit (0 if it fits)
     file: str
     text: str = ""  # spoken text (may be a shortened version of the translation)
+    voice: str = "edge"  # Voice.label that produced it
 
 
 def choose_tempo(duration: float, slot: float, seg_duration: float, min_tempo: float, max_tempo: float) -> float:
@@ -119,9 +147,32 @@ def check_rate(rate: str) -> str:
     return rate
 
 
-def _raw_path(wd: WorkDir, voice: str, rate: str, text: str) -> Path:
-    key = hashlib.sha256(f"{voice}\n{rate}\n{text}".encode()).hexdigest()[:16]
+def _raw_path(wd: WorkDir, voice: Voice, text: str) -> Path:
+    if voice.engine == "clone":
+        from . import clone
+
+        raw = f"{clone.MODEL}\n{clone.file_hash(voice.ref)}\n{voice.seed}\n{text}"
+        return wd.tts_dir / "raw" / f"{hashlib.sha256(raw.encode()).hexdigest()[:16]}.wav"
+    key = hashlib.sha256(f"{voice.name}\n{voice.rate}\n{text}".encode()).hexdigest()[:16]
     return wd.tts_dir / "raw" / f"{key}.mp3"
+
+
+def _synthesize(jobs: list[tuple[str, Path]], voice: Voice) -> None:
+    """Synthesize every (text, path) job with the given voice."""
+    if voice.engine == "edge":
+        asyncio.run(_synthesize_all(jobs, voice.name, voice.rate))
+        return
+    from . import clone
+
+    # One GPU model: clips go one after another
+    with Progress(
+        "[progress.description]{task.description}", BarColumn(), MofNCompleteColumn(),
+        TimeElapsedColumn(), console=console, transient=True,
+    ) as progress:
+        task = progress.add_task("Cloning voice", total=len(jobs))
+        for text, path in jobs:
+            clone.synthesize(text, voice.ref, voice.seed, path)
+            progress.advance(task)
 
 
 async def _synthesize_all(jobs: list[tuple[str, Path]], voice: str, rate: str) -> None:
@@ -172,24 +223,59 @@ def speaking_rate(work_root: Path, voice: str, rate: str) -> float:
     if key in rates:
         return rates[key]
 
-    tmp_dir = work_root / ".calibration"
-    tmp_dir.mkdir(parents=True, exist_ok=True)
-    jobs = [(text, tmp_dir / f"ref{i}.mp3") for i, text in enumerate(CALIBRATION_SENTENCES)]
-    for _, raw in jobs:
-        raw.unlink(missing_ok=True)
-    asyncio.run(_synthesize_all(jobs, voice, rate))
-    total = 0.0
-    for _, raw in jobs:
-        trimmed = raw.with_suffix(".wav")
-        ffmpeg("-i", str(raw), "-af", TRIM, "-ac", "1", "-ar", str(SAMPLE_RATE), str(trimmed))
-        total += _wav_duration(trimmed)
-    rates[key] = round(sum(len(t) for t, _ in jobs) / total, 2)
+    rates[key] = _calibrate(work_root, Voice("edge", voice, rate))
     cache.write_text(json.dumps(rates, indent=1))
     log.info(f"Calibrated rate for {voice} ({rate}): {rates[key]} chars/s")
     return rates[key]
 
 
-def _process(seg: Segment, slot: float, raw: Path, out_dir: Path, settings: Settings) -> Clip:
+def clone_speaking_rate(work_root: Path, ref: Path) -> float:
+    """Characters per second of the voice cloned from `ref`, cached like speaking_rate."""
+    from . import clone
+
+    cache = work_root / "voice_rates.json"
+    rates = json.loads(cache.read_text()) if cache.exists() else {}
+    key = f"{clone.MODEL} {clone.file_hash(ref)}"
+    if key not in rates:
+        rates[key] = _calibrate(work_root, Voice("clone", "", "", ref=ref))
+        cache.write_text(json.dumps(rates, indent=1))
+        log.info(f"Calibrated rate for the cloned voice: {rates[key]} chars/s")
+    return rates[key]
+
+
+def voice_rate(wd: WorkDir, settings: Settings) -> float:
+    """Speaking rate of the voice the video will be dubbed with."""
+    if check_engine(settings.tts) == "clone":
+        from . import clone
+
+        return clone_speaking_rate(settings.work_root, clone.reference(wd))
+    return speaking_rate(settings.work_root, settings.voice, settings.rate)
+
+
+def check_engine(engine: str) -> str:
+    if engine not in ("edge", "clone"):
+        raise SystemExit(f"--tts must be edge or clone (not {engine!r})")
+    return engine
+
+
+def _calibrate(work_root: Path, voice: Voice) -> float:
+    """Synthesize the calibration sentences and measure their characters per second."""
+    tmp_dir = work_root / ".calibration"
+    tmp_dir.mkdir(parents=True, exist_ok=True)
+    ext = ".mp3" if voice.engine == "edge" else ".raw.wav"
+    jobs = [(text, tmp_dir / f"ref{i}{ext}") for i, text in enumerate(CALIBRATION_SENTENCES)]
+    for _, raw in jobs:
+        raw.unlink(missing_ok=True)
+    _synthesize(jobs, voice)
+    total = 0.0
+    for i, (_, raw) in enumerate(jobs):
+        trimmed = tmp_dir / f"ref{i}.wav"
+        ffmpeg("-i", str(raw), "-af", TRIM, "-ac", "1", "-ar", str(SAMPLE_RATE), str(trimmed))
+        total += _wav_duration(trimmed)
+    return round(sum(len(t) for t, _ in jobs) / total, 2)
+
+
+def _process(seg: Segment, slot: float, raw: Path, out_dir: Path, settings: Settings, label: str) -> Clip:
     trimmed = out_dir / f"{seg.id:04d}.trim.wav"
     final = out_dir / f"{seg.id:04d}.wav"
     ffmpeg("-i", str(raw), "-af", TRIM, "-ac", "1", "-ar", str(SAMPLE_RATE), str(trimmed))
@@ -208,7 +294,7 @@ def _process(seg: Segment, slot: float, raw: Path, out_dir: Path, settings: Sett
         tempo=round(tempo, 3), duration=round(duration, 3),
         # atempo fits the clip to the slot with a few ms of rounding: that is not an overflow
         overflow=round(overflow, 3) if overflow > OVERFLOW_EPSILON else 0.0,
-        file=f"tts/{final.name}", text=seg.text,
+        file=f"tts/{final.name}", text=seg.text, voice=label,
     )
 
 
@@ -217,26 +303,41 @@ def load_clips(wd: WorkDir) -> list[Clip]:
 
 
 def _render(
-    wd: WorkDir, segments: list[Segment], slots: dict[int, float], settings: Settings, regenerate: bool = False
+    wd: WorkDir, segments: list[Segment], slots: dict[int, float], settings: Settings, voice: Voice,
+    regenerate: bool = False,
 ) -> list[Clip]:
     """Synthesize (whatever is not cached) and process the given segments."""
-    raws = [_raw_path(wd, settings.voice, settings.rate, s.text) for s in segments]
+    raws = [_raw_path(wd, voice, s.text) for s in segments]
     if regenerate:
         for p in raws:
             p.unlink(missing_ok=True)
     pending = {p: s.text for s, p in zip(segments, raws) if not p.exists()}
     if pending:
-        asyncio.run(_synthesize_all([(t, p) for p, t in pending.items()], settings.voice, settings.rate))
+        _synthesize([(t, p) for p, t in pending.items()], voice)
     with ThreadPoolExecutor(max_workers=CONCURRENCY) as pool:
         return list(pool.map(
-            lambda args: _process(args[0], slots[args[0].id], args[1], wd.tts_dir, settings),
+            lambda args: _process(args[0], slots[args[0].id], args[1], wd.tts_dir, settings, voice.label),
             zip(segments, raws),
         ))
 
 
+def _render_each(
+    wd: WorkDir, jobs: list[tuple[Segment, Voice]], slots: dict[int, float], settings: Settings,
+    regenerate: bool = False,
+) -> list[Clip]:
+    """Like _render, but every segment with its own voice."""
+    by_voice: dict[Voice, list[Segment]] = {}
+    for seg, voice in jobs:
+        by_voice.setdefault(voice, []).append(seg)
+    return [
+        clip for voice, segs in by_voice.items()
+        for clip in _render(wd, segs, slots, settings, voice, regenerate=regenerate)
+    ]
+
+
 def _shorten_overflows(
     wd: WorkDir, clips: dict[int, Clip], originals: dict[int, str], slots: dict[int, float],
-    by_id: dict[int, Segment], settings: Settings,
+    by_id: dict[int, Segment], settings: Settings, voices: dict[int, Voice],
 ) -> int:
     """Re-translate and re-synthesize clips that do not fit. Return how many were shortened."""
     from . import translate  # lazy import: translate also imports this module
@@ -249,15 +350,72 @@ def _shorten_overflows(
         log.info(f"Shortening round {round_}: {len(bad)} sentence(s) do not fit, asking for shorter versions…")
         items = [(c.id, originals[c.id], c.text, shorten_target(c.text, c, settings.max_tempo)) for c in bad]
         new_texts = translate.shorten(items, settings.voice, settings)
-        segs = [replace(by_id[i], text=t) for i, t in new_texts.items()]
-        for clip in _render(wd, segs, slots, settings):
+        jobs = [(replace(by_id[i], text=t), voices[i]) for i, t in new_texts.items()]
+        for clip in _render_each(wd, jobs, slots, settings):
             clips[clip.id] = clip
         shortened.update(new_texts)
     return len(shortened)
 
 
+def _clone_failures(wd: WorkDir, ids: set[int], clips: dict[int, Clip], settings: Settings) -> set[int]:
+    """Cloned clips among `ids` with an abnormal duration or that whisper can't understand."""
+    from . import clone
+
+    bad = {c.id for c in suspicious(list(clips.values())) if c.id in ids}
+    rest = [(i, wd.path / clips[i].file, clips[i].text) for i in sorted(ids - bad)]
+    return bad | (clone.unintelligible(rest, settings.whisper_model) if rest else set())
+
+
+def _repair_clones(
+    wd: WorkDir, clips: dict[int, Clip], voices: dict[int, Voice], slots: dict[int, float],
+    by_id: dict[int, Segment], settings: Settings,
+) -> set[int]:
+    """Redo the cloned clips that fail the quality check without switching voices mid-video.
+
+    Fallback chain, each step only for the clips the previous one could not fix:
+    another seed → a sentence shortened by Claude → the fixed reference
+    (--clone-ref) → edge-tts. Returns the ids that ended up with edge-tts.
+    """
+    from . import translate  # lazy import: translate also imports this module
+
+    bad = _clone_failures(wd, set(clips), clips, settings)
+    steps = ["another seed", "a shorter sentence", "the fixed reference", "edge-tts"]
+    for step in steps:
+        if not bad:
+            return set()
+        if step == "a shorter sentence" and not settings.shorten:
+            continue
+        if step == "the fixed reference" and not settings.clone_ref:
+            continue
+        log.warning(f"Quality check: {len(bad)} cloned clip(s) failed, retrying with {step}…")
+        texts = {i: clips[i].text for i in bad}
+        if step == "another seed":
+            new_voices = {i: replace(voices[i], seed=voices[i].seed + 1, label="clone (seed+1)") for i in bad}
+        elif step == "a shorter sentence":
+            originals = {s.id: s.text for s in load_segments(wd.segments)}
+            items = [(i, originals[i], texts[i], max(int(len(texts[i]) * 0.85), 1)) for i in sorted(bad)]
+            texts = translate.shorten(items, settings.voice, settings)
+            new_voices = {i: replace(voices[i], label="clone (shortened)") for i in bad}
+        elif step == "the fixed reference":
+            new_voices = {i: Voice.clone(settings, settings.clone_ref, label="clone (fixed reference)") for i in bad}
+        else:
+            new_voices = {i: Voice.edge(settings) for i in bad}
+        jobs = [(replace(by_id[i], text=texts[i]), new_voices[i]) for i in sorted(bad)]
+        for clip in _render_each(wd, jobs, slots, settings):
+            clips[clip.id] = clip
+        voices.update(new_voices)
+        if step == "edge-tts":
+            return bad
+        bad = _clone_failures(wd, bad, clips, settings)
+    return set()
+
+
 def run(wd: WorkDir, settings: Settings, force: bool = False) -> list[Clip]:
+    from . import clone
+
     segments = load_segments(wd.translation)
+    engine = check_engine(settings.tts)
+    ref = clone.reference(wd) if engine == "clone" else None
     params = {
         "voice": settings.voice,
         "rate": check_rate(settings.rate),
@@ -266,11 +424,19 @@ def run(wd: WorkDir, settings: Settings, force: bool = False) -> list[Clip]:
         "shorten": settings.claude_model if settings.shorten else None,
         "texts": [(s.id, s.start, s.text) for s in segments],
     }
+    if engine == "clone":
+        if settings.clone_ref and not settings.clone_ref.exists():
+            raise SystemExit(f"--clone-ref {settings.clone_ref} does not exist")
+        params |= {
+            "tts": f"{clone.MODEL} {clone.file_hash(ref)}",
+            "clone_ref": clone.file_hash(settings.clone_ref) if settings.clone_ref else None,
+            "qc_whisper": settings.whisper_model,
+        }
     if not force and wd.is_done("tts", params) and wd.tts_index.exists():
         log.info("TTS cached, skipping")
         return load_clips(wd)
 
-    asyncio.run(_check_voice(settings.voice))
+    asyncio.run(_check_voice(settings.voice))  # edge-tts is also the cloned voice's last resort
     (wd.tts_dir / "raw").mkdir(parents=True, exist_ok=True)
     for old in wd.tts_dir.glob("*.wav"):
         old.unlink()
@@ -278,22 +444,31 @@ def run(wd: WorkDir, settings: Settings, force: bool = False) -> list[Clip]:
     meta = json.loads(wd.meta.read_text(encoding="utf-8"))
     slots = {s.id: slot for s, slot in zip(segments, _slots(segments, meta.get("duration")))}
     by_id = {s.id: s for s in segments}
-    log.info(f"Voice {settings.voice} ({settings.rate}) · {len(segments)} segments")
-    clips = {c.id: c for c in _render(wd, segments, slots, settings, regenerate=force)}
+    voice = Voice.clone(settings, ref) if engine == "clone" else Voice.edge(settings)
+    voices = {s.id: voice for s in segments}
+    if engine == "clone":
+        log.info(f"Cloned voice ({clone.MODEL}) · {len(segments)} segments")
+    else:
+        log.info(f"Voice {settings.voice} ({settings.rate}) · {len(segments)} segments")
+    clips = {c.id: c for c in _render(wd, segments, slots, settings, voice, regenerate=force)}
 
-    # Quality check: regenerate clips with abnormal duration once
-    bad_qc = suspicious(list(clips.values()))
-    if bad_qc:
-        log.warning(f"Quality check: {len(bad_qc)} clip(s) with abnormal duration, regenerating…")
-        segs = [replace(by_id[c.id], text=c.text) for c in bad_qc]
-        for clip in _render(wd, segs, slots, settings, regenerate=True):
-            clips[clip.id] = clip
+    fell_back: set[int] = set()
+    if engine == "clone":
+        fell_back = _repair_clones(wd, clips, voices, slots, by_id, settings)
+    else:
+        # Quality check: regenerate clips with abnormal duration once
+        bad_qc = suspicious(list(clips.values()))
+        if bad_qc:
+            log.warning(f"Quality check: {len(bad_qc)} clip(s) with abnormal duration, regenerating…")
+            segs = [replace(by_id[c.id], text=c.text) for c in bad_qc]
+            for clip in _render(wd, segs, slots, settings, voice, regenerate=True):
+                clips[clip.id] = clip
     still_bad = {c.id for c in suspicious(list(clips.values()))}
 
     n_short = 0
     if settings.shorten:
         originals = {s.id: s.text for s in load_segments(wd.segments)}
-        n_short = _shorten_overflows(wd, clips, originals, slots, by_id, settings)
+        n_short = _shorten_overflows(wd, clips, originals, slots, by_id, settings, voices)
 
     result = [clips[s.id] for s in segments]
     wd.tts_index.write_text(
@@ -309,6 +484,8 @@ def run(wd: WorkDir, settings: Settings, force: bool = False) -> list[Clip]:
                 )
             if c.id in still_bad:
                 f.write(f"#{c.id} @{c.start:.2f}s: abnormal duration after regenerating ({c.raw_duration:.2f}s) · {c.text}\n")
+            if c.id in fell_back:
+                f.write(f"#{c.id} @{c.start:.2f}s: cloned voice failed the quality check, used edge-tts · {c.text}\n")
 
     sped = sum(1 for c in result if c.tempo > 1.0)
     chars_per_s = sum(len(c.text) for c in result) / sum(c.raw_duration for c in result)
@@ -316,6 +493,11 @@ def run(wd: WorkDir, settings: Settings, force: bool = False) -> list[Clip]:
         f"Sped up: {sped} · shortened: {n_short} · do not fit: {len(overflows)}"
         + (f" (max +{max(c.overflow for c in overflows):.2f}s, see overflow.log)" if overflows else "")
     )
+    if engine == "clone":
+        repaired = sum(1 for c in result if c.voice not in ("clone", "edge"))
+        log.info(f"Cloned clips redone by the quality check: {repaired} · fell back to edge-tts: {len(fell_back)}")
+    if fell_back:
+        log.warning(f"{len(fell_back)} clip(s) use edge-tts instead of the cloned voice (see overflow.log)")
     if still_bad:
         log.warning(f"{len(still_bad)} clip(s) still have an abnormal duration (see overflow.log)")
     log.info(f"Measured speaking rate: {chars_per_s:.1f} chars/s")

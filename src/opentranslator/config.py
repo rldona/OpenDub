@@ -22,7 +22,9 @@ class Settings:
     batch_size: int = 30  # segments per translation call
     # Speaking rate used to compute max_chars; None = calibrate it with the voice
     chars_per_second: float | None = None
-    voice: str = "es-ES-AlvaroNeural"
+    voice: str = "es-ES-AlvaroNeural"  # edge-tts voice (also the cloned voice's last resort)
+    tts: str = "edge"  # edge | clone (the original speaker's voice, from the separated vocals)
+    clone_ref: Path | None = None  # fixed reference for cloned clips that fail the quality check
     rate: str = "-10%"  # native edge-tts rate (more negative = slower)
     min_tempo: float = 1.0  # < 1 allows slowing down short clips to fill their slot
     max_tempo: float = 1.25

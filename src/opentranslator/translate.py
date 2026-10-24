@@ -205,9 +205,9 @@ def run(wd: WorkDir, settings: Settings, force: bool = False) -> list[Segment]:
     if settings.chars_per_second:
         cps = settings.chars_per_second
     else:
-        from .tts import speaking_rate  # lazy import: tts also imports this module
+        from .tts import voice_rate  # lazy import: tts also imports this module
 
-        cps = speaking_rate(settings.work_root, settings.voice, settings.rate)
+        cps = voice_rate(wd, settings)
     params = {
         "model": settings.claude_model,
         "batch": settings.batch_size,
