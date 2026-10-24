@@ -1,10 +1,10 @@
-"""Fase 5: composición de la pista doblada y mux con el vídeo original.
+"""Phase 5: compose the dubbed track and mux it with the original video.
 
-La pista doblada se compone en numpy (un clip por segmento en su timestamp) en
-lugar de con cientos de entradas `adelay` en ffmpeg. Si un clip no cabe en su
-hueco, el siguiente se empuja hacia delante en vez de solaparse; el desfase se
-recupera solo en el siguiente silencio. Después, una única llamada a ffmpeg baja
-el volumen del audio original, mezcla y copia el vídeo sin recodificar.
+The dubbed track is built in numpy (one clip per segment at its timestamp)
+instead of with hundreds of `adelay` inputs in ffmpeg. If a clip does not fit
+its slot, the next one is pushed forward instead of overlapping; the drift is
+recovered at the next pause. Then a single ffmpeg call lowers the original
+audio, mixes and copies the video without re-encoding.
 """
 
 from __future__ import annotations
@@ -23,18 +23,18 @@ from .media import ffmpeg
 from .tts import SAMPLE_RATE, Clip, load_clips
 from .workdir import WorkDir
 
-MIN_GAP = 0.08  # silencio mínimo entre dos clips empujados (s)
+MIN_GAP = 0.08  # minimum silence between two pushed clips (s)
 
 
 @dataclass
 class Placement:
     id: int
-    start: float  # posición real en la pista doblada
-    delay: float  # retraso respecto al timestamp original
+    start: float  # actual position in the dubbed track
+    delay: float  # delay relative to the original timestamp
 
 
 def place(clips: list[Clip], min_gap: float = MIN_GAP) -> list[Placement]:
-    """Coloca cada clip en su timestamp o, si el anterior aún suena, justo detrás."""
+    """Place each clip at its timestamp or, if the previous one is still playing, right after it."""
     placements = []
     cursor = 0.0
     for c in sorted(clips, key=lambda c: c.start):
@@ -53,7 +53,7 @@ def _read_wav(path: Path) -> np.ndarray:
 
 
 def compose(clips: list[Clip], placements: list[Placement], base: Path, total: float) -> tuple[np.ndarray, int]:
-    """Devuelve la pista doblada y cuántos clips se han tenido que recortar al final."""
+    """Return the dubbed track and how many clips had to be cut at the end."""
     track = np.zeros(int(total * SAMPLE_RATE), dtype=np.float32)
     by_id = {c.id: c for c in clips}
     cut = 0

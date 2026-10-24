@@ -1,7 +1,7 @@
 [project]
 name = "opentranslator"
 version = "0.1.0"
-description = "Dobla vídeos de YouTube a español con voz sintética"
+description = "Dub YouTube videos into Spanish with a synthetic voice"
 readme = "README.md"
 requires-python = ">=3.11"
 dependencies = [

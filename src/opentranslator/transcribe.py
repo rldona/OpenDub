@@ -1,4 +1,4 @@
-"""Fase 2: transcripción con timestamps (subtítulos de YouTube o faster-whisper)."""
+"""Phase 2: timestamped transcription (YouTube subtitles or faster-whisper)."""
 
 from __future__ import annotations
 
@@ -18,7 +18,7 @@ from .workdir import WorkDir
 
 
 def _choose_source(meta: dict[str, Any], subs_mode: str) -> str:
-    """Prioridad: manuales → (automáticos si --subs auto) → whisper."""
+    """Priority: manual → (auto-generated if --subs auto) → whisper."""
     if subs_mode not in ("manual", "auto", "none"):
         raise SystemExit(f"--subs debe ser manual, auto o none (no {subs_mode!r})")
     subs = meta.get("subs", {})
@@ -30,14 +30,14 @@ def _choose_source(meta: dict[str, Any], subs_mode: str) -> str:
 
 
 def _load_wav(path: Path) -> np.ndarray:
-    """Lee el wav de 16 kHz mono (evita el decodificador de PyAV de faster-whisper)."""
+    """Read the 16 kHz mono wav (avoids faster-whisper's PyAV decoder)."""
     with wave.open(str(path)) as w:
         frames = w.readframes(w.getnframes())
     return np.frombuffer(frames, dtype=np.int16).astype(np.float32) / 32768.0
 
 
 def _whisper(wd: WorkDir, model_name: str, lang: str | None) -> tuple[list[Piece], str]:
-    from faster_whisper import WhisperModel  # import perezoso: tarda en cargar
+    from faster_whisper import WhisperModel  # lazy import: slow to load
 
     log.info(f"Cargando modelo whisper [bold]{model_name}[/] (CPU int8)…")
     model = WhisperModel(model_name, device="cpu", compute_type="int8")

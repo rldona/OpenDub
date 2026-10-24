@@ -1,4 +1,4 @@
-"""Configuración: valores por defecto, .env y argumentos de CLI."""
+"""Settings: defaults, .env and CLI arguments."""
 
 from __future__ import annotations
 
@@ -14,19 +14,19 @@ load_dotenv()
 @dataclass
 class Settings:
     work_root: Path = Path("work")
-    source_lang: str | None = None  # None = el que declare YouTube
-    subs: str = "manual"  # manual | auto | none: fuentes de subtítulos aceptadas
+    source_lang: str | None = None  # None = whatever YouTube reports
+    subs: str = "manual"  # manual | auto | none: accepted subtitle sources
     whisper_model: str = "small"
-    backend: str = "cli"  # cli (suscripción vía Claude Code) | api
+    backend: str = "cli"  # cli (subscription via Claude Code) | api
     claude_model: str = "claude-sonnet-5-5"
-    batch_size: int = 30  # segmentos por llamada de traducción
-    # Velocidad de locución con la que se calcula max_chars; None = calibrarla con la voz
+    batch_size: int = 30  # segments per translation call
+    # Speaking rate used to compute max_chars; None = calibrate it with the voice
     chars_per_second: float | None = None
     voice: str = "es-ES-AlvaroNeural"
-    rate: str = "-10%"  # velocidad nativa de edge-tts (más negativo = más despacio)
-    min_tempo: float = 1.0  # < 1 permite ralentizar clips cortos para llenar su hueco
+    rate: str = "-10%"  # native edge-tts rate (more negative = slower)
+    min_tempo: float = 1.0  # < 1 allows slowing down short clips to fill their slot
     max_tempo: float = 1.25
-    shorten: bool = True  # retraducir más corto lo que no cabe ni a max_tempo
+    shorten: bool = True  # re-translate shorter whatever does not fit even at max_tempo
     bg_volume_db: float = -15.0
     mute_original: bool = False
     max_height: int = 1080

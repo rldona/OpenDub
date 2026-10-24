@@ -1,4 +1,4 @@
-"""Logs por fase con rich."""
+"""Per-phase logging with rich."""
 
 from __future__ import annotations
 
@@ -24,7 +24,7 @@ for noisy in ("httpx", "huggingface_hub"):
 
 @contextmanager
 def phase(name: str):
-    """Enmarca una fase del pipeline y mide su duración."""
+    """Frame a pipeline phase and time it."""
     console.rule(f"[bold cyan]{name}")
     start = time.monotonic()
     yield

@@ -12,12 +12,12 @@ from opentranslator.models import Segment
 @pytest.mark.parametrize(
     "duration, slot, seg_dur, min_tempo, expected",
     [
-        (2.0, 3.0, 2.5, 1.0, 1.0),  # cabe: no se toca
-        (3.3, 3.0, 2.5, 1.0, 1.1),  # acelera lo justo
-        (5.0, 3.0, 2.5, 1.0, 1.25),  # no cabe ni al máximo
-        (1.0, 3.0, 2.5, 1.0, 1.0),  # corto, sin ralentizar por defecto
-        (2.25, 3.0, 2.5, 0.85, 0.9),  # con min_tempo<1 ralentiza para llenar el segmento…
-        (1.0, 3.0, 2.5, 0.85, 0.85),  # …pero no por debajo del mínimo
+        (2.0, 3.0, 2.5, 1.0, 1.0),  # fits: left untouched
+        (3.3, 3.0, 2.5, 1.0, 1.1),  # sped up just enough
+        (5.0, 3.0, 2.5, 1.0, 1.25),  # does not fit even at the maximum
+        (1.0, 3.0, 2.5, 1.0, 1.0),  # short, not slowed down by default
+        (2.25, 3.0, 2.5, 0.85, 0.9),  # with min_tempo<1 it slows down to fill the segment…
+        (1.0, 3.0, 2.5, 0.85, 0.85),  # …but not below the minimum
     ],
 )
 def test_choose_tempo(duration, slot, seg_dur, min_tempo, expected):
@@ -30,7 +30,7 @@ def test_slots_reach_next_segment_or_media_end():
 
 
 def _tone(path, seconds, silence=0.3, rate=24000):
-    """Escribe un wav con un tono de `seconds` rodeado de silencio."""
+    """Write a wav with a `seconds`-long tone surrounded by silence."""
     pad = [0] * int(silence * rate)
     tone = [int(8000 * math.sin(2 * math.pi * 440 * i / rate)) for i in range(int(seconds * rate))]
     with wave.open(str(path), "wb") as w:
@@ -44,7 +44,7 @@ def test_process_trims_silence_and_speeds_up(tmp_path):
     raw = tmp_path / "raw.wav"
     _tone(raw, 2.0)
     clip = tts._process(Segment(7, 1.0, 2.5, "x"), 1.8, raw, tmp_path, Settings())
-    assert 1.9 < clip.raw_duration < 2.15  # sin el silencio de los bordes
+    assert 1.9 < clip.raw_duration < 2.15  # without the silence at the edges
     assert math.isclose(clip.tempo, clip.raw_duration / 1.8, abs_tol=0.01)
     assert clip.overflow < 0.05
     assert (tmp_path / "0007.wav").exists()
@@ -86,15 +86,15 @@ def _c(id, text, raw, slot=10.0, overflow=0.0):
 
 def test_shorten_target_fits_at_max_tempo():
     clip = _c(1, "x" * 40, raw=4.0, slot=2.0)
-    assert tts.shorten_target("x" * 40, clip, 1.25) == 23  # 40·2·1,25/4 = 25, menos un 5 %
+    assert tts.shorten_target("x" * 40, clip, 1.25) == 23  # 40·2·1.25/4 = 25, minus 5%
 
 
 def test_suspicious_flags_empty_and_too_fast_clips():
-    clips = [_c(i, "a" * 34, raw=2.0) for i in range(1, 6)]  # 17 car/s
-    clips.append(_c(6, "a" * 34, raw=0.5))  # 68 car/s: cortado
-    clips.append(_c(7, "a" * 34, raw=6.0))  # 5,7 car/s: repeticiones o ruido
-    clips.append(_c(8, "Sí.", raw=0.1))  # prácticamente vacío
-    clips.append(_c(9, "Vale.", raw=1.5))  # corto: no se juzga por velocidad
+    clips = [_c(i, "a" * 34, raw=2.0) for i in range(1, 6)]  # 17 chars/s
+    clips.append(_c(6, "a" * 34, raw=0.5))  # 68 chars/s: cut off
+    clips.append(_c(7, "a" * 34, raw=6.0))  # 5.7 chars/s: repetitions or noise
+    clips.append(_c(8, "Sí.", raw=0.1))  # practically empty
+    clips.append(_c(9, "Vale.", raw=1.5))  # short: not judged by speed
     assert [c.id for c in tts.suspicious(clips)] == [6, 7, 8]
 
 
@@ -106,7 +106,7 @@ def test_run_shortens_clips_that_do_not_fit(tmp_path, monkeypatch):
     from opentranslator.workdir import WorkDir
 
     wd = WorkDir(tmp_path, "vid")
-    wd.meta.write_text(_json.dumps({"duration": 6.0}))  # hueco del 2.º: 3 s
+    wd.meta.write_text(_json.dumps({"duration": 6.0}))  # 2nd segment's slot: 3 s
     save_segments(wd.segments, [Segment(1, 0.0, 2.0, "Short."), Segment(2, 3.0, 5.0, "Long original.")])
     save_segments(wd.translation, [Segment(1, 0.0, 2.0, "Corta."), Segment(2, 3.0, 5.0, "x" * 80)])
 
@@ -114,7 +114,7 @@ def test_run_shortens_clips_that_do_not_fit(tmp_path, monkeypatch):
         return None
 
     def fake_render(wd_, segments, slots, settings, regenerate=False):
-        # 20 car/s sin acelerar: el clip cabe si len(text)/20 <= hueco·1,25
+        # 20 chars/s unaccelerated: the clip fits if len(text)/20 <= slot·1.25
         out = []
         for s in segments:
             raw = len(s.text) / 20

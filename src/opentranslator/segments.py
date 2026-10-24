@@ -1,8 +1,8 @@
-"""Parseo de subtítulos (json3/vtt) y reagrupado en frases.
+"""Subtitle parsing (json3/vtt) and regrouping into sentences.
 
-Todas las fuentes (subtítulos manuales, automáticos o whisper) se reducen a
-una lista de `Piece` (cue o palabra con tiempos) y se reagrupan con las mismas
-reglas, para que la traducción y el TTS trabajen con frases completas.
+Every source (manual subtitles, auto-generated ones or whisper) is reduced to a
+list of `Piece` (a timed cue or word) and regrouped with the same rules, so that
+translation and TTS work with whole sentences.
 """
 
 from __future__ import annotations
@@ -34,7 +34,7 @@ _VTT_INLINE = re.compile(r"<((?:\d+:)?\d{2}:\d{2}[.,]\d{3})>")
 def clean_text(text: str) -> str:
     text = html.unescape(_TAG.sub("", text))
     text = _NOISE.sub(" ", text)
-    text = re.sub(r"(^|\s)-\s+", r"\1", text)  # guiones de diálogo
+    text = re.sub(r"(^|\s)-\s+", r"\1", text)  # dialogue dashes
     return re.sub(r"\s+", " ", text).strip()
 
 
@@ -58,7 +58,7 @@ def parse_json3(path: Path) -> list[Piece]:
         if len(segs) == 1 and "tOffsetMs" not in segs[0]:
             pieces.append(Piece(start, end, segs[0]["utf8"]))
             continue
-        # ASR con tiempos por palabra
+        # ASR with per-word timings
         starts = [start + s.get("tOffsetMs", 0) / 1000 for s in segs]
         for i, s in enumerate(segs):
             word_end = starts[i + 1] if i + 1 < len(segs) else end
@@ -81,7 +81,7 @@ def parse_vtt(path: Path) -> list[Piece]:
 
         tagged = [l for l in text_lines if _VTT_INLINE.search(l)]
         if tagged:
-            # ASR en rodillo: solo las líneas con marcas por palabra son nuevas
+            # Rolling ASR: only lines with per-word timestamps are new
             for line in tagged:
                 parts = _VTT_INLINE.split(line)
                 times = [start] + [_vtt_seconds(t) for t in parts[1::2]]
@@ -109,7 +109,7 @@ def parse_subtitles(path: Path) -> list[Piece]:
 
 
 def normalize(pieces: list[Piece]) -> list[Piece]:
-    """Limpia texto, descarta piezas vacías y elimina solapes entre piezas."""
+    """Clean the text, drop empty pieces and remove overlaps between pieces."""
     out: list[Piece] = []
     for p in sorted(pieces, key=lambda p: p.start):
         text = clean_text(p.text)
@@ -122,7 +122,7 @@ def normalize(pieces: list[Piece]) -> list[Piece]:
 
 
 def split_sentences(pieces: list[Piece]) -> list[Piece]:
-    """Parte cues con varias frases, repartiendo el tiempo según los caracteres."""
+    """Split cues holding several sentences, sharing the time out by characters."""
     out: list[Piece] = []
     for p in pieces:
         parts = [s for s in _SENTENCE_SPLIT.split(p.text) if s]
@@ -141,7 +141,7 @@ def split_sentences(pieces: list[Piece]) -> list[Piece]:
 def regroup(
     pieces: list[Piece], max_dur: float = 12.0, max_gap: float = 0.7, min_dur: float = 1.0
 ) -> list[Segment]:
-    """Une piezas en frases: corta en fin de frase, en pausas largas o al superar max_dur."""
+    """Join pieces into sentences: break at sentence ends, long pauses or past max_dur."""
     groups: list[list[Piece]] = []
     cur: list[Piece] = []
     for p in split_sentences(normalize(pieces)):

@@ -30,7 +30,7 @@ def test_parse_json3_manual_and_word_level(tmp_path):
 
 
 def test_parse_vtt_rolling_asr_dedup(tmp_path):
-    # Formato típico del ASR de YouTube: cada línea aparece dos veces
+    # Typical YouTube ASR format: every line shows up twice
     vtt = """WEBVTT
 
 00:00:01.000 --> 00:00:03.000 align:start position:0%

@@ -42,4 +42,4 @@ def test_compose_places_audio_and_cuts_at_end(tmp_path):
     assert track[int(0.4 * SAMPLE_RATE)] == 0
     assert abs(track[int(1.0 * SAMPLE_RATE)] - 0.5) < 1e-3
     assert abs(track[int(2.9 * SAMPLE_RATE)] - 0.5) < 1e-3
-    assert cut == 1  # el segundo clip se pasa del final
+    assert cut == 1  # the second clip runs past the end

@@ -1,4 +1,4 @@
-"""Estructuras de datos compartidas entre fases."""
+"""Data structures shared between phases."""
 
 from __future__ import annotations
 
@@ -10,7 +10,7 @@ from pathlib import Path
 @dataclass
 class Segment:
     id: int
-    start: float  # segundos
+    start: float  # seconds
     end: float
     text: str
 

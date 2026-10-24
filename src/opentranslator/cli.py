@@ -1,4 +1,4 @@
-"""CLI: `dub` ejecuta el pipeline completo; el resto de comandos, una fase aislada."""
+"""CLI: `dub` runs the whole pipeline; every other command runs a single phase."""
 
 from __future__ import annotations
 
@@ -19,51 +19,51 @@ from .workdir import WorkDir
 
 app = typer.Typer(no_args_is_help=True, add_completion=False)
 
-Url = Annotated[str, typer.Argument(help="URL de YouTube o id del vídeo")]
-WorkRoot = Annotated[Path, typer.Option("--work", help="Carpeta raíz de trabajo")]
-Force = Annotated[bool, typer.Option("--force", help="Regenerar aunque esté en caché")]
+Url = Annotated[str, typer.Argument(help="YouTube URL or video id")]
+WorkRoot = Annotated[Path, typer.Option("--work", help="Root working folder")]
+Force = Annotated[bool, typer.Option("--force", help="Regenerate even if cached")]
 SourceLang = Annotated[
-    str | None, typer.Option("--source-lang", help="Idioma original (por defecto, el de YouTube)")
+    str | None, typer.Option("--source-lang", help="Original language (defaults to YouTube's)")
 ]
-MaxHeight = Annotated[int, typer.Option("--max-height", help="Altura máxima del vídeo")]
+MaxHeight = Annotated[int, typer.Option("--max-height", help="Maximum video height")]
 Subs = Annotated[
     str,
     typer.Option(
         "--subs",
-        help="Subtítulos aceptados: manual (solo manuales), auto (manuales o automáticos), none (siempre whisper)",
+        help="Accepted subtitles: manual (manual only), auto (manual or auto-generated), none (always whisper)",
     ),
 ]
-WhisperModel = Annotated[str, typer.Option("--whisper-model", help="Modelo de faster-whisper")]
+WhisperModel = Annotated[str, typer.Option("--whisper-model", help="faster-whisper model")]
 Backend = Annotated[
-    str, typer.Option("--backend", help="cli (suscripción vía Claude Code) o api (ANTHROPIC_API_KEY)")
+    str, typer.Option("--backend", help="cli (subscription via Claude Code) or api (ANTHROPIC_API_KEY)")
 ]
-ClaudeModel = Annotated[str, typer.Option("--model", help="Modelo de Claude para traducir")]
-Voice = Annotated[str, typer.Option("--voice", help="Voz de edge-tts (es-ES-…, es-MX-…)")]
-BatchSize = Annotated[int, typer.Option("--batch-size", help="Segmentos por llamada de traducción")]
+ClaudeModel = Annotated[str, typer.Option("--model", help="Claude model used to translate")]
+Voice = Annotated[str, typer.Option("--voice", help="edge-tts voice (es-ES-…, es-MX-…)")]
+BatchSize = Annotated[int, typer.Option("--batch-size", help="Segments per translation call")]
 CharsPerSecond = Annotated[
     float | None,
     typer.Option(
         "--chars-per-second",
-        help="Velocidad de locución para limitar la traducción (por defecto, se calibra con la voz)",
+        help="Speaking rate used to cap the translation (calibrated with the voice by default)",
     ),
 ]
 Rate = Annotated[
-    str, typer.Option("--rate", help="Velocidad de la voz en edge-tts, p. ej. -10% (más lenta) o +5%")
+    str, typer.Option("--rate", help="edge-tts speaking rate, e.g. -10% (slower) or +5%")
 ]
 Shorten = Annotated[
     bool,
-    typer.Option("--shorten/--no-shorten", help="Retraducir más corto lo que no cabe ni a --max-tempo"),
+    typer.Option("--shorten/--no-shorten", help="Re-translate shorter whatever does not fit even at --max-tempo"),
 ]
 MinTempo = Annotated[
-    float, typer.Option("--min-tempo", help="Tempo mínimo (<1 ralentiza clips cortos; 1 = nunca)")
+    float, typer.Option("--min-tempo", help="Minimum tempo (<1 slows down short clips; 1 = never)")
 ]
-MaxTempo = Annotated[float, typer.Option("--max-tempo", help="Aceleración máxima con atempo")]
+MaxTempo = Annotated[float, typer.Option("--max-tempo", help="Maximum atempo speed-up")]
 BgVolume = Annotated[
-    float, typer.Option("--bg-volume", help="Volumen del audio original en dB (negativo = más bajo)")
+    float, typer.Option("--bg-volume", help="Original audio volume in dB (negative = quieter)")
 ]
-MuteOriginal = Annotated[bool, typer.Option("--mute-original", help="Silenciar el audio original")]
+MuteOriginal = Annotated[bool, typer.Option("--mute-original", help="Mute the original audio")]
 Output = Annotated[
-    Path | None, typer.Option("--output", "-o", help="Copiar el MP4 final a esta ruta")
+    Path | None, typer.Option("--output", "-o", help="Copy the final MP4 to this path")
 ]
 
 
@@ -87,7 +87,7 @@ def download(
     max_height: MaxHeight = 1080,
     force: Force = False,
 ) -> None:
-    """Descarga vídeo, audio y subtítulos."""
+    """Download the video, audio and subtitles."""
     settings = Settings(work_root=work, source_lang=source_lang, max_height=max_height)
     wd = _setup(url, settings)
     with phase("Descarga"):
@@ -102,7 +102,7 @@ def transcribe(
     whisper_model: WhisperModel = "small",
     force: Force = False,
 ) -> None:
-    """Obtiene los segmentos con timestamps (subtítulos o whisper). Requiere `download`."""
+    """Get timestamped segments (subtitles or whisper). Requires `download`."""
     settings = Settings(work_root=work, subs=subs, whisper_model=whisper_model)
     wd = _setup(url, settings)
     _require(wd, "download")
@@ -122,7 +122,7 @@ def translate(
     rate: Rate = "-10%",
     force: Force = False,
 ) -> None:
-    """Traduce los segmentos al español con Claude. Requiere `transcribe`."""
+    """Translate the segments into Spanish with Claude. Requires `transcribe`."""
     settings = Settings(
         work_root=work, backend=backend, claude_model=model, voice=voice, batch_size=batch_size,
         chars_per_second=chars_per_second, rate=rate,
@@ -146,7 +146,7 @@ def tts(
     model: ClaudeModel = "claude-sonnet-5-5",
     force: Force = False,
 ) -> None:
-    """Genera un clip de voz por segmento y lo ajusta a su hueco. Requiere `translate`."""
+    """Generate one voice clip per segment and fit it to its slot. Requires `translate`."""
     settings = Settings(
         work_root=work, voice=voice, rate=rate, min_tempo=min_tempo, max_tempo=max_tempo,
         shorten=shorten, backend=backend, claude_model=model,
@@ -166,7 +166,7 @@ def mix(
     output: Output = None,
     force: Force = False,
 ) -> None:
-    """Compone la pista doblada y genera el MP4. Requiere `tts`."""
+    """Compose the dubbed track and produce the MP4. Requires `tts`."""
     settings = Settings(work_root=work, bg_volume_db=bg_volume, mute_original=mute_original)
     wd = _setup(url, settings)
     _require(wd, "tts")
@@ -196,7 +196,7 @@ def dub(
     output: Output = None,
     force: Force = False,
 ) -> None:
-    """Pipeline completo: descarga → transcripción → traducción → TTS → mezcla."""
+    """Full pipeline: download → transcription → translation → TTS → mix."""
     settings = Settings(
         work_root=work, source_lang=source_lang, max_height=max_height,
         subs=subs, whisper_model=whisper_model, backend=backend, claude_model=model,

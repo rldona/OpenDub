@@ -59,7 +59,7 @@ def test_run_retries_when_ids_mismatch(wd, monkeypatch):
         attempts["n"] += 1
         segs = json.loads(prompt)["segmentos"]
         if attempts["n"] == 1:
-            segs = segs[:-1]  # falta un segmento
+            segs = segs[:-1]  # one segment missing
         return {"segments": [{"id": s["id"], "text": "x"} for s in segs]}, 0.0
 
     monkeypatch.setattr(translate, "_call_cli", flaky_cli)
@@ -71,7 +71,7 @@ def test_run_resumes_from_saved_blocks_and_caches(wd, monkeypatch):
     def failing_after_first(system, prompt, model):
         segs = json.loads(prompt)["segmentos"]
         if segs[0]["id"] > 1:
-            raise RuntimeError("caída")
+            raise RuntimeError("crash")
         return {"segments": [{"id": s["id"], "text": "ok"} for s in segs]}, 0.0
 
     monkeypatch.setattr(translate, "_call_cli", failing_after_first)
@@ -87,10 +87,10 @@ def test_run_resumes_from_saved_blocks_and_caches(wd, monkeypatch):
 
     monkeypatch.setattr(translate, "_call_cli", ok_cli)
     result = translate.run(wd, Settings(batch_size=4, chars_per_second=15))
-    assert seen == [5, 6, 7]  # el primer bloque sale de disco
+    assert seen == [5, 6, 7]  # the first block comes from disk
     assert [s.text for s in result] == ["ok"] * 4 + ["bien"] * 3
 
-    monkeypatch.setattr(translate, "_call_cli", lambda *a: pytest.fail("no debería llamar"))
+    monkeypatch.setattr(translate, "_call_cli", lambda *a: pytest.fail("should not be called"))
     translate.run(wd, Settings(batch_size=4, chars_per_second=15))
 
 
@@ -121,5 +121,5 @@ def test_run_uses_calibrated_rate_when_not_given(wd, monkeypatch):
 
     monkeypatch.setattr(translate, "_call_cli", fake_cli)
     translate.run(wd, Settings(batch_size=10))
-    # primer segmento: hueco 3 s (dura 2 s + 1 s prestado) a 20 car/s
+    # first segment: 3 s slot (2 s long + 1 s borrowed) at 20 chars/s
     assert prompts[0]["segmentos"][0]["max_chars"] == 60

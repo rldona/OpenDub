@@ -1,4 +1,4 @@
-"""Fase 1: descarga de vídeo, audio y subtítulos con yt-dlp."""
+"""Phase 1: download the video, audio and subtitles with yt-dlp."""
 
 from __future__ import annotations
 
@@ -20,7 +20,7 @@ _BASE_OPTS: dict[str, Any] = {"quiet": True, "no_warnings": True, "noprogress": 
 
 
 def video_id(url_or_id: str) -> str:
-    """Extrae el id de una URL de YouTube (o lo devuelve tal cual si ya es un id)."""
+    """Extract the id from a YouTube URL (or return it as is if it already is an id)."""
     if re.fullmatch(r"[\w-]{11}", url_or_id):
         return url_or_id
     if m := _YT_ID.search(url_or_id):
@@ -30,7 +30,7 @@ def video_id(url_or_id: str) -> str:
 
 
 def _pick_track(tracks: dict[str, Any], lang: str) -> str | None:
-    """Elige la pista de subtítulos que mejor encaja con el idioma."""
+    """Pick the subtitle track that best matches the language."""
     keys = [k for k in tracks if k != "live_chat"]
     base = lang.split("-")[0]
     for candidate in (lang, base):
@@ -40,7 +40,7 @@ def _pick_track(tracks: dict[str, Any], lang: str) -> str | None:
 
 
 def _pick_auto_track(tracks: dict[str, Any], lang: str) -> str | None:
-    # "<lang>-orig" es el ASR en el idioma original; el resto son traducciones automáticas
+    # "<lang>-orig" is the ASR in the original language; the rest are machine translations
     base = lang.split("-")[0]
     if f"{base}-orig" in tracks:
         return f"{base}-orig"
@@ -88,7 +88,7 @@ def run(url: str, wd: WorkDir, settings: Settings, force: bool = False) -> dict[
     log.info("Obteniendo información del vídeo…")
     with yt_dlp.YoutubeDL(_BASE_OPTS) as ydl:
         raw = ydl.sanitize_info(ydl.extract_info(url, download=False, process=False))
-    lang = settings.source_lang or raw.get("language")  # None: lo detectará whisper
+    lang = settings.source_lang or raw.get("language")  # None: whisper will detect it
     log.info(f"[bold]{raw['title']}[/] · {raw.get('duration', 0)}s · idioma {lang or '¿?'}")
 
     h = settings.max_height

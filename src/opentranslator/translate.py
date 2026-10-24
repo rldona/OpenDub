@@ -1,8 +1,8 @@
-"""Fase 3: traducción al español con Claude, por bloques de segmentos.
+"""Phase 3: translation into Spanish with Claude, in blocks of segments.
 
-Dos backends con el mismo prompt y el mismo esquema de salida:
-- cli: `claude -p` (Claude Code), consume la suscripción del usuario.
-- api: SDK de Anthropic con ANTHROPIC_API_KEY.
+Two backends with the same prompt and the same output schema:
+- cli: `claude -p` (Claude Code), uses the user's subscription.
+- api: Anthropic SDK with ANTHROPIC_API_KEY.
 """
 
 from __future__ import annotations
@@ -82,7 +82,7 @@ def _target_name(voice: str) -> str:
 
 
 def _slot(segments: list[Segment], i: int) -> float:
-    """Tiempo disponible: hasta el siguiente segmento, con como mucho 1 s de silencio prestado."""
+    """Available time: up to the next segment, borrowing at most 1 s of silence."""
     seg = segments[i]
     if i + 1 < len(segments):
         return min(segments[i + 1].start - seg.start, seg.duration + 1.0)
@@ -149,7 +149,7 @@ def _call_api(system: str, prompt: str, model: str, api_key: str | None) -> tupl
         system=system,
         messages=[{"role": "user", "content": prompt}],
         output_config={"effort": "medium", "format": {"type": "json_schema", "schema": SCHEMA}},
-        # Si el modelo rechaza la petición, la API reintenta con otro modelo adecuado
+        # If the model refuses the request, the API retries with another suitable model
         betas=["server-side-fallback-2026-07-01"],
         fallbacks="default",
     )
@@ -162,7 +162,7 @@ def _call_api(system: str, prompt: str, model: str, api_key: str | None) -> tupl
 
 
 def _ask(system: str, prompt: str, expected: list[int], settings: Settings) -> tuple[dict[int, str], float]:
-    """Llama al backend y valida que vuelvan exactamente los ids pedidos, con reintentos."""
+    """Call the backend and check that exactly the requested ids come back, with retries."""
     cost = 0.0
     for attempt in range(1, MAX_ATTEMPTS + 1):
         try:
@@ -181,7 +181,7 @@ def _ask(system: str, prompt: str, expected: list[int], settings: Settings) -> t
 
 
 def shorten(items: list[tuple[int, str, str, int]], voice: str, settings: Settings) -> dict[int, str]:
-    """Pide versiones más cortas de frases que no caben: (id, original, traducción, max_chars)."""
+    """Ask for shorter versions of sentences that do not fit: (id, original, translation, max_chars)."""
     system = SHORTEN_PROMPT.format(target=_target_name(voice))
     prompt = json.dumps(
         [{"id": i, "original": o, "traduccion": t, "max_chars": m} for i, o, t, m in items],
@@ -201,7 +201,7 @@ def run(wd: WorkDir, settings: Settings, force: bool = False) -> list[Segment]:
     if settings.chars_per_second:
         cps = settings.chars_per_second
     else:
-        from .tts import speaking_rate  # import perezoso: tts también importa este módulo
+        from .tts import speaking_rate  # lazy import: tts also imports this module
 
         cps = speaking_rate(settings.work_root, settings.voice, settings.rate)
     params = {
@@ -215,7 +215,7 @@ def run(wd: WorkDir, settings: Settings, force: bool = False) -> list[Segment]:
         log.info("Traducción en caché, la salto")
         return load_segments(wd.translation)
 
-    # Cada bloque traducido se guarda aparte para poder reanudar si algo falla a mitad
+    # Each translated block is saved separately so a run can resume if something fails midway
     block_dir = wd.path / "translate_blocks" / params_hash(params)
     if force and block_dir.exists():
         shutil.rmtree(block_dir)

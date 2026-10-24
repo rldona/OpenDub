@@ -1,8 +1,8 @@
-"""Carpeta de trabajo por vídeo y caché de fases.
+"""Per-video working folder and phase cache.
 
-Cada fase registra en manifest.json un hash de los parámetros que la afectan.
-Una fase se considera hecha si su hash coincide; al rehacer una fase se
-invalidan todas las posteriores.
+Each phase records in manifest.json a hash of the parameters that affect it. A
+phase counts as done if its hash matches; redoing a phase invalidates every
+phase after it.
 """
 
 from __future__ import annotations
@@ -27,7 +27,7 @@ class WorkDir:
         self.path.mkdir(parents=True, exist_ok=True)
         self.manifest_path = self.path / "manifest.json"
 
-    # Rutas de los artefactos de cada fase
+    # Paths of each phase's artifacts
     meta = property(lambda self: self.path / "meta.json")
     video = property(lambda self: self.path / "video.mp4")
     audio = property(lambda self: self.path / "audio.wav")

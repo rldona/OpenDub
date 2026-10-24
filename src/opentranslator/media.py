@@ -1,4 +1,4 @@
-"""Utilidades de ffmpeg/ffprobe."""
+"""ffmpeg/ffprobe helpers."""
 
 from __future__ import annotations
 

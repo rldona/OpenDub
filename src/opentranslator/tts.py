@@ -1,16 +1,16 @@
-"""Fase 4: TTS por segmento con edge-tts y ajuste de velocidad con atempo.
+"""Phase 4: per-segment TTS with edge-tts and speed fitting with atempo.
 
-Por cada segmento traducido:
-1. Sintetiza el mp3 con edge-tts (cacheado por voz+velocidad+texto, así que
-   retocar una frase solo regenera esa).
-2. Recorta el silencio inicial y final y lo pasa a wav mono de 24 kHz.
-3. Si no cabe en su hueco (hasta el inicio del siguiente segmento), acelera con
-   atempo hasta max_tempo.
-4. Si aun así no cabe, pide a Claude una versión más corta de la frase y la
-   resintetiza (hasta SHORTEN_ROUNDS rondas).
-5. Control de calidad: los clips con una velocidad anómala para su texto
-   (vacíos, cortados, repeticiones) se regeneran una vez.
-Lo que siga sin caber o sin pasar el control queda en overflow.log.
+For each translated segment:
+1. Synthesize the mp3 with edge-tts (cached by voice+rate+text, so editing one
+   sentence only regenerates that one).
+2. Trim leading and trailing silence and convert to 24 kHz mono wav.
+3. If it does not fit its slot (up to the start of the next segment), speed it
+   up with atempo up to max_tempo.
+4. If it still does not fit, ask Claude for a shorter version of the sentence
+   and re-synthesize it (up to SHORTEN_ROUNDS rounds).
+5. Quality check: clips whose speed is abnormal for their text (empty, cut off,
+   repetitions) are regenerated once.
+Whatever still does not fit or fails the check is written to overflow.log.
 """
 
 from __future__ import annotations
@@ -37,15 +37,15 @@ SAMPLE_RATE = 24000
 CONCURRENCY = 4
 MAX_ATTEMPTS = 3
 SHORTEN_ROUNDS = 2
-OVERFLOW_EPSILON = 0.05  # excesos menores se consideran redondeo y no se registran
-OVERFLOW_TOLERANCE = 0.15  # segundos de exceso que se aceptan sin retraducir
+OVERFLOW_EPSILON = 0.05  # smaller overflows are rounding and are not reported
+OVERFLOW_TOLERANCE = 0.15  # seconds of overflow accepted without re-translating
 TRIM = (
     "silenceremove=start_periods=1:start_threshold=-50dB:start_silence=0.05,"
     "areverse,"
     "silenceremove=start_periods=1:start_threshold=-50dB:start_silence=0.05,"
     "areverse"
 )
-# Frases sueltas, como los clips reales: así la medida no incluye pausas entre frases
+# Separate sentences, like real clips, so the measurement excludes pauses between sentences
 CALIBRATION_SENTENCES = [
     "Hoy vamos a ver cómo funciona este proceso paso a paso.",
     "Primero, conviene entender de dónde viene la idea y por qué es tan importante.",
@@ -59,17 +59,17 @@ CALIBRATION_SENTENCES = [
 class Clip:
     id: int
     start: float
-    slot: float  # segundos disponibles hasta el siguiente segmento
-    raw_duration: float  # duración tras recortar silencios, antes de atempo
+    slot: float  # seconds available up to the next segment
+    raw_duration: float  # duration after trimming silence, before atempo
     tempo: float
-    duration: float  # duración final
-    overflow: float  # segundos que siguen sin caber (0 si cabe)
+    duration: float  # final duration
+    overflow: float  # seconds that still do not fit (0 if it fits)
     file: str
-    text: str = ""  # texto locutado (puede ser una versión acortada de la traducción)
+    text: str = ""  # spoken text (may be a shortened version of the translation)
 
 
 def choose_tempo(duration: float, slot: float, seg_duration: float, min_tempo: float, max_tempo: float) -> float:
-    """Factor de atempo: acelera si no cabe; ralentiza solo si min_tempo < 1."""
+    """atempo factor: speed up if it does not fit; slow down only if min_tempo < 1."""
     if duration > slot:
         return min(duration / slot, max_tempo)
     if min_tempo < 1.0 and duration < seg_duration:
@@ -78,13 +78,13 @@ def choose_tempo(duration: float, slot: float, seg_duration: float, min_tempo: f
 
 
 def shorten_target(text: str, clip: Clip, max_tempo: float) -> int:
-    """Caracteres que cabrían en el hueco al tempo máximo, con un 5 % de margen."""
+    """Characters that would fit the slot at the maximum tempo, with a 5% margin."""
     fits = len(text) * clip.slot * max_tempo / clip.raw_duration
     return max(int(fits * 0.95), 1)
 
 
 def suspicious(clips: list[Clip], min_chars: int = 15) -> list[Clip]:
-    """Clips cuya velocidad (caracteres/s) se aleja mucho de la mediana del vídeo."""
+    """Clips whose speed (characters/s) is far from the video's median."""
     rates = [len(c.text) / c.raw_duration for c in clips if c.raw_duration > 0 and len(c.text) >= min_chars]
     if len(rates) < 3:
         return [c for c in clips if c.raw_duration < 0.15]
@@ -112,7 +112,7 @@ def _wav_duration(path: Path) -> float:
 
 
 def check_rate(rate: str) -> str:
-    """Valida el formato de velocidad de edge-tts: "+0%", "-10%"…"""
+    """Validate the edge-tts rate format: "+0%", "-10%"…"""
     if not re.fullmatch(r"[+-]\d{1,2}%", rate):
         raise SystemExit(f"--rate debe tener la forma -10% o +5% (no {rate!r})")
     return rate
@@ -141,7 +141,7 @@ async def _synthesize_all(jobs: list[tuple[str, Path]], voice: str, rate: str) -
                         await edge_tts.Communicate(text, voice, rate=rate).save(str(tmp))
                         tmp.rename(path)
                         break
-                    except Exception as e:  # edge-tts no tipa bien sus errores de red
+                    except Exception as e:  # edge-tts does not type its network errors well
                         if attempt == MAX_ATTEMPTS:
                             raise RuntimeError(f"edge-tts falló con {text[:40]!r}: {e}") from e
                         await asyncio.sleep(2 * attempt)
@@ -160,9 +160,9 @@ async def _check_voice(voice: str) -> None:
 
 
 def speaking_rate(work_root: Path, voice: str, rate: str) -> float:
-    """Caracteres por segundo de una voz, medidos sintetizando un texto de referencia.
+    """Characters per second of a voice, measured by synthesizing reference sentences.
 
-    Se cachea en <work_root>/voice_rates.json para no repetir la medición.
+    Cached in <work_root>/voice_rates.json so the measurement is not repeated.
     """
     check_rate(rate)
     cache = work_root / "voice_rates.json"
@@ -205,7 +205,7 @@ def _process(seg: Segment, slot: float, raw: Path, out_dir: Path, settings: Sett
     return Clip(
         id=seg.id, start=seg.start, slot=round(slot, 3), raw_duration=round(raw_dur, 3),
         tempo=round(tempo, 3), duration=round(duration, 3),
-        # atempo deja el clip ajustado al hueco con unos ms de redondeo: eso no es un exceso
+        # atempo fits the clip to the slot with a few ms of rounding: that is not an overflow
         overflow=round(overflow, 3) if overflow > OVERFLOW_EPSILON else 0.0,
         file=f"tts/{final.name}", text=seg.text,
     )
@@ -218,7 +218,7 @@ def load_clips(wd: WorkDir) -> list[Clip]:
 def _render(
     wd: WorkDir, segments: list[Segment], slots: dict[int, float], settings: Settings, regenerate: bool = False
 ) -> list[Clip]:
-    """Sintetiza (lo que falte en caché) y procesa los segmentos dados."""
+    """Synthesize (whatever is not cached) and process the given segments."""
     raws = [_raw_path(wd, settings.voice, settings.rate, s.text) for s in segments]
     if regenerate:
         for p in raws:
@@ -237,8 +237,8 @@ def _shorten_overflows(
     wd: WorkDir, clips: dict[int, Clip], originals: dict[int, str], slots: dict[int, float],
     by_id: dict[int, Segment], settings: Settings,
 ) -> int:
-    """Retraduce y resintetiza los clips que no caben. Devuelve cuántos se acortaron."""
-    from . import translate  # import perezoso: translate también importa este módulo
+    """Re-translate and re-synthesize clips that do not fit. Return how many were shortened."""
+    from . import translate  # lazy import: translate also imports this module
 
     shortened = set()
     for round_ in range(1, SHORTEN_ROUNDS + 1):
@@ -280,7 +280,7 @@ def run(wd: WorkDir, settings: Settings, force: bool = False) -> list[Clip]:
     log.info(f"Voz {settings.voice} ({settings.rate}) · {len(segments)} segmentos")
     clips = {c.id: c for c in _render(wd, segments, slots, settings, regenerate=force)}
 
-    # Control de calidad: regenerar una vez los clips con duración anómala
+    # Quality check: regenerate clips with abnormal duration once
     bad_qc = suspicious(list(clips.values()))
     if bad_qc:
         log.warning(f"Control de calidad: {len(bad_qc)} clip(s) con duración anómala, regenerando…")
