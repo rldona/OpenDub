@@ -24,7 +24,14 @@ class Settings:
     chars_per_second: float | None = None
     voice: str = "es-ES-AlvaroNeural"  # edge-tts voice (also the cloned voice's last resort)
     tts: str = "edge"  # edge | clone (the original speaker's voice, from the separated vocals)
+    engine: str = "chatterbox"  # cloning engine for --tts clone: chatterbox | indextts
+    min_factor: float = 0.7  # indextts: lowest duration_factor before shortening the sentence
     clone_ref: Path | None = None  # fixed reference for cloned clips that fail the quality check
+    indextts_dir: Path = field(  # IndexTTS install (its own venv), see `setup-indextts`
+        default_factory=lambda: Path(
+            os.environ.get("OPENTRANSLATOR_INDEXTTS_DIR") or Path.home() / ".local/share/opentranslator/indextts"
+        )
+    )
     rate: str = "-10%"  # native edge-tts rate (more negative = slower)
     min_tempo: float = 1.0  # < 1 allows slowing down short clips to fill their slot
     max_tempo: float = 1.25

@@ -1,0 +1,25 @@
+{
+  "refs": {
+    "17kBVfGjI8c": {"start": 6.8, "end": 19.0, "text": "Earthquakes are among the most common natural disasters in the world. From one second to the next, the ground starts to shake, sometimes destroying entire cities."},
+    "rwF-X5STYks": {"start": 3.5, "end": 15.6, "text": "When new content is created by artificial intelligence, it's called generative AI. This could involve generating texts and images, as well as videos, music, or voices."}
+  },
+  "fixed_es": "Hola, esta es una grabación de referencia en español de España. La vamos a usar para comprobar si la voz clonada conserva un acento natural, sin rastro de inglés, al leer frases largas y cortas.",
+  "sentences": {
+    "17kBVfGjI8c": [
+      "Los terremotos son uno de los desastres naturales más comunes del mundo.",
+      "Pero ¿qué es exactamente lo que hace temblar la Tierra?",
+      "Debido a las corrientes de convección del manto, las placas empiezan a moverse y flotan como láminas de hielo sobre el agua.",
+      "La tensión se libera de golpe con una enorme sacudida, y la Tierra tiembla.",
+      "Con cada temblor se liberan fuerzas destructivas que se propagan como ondas desde el hipocentro.",
+      "Con la escala de Richter, al temblor se le asigna un nivel del uno al diez."
+    ],
+    "rwF-X5STYks": [
+      "¿Qué es exactamente la inteligencia artificial generativa?",
+      "Puede consistir en generar textos e imágenes, pero también vídeos, música o voces.",
+      "Esta descripción se llama «prompt».",
+      "A menudo es impresionante y cuesta distinguirlo de lo que hacen las personas.",
+      "Además, la IA puede dar respuestas que suenan correctas pero que en realidad son falsas: es lo que se llama «alucinación».",
+      "Sin embargo, la IA debería hacer el trabajo duro, y las personas deberían responder de los hechos."
+    ]
+  }
+}

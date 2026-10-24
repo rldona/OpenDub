@@ -1,0 +1,22 @@
+{
+ "17kBVfGjI8c": {
+  "same_speaker_ecapa": 0.888,
+  "reference": {
+   "f0_hz": 139.4,
+   "jitter_st": 0.282,
+   "pitch_tremor": 0.361,
+   "loudness_tremor": 0.563,
+   "voiced_runs": 10
+  }
+ },
+ "rwF-X5STYks": {
+  "same_speaker_ecapa": 0.864,
+  "reference": {
+   "f0_hz": 196.1,
+   "jitter_st": 0.225,
+   "pitch_tremor": 0.253,
+   "loudness_tremor": 0.48,
+   "voiced_runs": 8
+  }
+ }
+}

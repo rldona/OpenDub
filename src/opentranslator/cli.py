@@ -44,6 +44,16 @@ Tts = Annotated[
     str,
     typer.Option("--tts", help="edge (edge-tts voice) or clone (the original speaker's voice; needs `separate`)"),
 ]
+Engine = Annotated[
+    str, typer.Option("--engine", help="Cloning engine for --tts clone: chatterbox or indextts")
+]
+MinFactor = Annotated[
+    float,
+    typer.Option(
+        "--min-factor",
+        help="indextts: lowest duration_factor before shortening the sentence (it goes down to 0.5 only after that)",
+    ),
+]
 CloneRef = Annotated[
     Path | None,
     typer.Option("--clone-ref", help="Fixed Spanish reference recording for cloned clips that fail the quality check"),
@@ -140,6 +150,7 @@ def translate(
     model: ClaudeModel = "claude-sonnet-5-5",
     voice: Voice = "es-ES-AlvaroNeural",
     tts: Tts = "edge",
+    engine: Engine = "chatterbox",
     batch_size: BatchSize = 30,
     chars_per_second: CharsPerSecond = None,
     rate: Rate = "-10%",
@@ -147,12 +158,12 @@ def translate(
 ) -> None:
     """Translate the segments into Spanish with Claude. Requires `transcribe` (and `separate` with --tts clone)."""
     settings = Settings(
-        work_root=work, backend=backend, claude_model=model, voice=voice, tts=tts, batch_size=batch_size,
+        work_root=work, backend=backend, claude_model=model, voice=voice, tts=tts, engine=engine, batch_size=batch_size,
         chars_per_second=chars_per_second, rate=rate,
     )
     wd = _setup(url, settings)
     _require(wd, "transcribe")
-    if tts == "clone":
+    if tts != "edge":
         _require(wd, "separate")
     with phase("Translation"):
         translate_mod.run(wd, settings, force=force)
@@ -164,6 +175,8 @@ def tts(
     work: WorkRoot = Path("work"),
     voice: Voice = "es-ES-AlvaroNeural",
     tts: Tts = "edge",
+    engine: Engine = "chatterbox",
+    min_factor: MinFactor = 0.7,
     clone_ref: CloneRef = None,
     whisper_model: WhisperModel = "small",
     rate: Rate = "-10%",
@@ -176,12 +189,13 @@ def tts(
 ) -> None:
     """Generate one voice clip per segment and fit it to its slot. Requires `translate` (and `separate` with --tts clone)."""
     settings = Settings(
-        work_root=work, voice=voice, tts=tts, clone_ref=clone_ref, whisper_model=whisper_model, rate=rate,
+        work_root=work, voice=voice, tts=tts, engine=engine, min_factor=min_factor, clone_ref=clone_ref,
+        whisper_model=whisper_model, rate=rate,
         min_tempo=min_tempo, max_tempo=max_tempo, shorten=shorten, backend=backend, claude_model=model,
     )
     wd = _setup(url, settings)
     _require(wd, "translate")
-    if tts == "clone":
+    if tts != "edge":
         _require(wd, "separate")
     with phase("TTS"):
         tts_mod.run(wd, settings, force=force)
@@ -226,6 +240,19 @@ def mix(
         mix_mod.run(wd, settings, force=force, output=output)
 
 
+@app.command("setup-indextts")
+def setup_indextts(
+    path: Annotated[
+        Path | None,
+        typer.Option("--path", help="Install folder (default: $OPENTRANSLATOR_INDEXTTS_DIR or ~/.local/share/opentranslator/indextts)"),
+    ] = None,
+) -> None:
+    """Install IndexTTS-2.5 for --tts indextts: its repo, its own venv (Python 3.11) and the checkpoints."""
+    from . import indextts
+
+    indextts.setup(path or Settings().indextts_dir)
+
+
 @app.command()
 def dub(
     url: Url,
@@ -238,6 +265,8 @@ def dub(
     model: ClaudeModel = "claude-sonnet-5-5",
     voice: Voice = "es-ES-AlvaroNeural",
     tts: Tts = "edge",
+    engine: Engine = "chatterbox",
+    min_factor: MinFactor = 0.7,
     clone_ref: CloneRef = None,
     batch_size: BatchSize = 30,
     chars_per_second: CharsPerSecond = None,
@@ -255,13 +284,13 @@ def dub(
 ) -> None:
     """Full pipeline: download → transcription → (separation) → translation → TTS → mix.
 
-    Separation runs before translation with --tts clone, since the cloned voice's
+    Separation runs before translation with a cloned voice, since its
     speaking rate (measured from the separated vocals) caps the translation length.
     """
     settings = Settings(
         work_root=work, source_lang=source_lang, max_height=max_height,
         subs=subs, whisper_model=whisper_model, backend=backend, claude_model=model,
-        voice=voice, tts=tts, clone_ref=clone_ref, batch_size=batch_size, chars_per_second=chars_per_second, rate=rate,
+        voice=voice, tts=tts, engine=engine, min_factor=min_factor, clone_ref=clone_ref, batch_size=batch_size, chars_per_second=chars_per_second, rate=rate,
         min_tempo=min_tempo, shorten=shorten, max_tempo=max_tempo,
         bg_volume_db=bg_volume, mute_original=mute_original,
         separate=separate, separator=separator, music_volume_db=music_volume,
@@ -273,7 +302,7 @@ def dub(
         download_mod.run(url, wd, settings)
     with phase("Transcription"):
         transcribe_mod.run(wd, settings)
-    if separate or tts == "clone":
+    if separate or tts != "edge":
         with phase("Separation"):
             separate_mod.run(wd, settings)
     with phase("Translation"):

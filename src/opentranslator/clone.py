@@ -1,7 +1,8 @@
-"""Voice cloning with Chatterbox Multilingual V3 (`--tts clone`).
+"""Voice cloning with Chatterbox Multilingual V3 (`--tts clone --engine chatterbox`), and
+the whisper quality check shared by every cloning engine.
 
-The reference is a 10–15 s stretch of the original speaker, cut from the
-separated vocals, so cloning needs the `separate` phase. Chatterbox clones from
+The reference (reference.py) is cut from the separated vocals, so cloning needs
+the `separate` phase. Chatterbox clones from
 the audio alone (no transcript needed) and has no speaking-rate control, so
 slot fitting relies on atempo and sentence shortening as with edge-tts.
 Every clip carries Resemble AI's inaudible Perth watermark.
@@ -19,52 +20,13 @@ from pathlib import Path
 import numpy as np
 
 from .log import log
-from .media import ffmpeg
-from .models import Segment, load_segments
-from .workdir import WorkDir
 
 MODEL = "chatterbox-multilingual-v3"
 SAMPLE_RATE = 24000
-REF_MIN, REF_MAX = 10.0, 15.0  # seconds of reference audio
 QC_MAX_CER = 0.3  # whisper character error rate above which a clip is redone
 INSTALL_HINT = "Install the optional dependencies with: uv sync --extra clone"
 
 _model = None
-
-
-def pick_reference(segments: list[Segment]) -> tuple[float, float]:
-    """(start, end) of the consecutive segments that make the best reference.
-
-    Prefers windows of REF_MIN–REF_MAX seconds with the most speech (fewest
-    pauses); without any, the longest window under REF_MAX; if every segment is
-    longer than that, the first REF_MAX seconds of the first one.
-    """
-    best, best_key = None, None
-    for i, first in enumerate(segments):
-        for j in range(i, len(segments)):
-            span = segments[j].end - first.start
-            if span > REF_MAX:
-                break
-            speech = sum(s.duration for s in segments[i : j + 1])
-            key = (span >= REF_MIN, speech / span if span >= REF_MIN else span)
-            if best_key is None or key > best_key:
-                best, best_key = (first.start, segments[j].end), key
-    if best is None:
-        if not segments:
-            raise SystemExit("There are no segments to take a voice reference from")
-        return segments[0].start, segments[0].start + REF_MAX
-    return best
-
-
-def reference(wd: WorkDir) -> Path:
-    """Cut the reference clip of the original speaker from the separated vocals."""
-    if not wd.vocals.exists():
-        raise SystemExit("Voice cloning needs the separated vocals: run `separate` first (or use `dub`)")
-    start, end = pick_reference(load_segments(wd.segments))
-    path = wd.path / "clone_ref.wav"
-    ffmpeg("-ss", f"{start:.3f}", "-to", f"{end:.3f}", "-i", str(wd.vocals),
-           "-ac", "1", "-ar", str(SAMPLE_RATE), str(path))
-    return path
 
 
 def file_hash(path: Path) -> str:

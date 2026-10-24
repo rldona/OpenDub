@@ -3,29 +3,10 @@ from dataclasses import replace
 
 import pytest
 
-from opentranslator import clone, tts
+from opentranslator import clone, reference, tts
 from opentranslator.config import Settings
 from opentranslator.models import Segment, save_segments
 from opentranslator.workdir import WorkDir
-
-
-def test_pick_reference_prefers_window_with_most_speech():
-    segs = [
-        Segment(1, 0.0, 4.0, "a"), Segment(2, 7.0, 11.0, "b"),  # 0–11 s, 3 s of pauses
-        Segment(3, 20.0, 26.0, "c"), Segment(4, 26.2, 31.0, "d"),  # 20–31 s, almost no pauses
-    ]
-    assert clone.pick_reference(segs) == (20.0, 31.0)
-
-
-def test_pick_reference_without_long_enough_window_takes_longest_short_one():
-    segs = [Segment(1, 0.0, 3.0, "a"), Segment(2, 30.0, 36.0, "b")]
-    assert clone.pick_reference(segs) == (30.0, 36.0)
-
-
-def test_pick_reference_cuts_a_single_long_segment():
-    assert clone.pick_reference([Segment(1, 5.0, 40.0, "a")]) == (5.0, 5.0 + clone.REF_MAX)
-    with pytest.raises(SystemExit):
-        clone.pick_reference([])
 
 
 def test_cer_ignores_case_and_punctuation():
@@ -55,10 +36,10 @@ def test_repair_chain_keeps_the_cloned_voice_as_long_as_possible(tmp_path, monke
     by_id = {s.id: s for s in segs}
 
     # clip 1 is fixed by another seed, clip 2 by shortening; clip 3 never passes
-    passes = {1: {"clone (seed+1)"}, 2: {"clone (shortened)"}, 3: set()}
+    passes = {1: {"chatterbox (seed+1)"}, 2: {"chatterbox (shortened)"}, 3: set()}
 
     def fake_failures(wd_, ids, clips_, settings_):
-        return {i for i in ids if clips_[i].voice == "clone" or clips_[i].voice not in passes[i] | {"edge"}}
+        return {i for i in ids if clips_[i].voice == "chatterbox" or clips_[i].voice not in passes[i] | {"edge"}}
 
     rendered = []
 
@@ -73,9 +54,9 @@ def test_repair_chain_keeps_the_cloned_voice_as_long_as_possible(tmp_path, monke
     fell_back = tts._repair_clones(wd, clips, voices, {}, by_id, settings)
 
     assert rendered == [
-        [(1, "clone (seed+1)"), (2, "clone (seed+1)"), (3, "clone (seed+1)")],
-        [(2, "clone (shortened)"), (3, "clone (shortened)")],
-        [(3, "clone (fixed reference)")],
+        [(1, "chatterbox (seed+1)"), (2, "chatterbox (seed+1)"), (3, "chatterbox (seed+1)")],
+        [(2, "chatterbox (shortened)"), (3, "chatterbox (shortened)")],
+        [(3, "chatterbox (fixed reference)")],
         [(3, "edge")],
     ]
     assert fell_back == {3}
@@ -98,15 +79,18 @@ def test_repair_chain_skips_steps_that_are_off(tmp_path, monkeypatch):
         rendered.append([v.label for _, v in jobs]) or [_clip(sg, v) for sg, v in jobs]))
 
     assert tts._repair_clones(wd, clips, voices, {}, {1: seg}, settings) == {1}
-    assert rendered == [["clone (seed+1)"], ["edge"]]
+    assert rendered == [["chatterbox (seed+1)"], ["edge"]]
 
 
 def test_voice_rate_dispatches_on_engine(tmp_path, monkeypatch):
     wd = WorkDir(tmp_path, "vid")
     monkeypatch.setattr(tts, "speaking_rate", lambda root, voice, rate: 17.0)
-    monkeypatch.setattr(clone, "reference", lambda wd_: tmp_path / "ref.wav")
-    monkeypatch.setattr(tts, "clone_speaking_rate", lambda root, ref: 14.0)
+    monkeypatch.setattr(reference, "reference", lambda wd_: tmp_path / "ref.wav")
+    monkeypatch.setattr(tts, "cloned_speaking_rate", lambda settings, voice: {"chatterbox": 14.0, "indextts": 12.0}[voice.engine])
     assert tts.voice_rate(wd, Settings()) == 17.0
     assert tts.voice_rate(wd, Settings(tts="clone")) == 14.0
+    assert tts.voice_rate(wd, Settings(tts="clone", engine="indextts")) == 12.0
     with pytest.raises(SystemExit):
         tts.voice_rate(wd, Settings(tts="qwen"))
+    with pytest.raises(SystemExit):
+        tts.voice_rate(wd, Settings(tts="clone", engine="qwen"))

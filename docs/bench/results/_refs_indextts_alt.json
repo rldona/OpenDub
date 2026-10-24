@@ -1,0 +1,66 @@
+{
+ "alt1": {
+  "reference": {
+   "f0_hz": 213.8,
+   "jitter_st": 0.244,
+   "pitch_tremor": 0.448,
+   "loudness_tremor": 0.312,
+   "voiced_runs": 4
+  },
+  "clips": {
+   "f0_hz": 208.9,
+   "jitter_st": 0.25,
+   "pitch_tremor": 0.373,
+   "loudness_tremor": 0.535,
+   "voiced_runs": 99
+  }
+ },
+ "alt2": {
+  "reference": {
+   "f0_hz": 218.8,
+   "jitter_st": 0.192,
+   "pitch_tremor": 0.554,
+   "loudness_tremor": 0.632,
+   "voiced_runs": 8
+  },
+  "clips": {
+   "f0_hz": 185.1,
+   "jitter_st": 0.22,
+   "pitch_tremor": 0.339,
+   "loudness_tremor": 0.54,
+   "voiced_runs": 102
+  }
+ },
+ "alt3": {
+  "reference": {
+   "f0_hz": 190.5,
+   "jitter_st": 0.24,
+   "pitch_tremor": 0.347,
+   "loudness_tremor": 0.569,
+   "voiced_runs": 6
+  },
+  "clips": {
+   "f0_hz": 177.7,
+   "jitter_st": 0.24,
+   "pitch_tremor": 0.345,
+   "loudness_tremor": 0.591,
+   "voiced_runs": 92
+  }
+ },
+ "current": {
+  "reference": {
+   "f0_hz": 211.4,
+   "jitter_st": 0.229,
+   "pitch_tremor": 0.44,
+   "loudness_tremor": 0.48,
+   "voiced_runs": 7
+  },
+  "clips": {
+   "f0_hz": 200.7,
+   "jitter_st": 0.211,
+   "pitch_tremor": 0.324,
+   "loudness_tremor": 0.561,
+   "voiced_runs": 125
+  }
+ }
+}

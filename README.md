@@ -44,6 +44,16 @@ the separation, so install both:
 uv sync --extra separate --extra clone
 ```
 
+The other cloning engine, IndexTTS-2.5 (`--tts clone --engine indextts`), needs Python 3.11 and
+its own pinned PyTorch, so it lives in a separate venv and runs as a separate
+process. This clones a pinned commit of its repo, creates that venv and downloads
+the checkpoints (~5 GB, plus ~5 GB of auxiliary models on the first run) into
+`~/.local/share/opentranslator/indextts` (or `$OPENTRANSLATOR_INDEXTTS_DIR`):
+
+```bash
+uv run opentranslator setup-indextts
+```
+
 There are two ways to translate:
 
 - **Claude subscription (default, `--backend cli`)**: uses your Claude Code
@@ -66,6 +76,8 @@ Common `dub` options:
 |---|---|---|
 | `--voice` | `es-ES-AlvaroNeural` | edge-tts voice (`es-ES-ElviraNeural`, `es-MX-JorgeNeural`…) |
 | `--tts` | `edge` | `edge`: the `--voice` voice · `clone`: the original speaker's voice, cloned from the separated vocals |
+| `--engine` | `chatterbox` | Cloning engine for `--tts clone`: `chatterbox` or `indextts` (see below) |
+| `--min-factor` | `0.7` | `indextts`: lowest `duration_factor` before shortening a sentence that doesn't fit |
 | `--clone-ref` | none | Fixed Spanish recording to clone from when a cloned clip fails the quality check |
 | `--bg-volume` | `-15` | Volume of the original audio, in dB |
 | `--mute-original` | off | Drops the original audio |
@@ -112,7 +124,9 @@ delete it to measure again.
 
 With `--tts clone`, `dub` separates the audio right after transcribing it,
 picks the 10–15 s stretch of the original speaker with the fewest pauses as the
-reference and measures the cloned voice's speaking rate before translating.
+reference and measures the cloned voice's speaking rate before translating. The
+log prints the reference's mean pitch (F0) next to the engine, and `tts.json`
+keeps both.
 Every cloned clip is transcribed back with whisper (`--whisper-model`); one
 whose text doesn't match, or whose duration is abnormal, goes down a fallback
 chain that keeps the same voice as long as possible:
@@ -124,6 +138,40 @@ chain that keeps the same voice as long as possible:
 
 `tts.json` records which of these produced each clip. Chatterbox adds Resemble
 AI's inaudible Perth watermark to everything it generates.
+
+### Choosing the engine
+
+Chatterbox is the default; IndexTTS is chosen per video with `--engine
+indextts`. Neither won everywhere in the benchmark (details in
+[docs/v2-plan.md](docs/v2-plan.md)): IndexTTS fits its slots far better (41/42
+clips without atempo, against 30/42), and by ear it was preferred for the male
+voice but not for the female one, where Chatterbox sounded steadier (IndexTTS
+sometimes sounds as if trembling). So for now: `--engine indextts` for male
+voices, the default Chatterbox for female ones. With two
+videos that is not enough to pick the engine from the voice's pitch, so the
+choice is manual for now; the reference F0 recorded in `tts.json` is there to
+decide it later with more videos.
+
+The two engines fit clips to their slot differently. Chatterbox has no length
+control, so clips that don't fit are sped up with atempo (up to `--max-tempo`)
+and, if that's not enough, shortened by Claude. IndexTTS has `duration_factor`,
+and the order is:
+
+1. Speak each clip with the factor its calibrated speaking rate predicts for
+   the slot (the rate is measured at factor 0.85, so translations aren't cut
+   more than needed), never below `--min-factor` (0.7), and correct it once
+   with the measured duration.
+2. If it still doesn't fit, ask Claude for a shorter sentence.
+3. Only if the shortened sentence doesn't fit either, compress below
+   `--min-factor`, down to 0.5, noted in `overflow.log`; atempo covers whatever
+   is left.
+
+`tts.json` records the factor of each clip. The worker logs to
+`work/indextts.log`.
+
+Licenses: Chatterbox is MIT; IndexTTS-2.5 is under the bilibili Model Use
+License Agreement, which allows this kind of personal use but is more
+restrictive (see [docs/v2-plan.md](docs/v2-plan.md)).
 
 ## Known limitations
 
@@ -138,6 +186,12 @@ AI's inaudible Perth watermark to everything it generates.
   come with `uv sync --extra separate` (PyTorch's CUDA wheels) or a system CUDA
   install; otherwise it falls back to the CPU with a warning. Tested on an RTX
   5080: `large-v3` transcribes 2.5 minutes of audio in ~10 s.
+
+## Benchmarks
+
+The scripts behind the engine choices (generation, CER, accent, voice
+similarity, F0, jitter and 3–9 Hz tremor) are in [docs/bench/](docs/bench/);
+`uv run docs/bench/run.py <name>` scores a new model against all the others.
 
 ## Tests
 
