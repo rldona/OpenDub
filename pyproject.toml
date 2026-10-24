@@ -1,0 +1,28 @@
+[project]
+name = "opentranslator"
+version = "0.1.0"
+description = "Dobla vídeos de YouTube a español con voz sintética"
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+    "anthropic>=2.3.0",
+    "edge-tts>=7.3.1",
+    "faster-whisper>=1.2.1",
+    "numpy>=2.4.6",
+    "python-dotenv>=1.2.4",
+    "rich>=15.0.0",
+    "typer>=0.27.3",
+    "yt-dlp[default]>=2026.10.21",
+]
+
+[project.scripts]
+opentranslator = "opentranslator.cli:app"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[dependency-groups]
+dev = [
+    "pytest>=9.1.1",
+]

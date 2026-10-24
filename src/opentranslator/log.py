@@ -1,0 +1,31 @@
+"""Logs por fase con rich."""
+
+from __future__ import annotations
+
+import logging
+import time
+from contextlib import contextmanager
+
+from rich.console import Console
+from rich.logging import RichHandler
+
+console = Console(stderr=True)
+
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(message)s",
+    datefmt="%H:%M:%S",
+    handlers=[RichHandler(console=console, show_path=False, markup=True)],
+)
+log = logging.getLogger("opentranslator")
+for noisy in ("httpx", "huggingface_hub"):
+    logging.getLogger(noisy).setLevel(logging.WARNING)
+
+
+@contextmanager
+def phase(name: str):
+    """Enmarca una fase del pipeline y mide su duración."""
+    console.rule(f"[bold cyan]{name}")
+    start = time.monotonic()
+    yield
+    log.info(f"[green]✔ {name}[/] en {time.monotonic() - start:.1f}s")
