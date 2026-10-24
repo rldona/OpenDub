@@ -99,7 +99,7 @@ def _neg_date(date: str | None) -> float:
 
 
 # --- translation --------------------------------------------------------------
-def _speaking_rate(wd: WorkDir, manager: JobManager) -> float | None:
+def _speaking_rate(wd: WorkDir, manager: JobManager) -> tts.Pace | None:
     """The calibrated rate the translation was capped with, if it was measured."""
     options = (manager.saved(wd.path.name) or {}).get("options") or {}
     index = _tts_index(wd) or {}
@@ -117,16 +117,16 @@ def translation(wd: WorkDir, manager: JobManager) -> dict[str, Any] | None:
         return None
     originals = load_segments(wd.segments)
     texts = {s.id: s.text for s in load_segments(wd.translation)}
-    cps = _speaking_rate(wd, manager)
+    pace = _speaking_rate(wd, manager)
     segments = []
     for i, seg in enumerate(originals):
         slot = translate._slot(originals, i)  # the same slot the translation was capped with
         segments.append({
             "id": seg.id, "start": seg.start, "end": seg.end, "original": seg.text,
             "text": texts.get(seg.id, ""), "slot": round(slot, 2),
-            "max_chars": round(slot * cps) if cps else None,
+            "max_chars": pace.max_chars(slot) if pace else None,
         })
-    return {"segments": segments, "chars_per_second": cps,
+    return {"segments": segments, "chars_per_second": pace.cps if pace else None,
             "needs_regeneration": not (wd.has("tts") and wd.has("mix"))}
 
 

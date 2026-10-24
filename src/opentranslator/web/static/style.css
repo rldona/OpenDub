@@ -83,6 +83,10 @@ output { min-width: 48px; text-align: right; }
 .phases li.active { background: transparent; outline: 1.5px solid var(--accent); color: var(--accent); }
 .phases li.error { background: var(--danger-soft); color: var(--danger); }
 .phases li.skipped { opacity: 0.55; text-decoration: line-through; }
+.overall { margin-bottom: 14px; }
+.overall-head { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; margin-bottom: 6px; }
+.overall-meter { height: 10px; border-radius: 5px; margin: 0; }
+.overall-meter div { background: var(--success); }
 .meter { height: 6px; border-radius: 3px; background: var(--surface-2); overflow: hidden; margin: 4px 0 12px; }
 .meter div { height: 100%; width: 0; background: var(--accent); transition: width 0.2s; }
 .meter.indeterminate div { width: 30%; animation: slide 1.2s infinite ease-in-out; }

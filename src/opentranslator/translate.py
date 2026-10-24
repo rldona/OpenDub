@@ -94,7 +94,7 @@ def _slot(segments: list[Segment], i: int) -> float:
 
 
 def _user_prompt(
-    block: list[tuple[Segment, float]], context: list[tuple[str, str]], chars_per_second: float
+    block: list[tuple[Segment, float]], context: list[tuple[str, str]], pace: Pace
 ) -> str:
     payload: dict[str, Any] = {}
     if context:
@@ -103,7 +103,7 @@ def _user_prompt(
         {
             "id": s.id,
             "duration_s": round(slot, 1),
-            "max_chars": round(slot * chars_per_second),
+            "max_chars": pace.max_chars(slot),
             "text": s.text,
         }
         for s, slot in block
@@ -130,7 +130,7 @@ def _call_cli(system: str, prompt: str, model: str) -> tuple[dict[str, Any], flo
         "--setting-sources", "",
         "--strict-mcp-config",
     ]
-    result = subprocess.run(cmd, input=prompt, capture_output=True, text=True, timeout=600)
+    result = subprocess.run(cmd, input=prompt, capture_output=True, text=True, encoding="utf-8", timeout=600)
     try:
         data = json.loads(result.stdout)
     except json.JSONDecodeError:
@@ -192,7 +192,11 @@ def shorten(items: list[tuple[int, str, str, int]], voice: str, settings: Settin
         ensure_ascii=False, indent=1,
     )
     got, _ = _ask(system, prompt, [i for i, *_ in items], settings)
-    return got
+    # a shorter version that came back empty or garbled (U+FFFD) is worse than none
+    bad = [i for i, text in got.items() if not text.strip() or "\ufffd" in text]
+    if bad:
+        log.warning(f"Ignoring {len(bad)} unusable shortened sentence(s): {bad}")
+    return {i: text for i, text in got.items() if i not in bad}
 
 
 def run(wd: WorkDir, settings: Settings, force: bool = False) -> list[Segment]:
@@ -202,16 +206,15 @@ def run(wd: WorkDir, settings: Settings, force: bool = False) -> list[Segment]:
     meta = json.loads(wd.meta.read_text(encoding="utf-8"))
     source_code = (meta.get("language") or "en").split("-")[0]
     target = _target_name(settings.voice)
-    if settings.chars_per_second:
-        cps = settings.chars_per_second
-    else:
-        from .tts import voice_rate  # lazy import: tts also imports this module
+    from .tts import Pace, voice_rate  # lazy import: tts also imports this module
 
-        cps = voice_rate(wd, settings)
+    pace = Pace(settings.chars_per_second) if settings.chars_per_second else voice_rate(wd, settings)
+    cps = pace.cps
     params = {
         "model": settings.claude_model,
         "batch": settings.batch_size,
         "chars_per_second": cps,
+        **({"overhead_s": pace.overhead} if pace.overhead else {}),  # cloned voices (see tts.Pace)
         "target": target,
         "source": [(s.id, s.text) for s in segments],
     }
@@ -230,7 +233,8 @@ def run(wd: WorkDir, settings: Settings, force: bool = False) -> list[Segment]:
     pairs = list(zip(segments, slots))
     blocks = [pairs[i : i + settings.batch_size] for i in range(0, len(pairs), settings.batch_size)]
     log.info(f"{len(segments)} segments in {len(blocks)} blocks · backend {settings.backend} · {settings.claude_model}")
-    log.info(f"Speaking rate for max_chars: {cps:.1f} chars/s")
+    log.info(f"Speaking rate for max_chars: {cps:.1f} chars/s"
+             + (f" after {pace.overhead:.2f} s per clip" if pace.overhead else ""))
 
     translated: dict[int, str] = {}
     total_cost = 0.0
@@ -246,7 +250,7 @@ def run(wd: WorkDir, settings: Settings, force: bool = False) -> list[Segment]:
             else:
                 prev = [s for s, _ in pairs[: n * settings.batch_size]][-CONTEXT_SEGMENTS:]
                 context = [(s.text, translated[s.id]) for s in prev]
-                prompt = _user_prompt(block, context, cps)
+                prompt = _user_prompt(block, context, pace)
                 got, cost = _ask(system, prompt, [s.id for s, _ in block], settings)
                 total_cost += cost
                 path.write_text(json.dumps(got, ensure_ascii=False, indent=1), encoding="utf-8")
@@ -257,7 +261,7 @@ def run(wd: WorkDir, settings: Settings, force: bool = False) -> list[Segment]:
     save_segments(wd.translation, result)
 
     over = [
-        (s, slot) for s, slot in zip(result, slots) if len(s.text) > slot * cps * 1.25
+        (s, slot) for s, slot in zip(result, slots) if len(s.text) > pace.max_chars(slot) * 1.25
     ]
     ratio = sum(len(s.text) for s in result) / sum(len(s.text) for s in segments)
     log.info(f"ES/original length: {ratio:.0%} · probably too long: {len(over)}")

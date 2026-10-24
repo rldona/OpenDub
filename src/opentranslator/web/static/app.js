@@ -23,6 +23,9 @@ const STRINGS = {
     clips: "{n} segments", sped_up: "{n} sped up", shortened: "{n} shortened", ref_f0: "Reference F0 {f0} Hz",
     engine_label: "Engine {e}", not_found: "This video isn't in the work folder.", start_dub: "Dub",
     cant_reach: "Can't reach the server. Is `opentranslator web` running?",
+    overall: "Overall {p}%", eta_min: "about {m} min left", eta_sec: "under a minute left",
+    elapsed: "{t} elapsed", took: "took {t}", estimating: "estimating time left…",
+    finishing: "finishing: fitting and quality check…",
   },
   es: {
     preferences: "Preferencias", language: "Idioma", dub: "Doblar", voice: "Voz", voice_clone: "Clonada",
@@ -46,6 +49,9 @@ const STRINGS = {
     clips: "{n} segmentos", sped_up: "{n} acelerados", shortened: "{n} acortados", ref_f0: "F0 de la referencia {f0} Hz",
     engine_label: "Motor {e}", not_found: "Este vídeo no está en la carpeta de trabajo.", start_dub: "Doblar",
     cant_reach: "No hay conexión con el servidor. ¿Está corriendo `opentranslator web`?",
+    overall: "Total {p} %", eta_min: "faltan unos {m} min", eta_sec: "falta menos de un minuto",
+    elapsed: "lleva {t}", took: "tardó {t}", estimating: "calculando lo que falta…",
+    finishing: "terminando: ajuste y control de calidad…",
   },
 };
 
@@ -94,6 +100,14 @@ function duration(s) {
   if (s == null) return "";
   s = Math.round(s);
   return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`;
+}
+function clock(s) {
+  // 45 s · 12 min · 1 h 05 min
+  s = Math.round(s);
+  if (s < 60) return `${s} s`;
+  const m = Math.floor(s / 60);
+  if (m < 60) return `${m} min`;
+  return `${Math.floor(m / 60)} h ${String(m % 60).padStart(2, "0")} min`;
 }
 function seconds(s) { return `${(Math.round(s * 10) / 10).toLocaleString(lang)} s`; }
 function when(iso) {
@@ -159,11 +173,15 @@ function initForm() {
 
 // ---- running job (SSE) -----------------------------------------------------
 const PHASES = ["Download", "Transcription", "Separation", "Translation", "TTS", "Mix"];
+// Share of a dub's time per phase, measured on a 28-minute video with a cloned voice
+const PHASE_WEIGHTS = { Download: 1, Transcription: 1, Separation: 2, Translation: 9, TTS: 86, Mix: 1 };
 let source = null;
 let job = null; // {id, title, status, error, phases: {name: {state, seconds}}, progress, logs, queue}
 
 function newJob(id) {
-  return { id, title: id, status: "queued", error: null, phases: {}, progress: null, logs: [], queue: 0 };
+  return { id, title: id, status: "queued", error: null, phases: {}, progress: null, logs: [], queue: 0,
+           active: null, phaseFrac: {}, startedAt: null, segments: null, clipsDone: 0, lastCompleted: 0,
+           firstPassAt: null, laterBatches: 0 };
 }
 
 function watch(id) {
@@ -182,9 +200,12 @@ function handleEvent(e) {
   if (e.type === "status") {
     job.status = e.status;
     if (e.error) job.error = e.error;
+    if (e.status === "running") job.startedAt = e.t;
+    if (e.status === "done" || e.status === "error") job.finishedAt = e.t;
   } else if (e.type === "phase") {
     job.phases[e.name] = { state: e.state === "start" ? "active" : e.state, seconds: e.seconds };
     if (e.state === "start") {
+      job.active = e.name;
       job.progress = null;
       // a phase that started after Separation's slot without it means Separation was skipped
       const at = PHASES.indexOf(e.name);
@@ -192,11 +213,30 @@ function handleEvent(e) {
     }
   } else if (e.type === "progress") {
     job.progress = e;
+    // the overall bar never goes back: later, smaller bars (quality check, shortening) don't reset it
+    if (job.active === "TTS" && job.segments) {
+      // The first pass speaks every segment (maybe over several bars: count clips across them) and is
+      // 60% of the phase. What follows (fitting, quality check, shortening) has no known total, and took
+      // about as long on a long video: each later batch moves the bar a bit, never to the end.
+      if (e.completed < job.lastCompleted) {
+        if (job.firstPassAt) job.laterBatches += 1;
+        job.clipsDone += job.lastCompleted;
+      }
+      job.lastCompleted = e.completed;
+      const first = Math.min(1, (job.clipsDone + e.completed) / job.segments);
+      if (first >= 1 && !job.firstPassAt) job.firstPassAt = e.t;
+      const later = job.firstPassAt ? 1 - 0.6 ** job.laterBatches : 0;
+      job.phaseFrac.TTS = Math.max(job.phaseFrac.TTS || 0, 0.6 * first + 0.4 * later * 0.9);
+    } else if (job.active && e.total) {
+      job.phaseFrac[job.active] = Math.max(job.phaseFrac[job.active] || 0, Math.min(1, e.completed / e.total));
+    }
   } else if (e.type === "log") {
     job.logs.push(e);
     if (job.logs.length > 4) job.logs.shift();
     const m = /^\s*(.+?) · \d+s · language/.exec(e.message);
     if (m) job.title = m[1];
+    const n = /· (\d+) segments$/.exec(e.message);  // "Cloned voice: … · 353 segments"
+    if (n && job.active === "TTS") job.segments = Number(n[1]);
   }
   scheduleRender();
 }
@@ -206,6 +246,45 @@ function scheduleRender() {
   if (renderPending) return;
   renderPending = true;
   requestAnimationFrame(() => { renderPending = false; renderJob(); });
+}
+
+function overallFraction() {
+  let done = 0, total = 0;
+  for (const p of PHASES) {
+    const w = PHASE_WEIGHTS[p];
+    const state = (job.phases[p] || {}).state;
+    total += w;
+    if (state === "done" || state === "skipped") done += w;
+    else if (state === "active") done += w * (job.phaseFrac[p] || 0);
+  }
+  return job.status === "done" ? 1 : done / total;
+}
+
+function renderOverall() {
+  const f = overallFraction();
+  const pct = Math.floor(f * 100);
+  $("#overall-label").textContent = t("overall", { p: pct });
+  $("#overall-fill").style.width = `${(f * 100).toFixed(1)}%`;
+  $("#overall-meter").setAttribute("aria-valuenow", String(pct));
+  const parts = [];
+  if (job.startedAt && (job.status === "running" || job.finishedAt)) {
+    const end = job.status === "running" ? Date.now() / 1000 : job.finishedAt;
+    const elapsed = Math.max(0, end - job.startedAt);
+    if (job.status === "running") {
+      parts.push(t("elapsed", { t: clock(elapsed) }));
+      if (job.active === "TTS" && job.firstPassAt) {
+        parts.push(t("finishing"));  // no honest estimate for what's left of the phase
+      } else if (f >= 0.05 && elapsed >= 20) {  // enough of the job behind to extrapolate from
+        const left = (elapsed * (1 - f)) / f;
+        parts.push(left < 60 ? t("eta_sec") : t("eta_min", { m: Math.round(left / 60) }));
+      } else {
+        parts.push(t("estimating"));
+      }
+    } else {
+      parts.push(t("took", { t: clock(elapsed) }));
+    }
+  }
+  $("#overall-eta").textContent = parts.join(" · ");
 }
 
 function renderJob() {
@@ -239,6 +318,7 @@ function renderJob() {
     meter.classList.toggle("indeterminate", running);
     fill.style.width = running ? "" : "0";
   }
+  renderOverall();
   $("#log").replaceChildren(...job.logs.slice().reverse().map((l) => el("li", { class: l.level }, l.message)));
 }
 
@@ -486,3 +566,4 @@ initForm();
 route();
 reconnect();
 setInterval(() => { if (!document.hidden && !$("#home").hidden) loadVideos(); }, 15000);
+setInterval(() => { if (job && job.status === "running" && !document.hidden) renderOverall(); }, 5000);

@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import gc
+import sys
 from pathlib import Path
 
 from . import download as download_mod
@@ -48,3 +50,19 @@ def dub(url: str, settings: Settings, output: Path | None = None, force: bool = 
         tts_mod.run(wd, settings)
     with phase("Mix"):
         return mix_mod.run(wd, settings, output=output)
+
+
+def release_models() -> None:
+    """Free the GPU memory the phases keep between clips: the IndexTTS worker, Chatterbox
+    and PyTorch's cached blocks. A CLI run frees it on exit; a long-lived server must
+    do it after each job, or the next one may run out of memory."""
+    from . import clone, indextts
+
+    indextts.shutdown()
+    clone.unload()
+    gc.collect()
+    if "torch" in sys.modules:
+        import torch
+
+        if torch.cuda.is_available():
+            torch.cuda.empty_cache()

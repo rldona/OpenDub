@@ -86,12 +86,13 @@ def test_voice_rate_dispatches_on_engine(tmp_path, monkeypatch):
     wd = WorkDir(tmp_path, "vid")
     monkeypatch.setattr(tts, "speaking_rate", lambda root, voice, rate: 17.0)
     monkeypatch.setattr(reference, "reference", lambda wd_: tmp_path / "ref.wav")
-    monkeypatch.setattr(tts, "cloned_speaking_rate", lambda settings, voice: {"chatterbox": 14.0, "indextts": 12.0}[voice.engine])
-    assert tts.voice_rate(wd, Settings()) == 17.0
-    assert tts.voice_rate(wd, Settings(tts="clone")) == 14.0
-    assert tts.voice_rate(wd, Settings(tts="clone", engine="indextts")) == 12.0
+    monkeypatch.setattr(tts, "cloned_speaking_rate",
+                        lambda settings, voice: tts.Pace({"chatterbox": 14.0, "indextts": 12.0}[voice.engine], 1.0))
+    assert tts.voice_rate(wd, Settings()) == tts.Pace(17.0)
+    assert tts.voice_rate(wd, Settings(tts="clone")) == tts.Pace(14.0, 1.0)
+    assert tts.voice_rate(wd, Settings(tts="clone", engine="indextts")) == tts.Pace(12.0, 1.0)
     monkeypatch.setattr(reference, "mean_f0", lambda path: 139.0)
-    assert tts.voice_rate(wd, Settings(tts="clone", engine="auto")) == 12.0  # low voice → indextts
+    assert tts.voice_rate(wd, Settings(tts="clone", engine="auto")).cps == 12.0  # low voice → indextts
     with pytest.raises(SystemExit):
         tts.voice_rate(wd, Settings(tts="qwen"))
     with pytest.raises(SystemExit):

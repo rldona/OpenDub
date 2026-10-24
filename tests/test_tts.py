@@ -132,10 +132,10 @@ def test_run_shortens_clips_that_do_not_fit(tmp_path, monkeypatch):
     async def no_check(voice):
         return None
 
-    def fake_render(wd_, segments, slots, settings, voice, regenerate=False):
+    def fake_render(wd_, jobs, slots, settings, regenerate=False):
         # 20 chars/s unaccelerated: the clip fits if len(text)/20 <= slot·1.25
         out = []
-        for s in segments:
+        for s, _voice in jobs:
             raw = len(s.text) / 20
             dur = min(raw, raw / min(raw / slots[s.id], 1.25)) if raw > slots[s.id] else raw
             out.append(tts.Clip(s.id, s.start, slots[s.id], raw, round(raw / dur, 3), dur,
@@ -149,7 +149,7 @@ def test_run_shortens_clips_that_do_not_fit(tmp_path, monkeypatch):
         return {i: "y" * m for i, _o, _t, m in items}
 
     monkeypatch.setattr(tts, "_check_voice", no_check)
-    monkeypatch.setattr(tts, "_render", fake_render)
+    monkeypatch.setattr(tts, "_render_jobs", fake_render)
     monkeypatch.setattr(translate, "shorten", fake_shorten)
     clips = tts.run(wd, Settings())
 
@@ -157,3 +157,27 @@ def test_run_shortens_clips_that_do_not_fit(tmp_path, monkeypatch):
     assert clips[1].text.startswith("y") and clips[1].overflow == 0
     assert clips[0].text == "Corta."
     assert tts.load_clips(wd)[1].text == clips[1].text
+
+
+def test_fit_pace_separates_overhead_from_rate():
+    # 1.5 s per clip + 20 chars/s, as IndexTTS measured on a real video
+    samples = [(n, 1.5 + n / 20) for n in (10, 11, 24, 50, 60, 78, 140)]
+    assert tts.fit_pace(samples) == tts.Pace(20.0, 1.5)
+    # no overhead to find: a plain rate
+    assert tts.fit_pace([(10, 1.0), (20, 2.0), (40, 4.0)]).overhead == 0.0
+    # degenerate (longer text, shorter clip): plain rate, no negative overhead
+    assert tts.fit_pace([(10, 2.0), (40, 1.0)]) == tts.Pace(round(50 / 3, 2))
+
+
+def test_pace_limits_short_slots_by_overhead():
+    pace = tts.Pace(20.0, 1.5)
+    assert pace.seconds(30) == 3.0
+    assert pace.max_chars(4.0) == 50  # (4 - 1.5) · 20
+    assert pace.max_chars(1.0) == 6  # never below 30% of the plain rate
+    assert tts.Pace(15.0).max_chars(4.0) == 60  # no overhead: as before
+
+
+def test_shorten_target_leaves_out_the_overhead():
+    clip = _c(1, "x" * 50, raw=4.0, slot=3.0)  # 1.5 s overhead + 2.5 s for 50 chars
+    assert tts.shorten_target("x" * 50, clip, 1.0) == 35  # proportional: 50·3/4, minus 5%
+    assert tts.shorten_target("x" * 50, clip, 1.0, overhead=1.5) == 28  # (3-1.5)/(4-1.5)·50, minus 5%

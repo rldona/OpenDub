@@ -36,6 +36,7 @@ from .config import Settings
 from .log import Progress, console, log
 from .media import ffmpeg
 from .models import Segment, load_segments
+from .spoken import spell_numbers
 from .workdir import WorkDir
 
 SAMPLE_RATE = 24000
@@ -59,6 +60,34 @@ CALIBRATION_SENTENCES = [
     "Al final resumiremos lo más útil para el día a día.",
     "¿Te has preguntado alguna vez qué pasa cuando nadie mira?",
 ]
+# Cloned voices are also measured on short and long sentences, to separate what
+# every clip takes regardless of its length (onset, ending) from the speaking rate
+CALIBRATION_EXTRA = [
+    "Sí, claro.",
+    "Vamos allá.",
+    "Y eso es todo por ahora.",
+    "Cuando lo pruebes tú mismo verás que, con un poco de práctica y algo de paciencia, "
+    "el resultado mejora muchísimo de una semana a otra.",
+]
+
+
+@dataclass(frozen=True)
+class Pace:
+    """How long a voice takes to say a text: a fixed `overhead` per clip plus `cps` chars/s.
+
+    For IndexTTS a clip took 1.5 s besides its characters, so with a plain rate short
+    sentences were planned at half their real length.
+    """
+
+    cps: float
+    overhead: float = 0.0
+
+    def seconds(self, chars: int) -> float:
+        return self.overhead + chars / self.cps
+
+    def max_chars(self, slot: float) -> int:
+        """Characters that fit `slot`; never below 30% of the plain rate's, for tiny slots."""
+        return max(round((slot - self.overhead) * self.cps), round(0.3 * slot * self.cps), 1)
 
 
 SEED = 0  # cloned voices: base seed, so a rerun reproduces the same clips
@@ -110,16 +139,24 @@ def choose_tempo(duration: float, slot: float, seg_duration: float, min_tempo: f
     return 1.0
 
 
-def shorten_target(text: str, clip: Clip, max_tempo: float) -> int:
-    """Characters that would fit the slot at the maximum tempo, with a 5% margin."""
-    fits = len(text) * clip.slot * max_tempo / clip.raw_duration
+def shorten_target(text: str, clip: Clip, max_tempo: float, overhead: float = 0.0) -> int:
+    """Characters that would fit the slot at the maximum tempo, with a 5% margin.
+
+    `overhead`: seconds of the clip that don't depend on its length (see Pace).
+    """
+    fits = len(text) * (clip.slot * max_tempo - overhead) / max(clip.raw_duration - overhead, 0.1)
     return max(int(fits * 0.95), 1)
+
+
+def spoken_len(text: str) -> int:
+    """Characters of a text as it is said: "192" counts as "ciento noventa y dos"."""
+    return len(spell_numbers(text))
 
 
 def suspicious(clips: list[Clip], min_chars: int = 15) -> list[Clip]:
     """Clips whose speed (characters/s) is far from the video's median."""
     # duration_factor shortens clips on purpose: judge them at the speed they'd have at 1.0
-    natural = lambda c: len(c.text) * c.factor / c.raw_duration
+    natural = lambda c: spoken_len(c.text) * c.factor / c.raw_duration
     rates = [natural(c) for c in clips if c.raw_duration > 0 and len(c.text) >= min_chars]
     if len(rates) < 3:
         return [c for c in clips if c.raw_duration < 0.15]
@@ -157,7 +194,8 @@ def _raw_path(wd: WorkDir, voice: Voice, text: str) -> Path:
     if voice.engine != "edge":
         from . import clone
 
-        raw = f"{engine_model(voice.engine)}\n{clone.file_hash(voice.ref)}\n{voice.seed}\n{text}"
+        # "spoken-v1": cloned voices get figures written out (spoken.py); older clips said them wrong
+        raw = f"{engine_model(voice.engine)}\n{clone.file_hash(voice.ref)}\n{voice.seed}\nspoken-v1\n{text}"
         if voice.engine == "indextts":
             raw += f"\n{voice.factor:.3f}"
         return wd.tts_dir / "raw" / f"{hashlib.sha256(raw.encode()).hexdigest()[:16]}.wav"
@@ -167,8 +205,26 @@ def _raw_path(wd: WorkDir, voice: Voice, text: str) -> Path:
 
 def _synthesize(jobs: list[tuple[str, Path]], voice: Voice, settings: Settings) -> None:
     """Synthesize every (text, path) job with the given voice."""
-    if voice.engine == "edge":
-        asyncio.run(_synthesize_all(jobs, voice.name, voice.rate))
+    _synthesize_jobs([(text, path, voice) for text, path in jobs], settings)
+
+
+def _synthesize_jobs(jobs: list[tuple[str, Path, Voice]], settings: Settings) -> None:
+    """Synthesize (text, path, voice) jobs, each with its own voice.
+
+    All cloned clips share one progress bar, whatever their voice or
+    duration_factor (IndexTTS gives nearly every clip its own), so the bar
+    reflects the whole batch instead of restarting per group.
+    """
+    edge: dict[tuple[str, str], list[tuple[str, Path]]] = {}
+    cloned = []
+    for text, path, voice in jobs:
+        if voice.engine == "edge":
+            edge.setdefault((voice.name, voice.rate), []).append((text, path))
+        else:
+            cloned.append((text, path, voice))
+    for (name, rate), group in edge.items():
+        asyncio.run(_synthesize_all(group, name, rate))
+    if not cloned:
         return
     from . import clone, indextts
 
@@ -177,13 +233,14 @@ def _synthesize(jobs: list[tuple[str, Path]], voice: Voice, settings: Settings) 
         "[progress.description]{task.description}", BarColumn(), MofNCompleteColumn(),
         TimeElapsedColumn(), console=console, transient=True,
     ) as progress:
-        task = progress.add_task("Cloning voice", total=len(jobs))
-        for text, path in jobs:
+        task = progress.add_task("Cloning voice", total=len(cloned))
+        for text, path, voice in cloned:
+            said = spell_numbers(text)  # cloned voices misread figures and "2x2"
             if voice.engine == "indextts":
                 indextts.synthesize(settings.indextts_dir, settings.work_root / "indextts.log",
-                                    text, voice.ref, path, voice.factor, voice.seed)
+                                    said, voice.ref, path, voice.factor, voice.seed)
             else:
-                clone.synthesize(text, voice.ref, voice.seed, path)
+                clone.synthesize(said, voice.ref, voice.seed, path)
             progress.advance(task)
 
 
@@ -235,14 +292,15 @@ def speaking_rate(work_root: Path, voice: str, rate: str) -> float:
     if key in rates:
         return rates[key]
 
-    rates[key] = _calibrate(Settings(work_root=work_root), Voice("edge", voice, rate))
+    samples = _calibrate(Settings(work_root=work_root), Voice("edge", voice, rate), CALIBRATION_SENTENCES)
+    rates[key] = round(sum(c for c, _ in samples) / sum(s for _, s in samples), 2)
     cache.write_text(json.dumps(rates, indent=1))
     log.info(f"Calibrated rate for {voice} ({rate}): {rates[key]} chars/s")
     return rates[key]
 
 
-def cloned_speaking_rate(settings: Settings, voice: Voice) -> float:
-    """Characters per second of a cloned voice, cached like speaking_rate.
+def cloned_speaking_rate(settings: Settings, voice: Voice) -> Pace:
+    """Pace of a cloned voice (per-clip overhead and chars/s), cached like speaking_rate.
 
     IndexTTS is measured at indextts.CALIBRATION_FACTOR, the pace its clips are
     planned around; Chatterbox at its only pace.
@@ -252,10 +310,25 @@ def cloned_speaking_rate(settings: Settings, voice: Voice) -> float:
     rates = json.loads(cache.read_text()) if cache.exists() else {}
     key = cloned_rate_key(voice.engine, voice.ref)
     if key not in rates:
-        rates[key] = _calibrate(settings, replace(voice, factor=factor, seed=SEED))
+        samples = _calibrate(settings, replace(voice, factor=factor, seed=SEED), CALIBRATION_SENTENCES + CALIBRATION_EXTRA)
+        rates[key] = asdict(fit_pace(samples))
         cache.write_text(json.dumps(rates, indent=1))
-        log.info(f"Calibrated rate for the cloned voice ({voice.engine}): {rates[key]} chars/s")
-    return rates[key]
+        log.info(f"Calibrated the cloned voice ({voice.engine}): {rates[key]['overhead']} s per clip "
+                 f"+ {rates[key]['cps']} chars/s")
+    return Pace(**rates[key])
+
+
+def fit_pace(samples: list[tuple[int, float]]) -> Pace:
+    """Least-squares fit of seconds = overhead + chars / cps over (chars, seconds) samples."""
+    n = len(samples)
+    mean_c = sum(c for c, _ in samples) / n
+    mean_s = sum(s for _, s in samples) / n
+    var = sum((c - mean_c) ** 2 for c, _ in samples)
+    slope = sum((c - mean_c) * (s - mean_s) for c, s in samples) / var if var else 0.0
+    overhead = mean_s - slope * mean_c
+    if slope <= 0 or overhead < 0:  # degenerate: fall back to a plain rate
+        return Pace(round(sum(c for c, _ in samples) / sum(s for _, s in samples), 2))
+    return Pace(round(1 / slope, 2), round(overhead, 3))
 
 
 def cloned_rate_key(engine: str, ref: Path) -> str:
@@ -263,26 +336,29 @@ def cloned_rate_key(engine: str, ref: Path) -> str:
     from . import clone
 
     factor = calibration_factor(engine)
-    return f"{engine_model(engine)} {clone.file_hash(ref)}" + (f" @{factor}" if factor != 1.0 else "")
+    # "pace": overhead + rate (Pace); older entries hold a plain rate
+    return f"{engine_model(engine)} {clone.file_hash(ref)}" + (f" @{factor}" if factor != 1.0 else "") + " pace"
 
 
-def cached_rate(work_root: Path, engine: str, ref: Path | None, voice: str, rate: str) -> float | None:
-    """The calibrated speaking rate if it was already measured; never calibrates."""
+def cached_rate(work_root: Path, engine: str, ref: Path | None, voice: str, rate: str) -> Pace | None:
+    """The calibrated pace if it was already measured; never calibrates."""
     cache = work_root / "voice_rates.json"
     if not cache.exists():
         return None
     rates = json.loads(cache.read_text())
     if engine == "edge":
-        return rates.get(f"{voice} {rate}")
-    return rates.get(cloned_rate_key(engine, ref)) if ref and ref.exists() else None
+        cps = rates.get(f"{voice} {rate}")
+        return Pace(cps) if cps else None
+    entry = rates.get(cloned_rate_key(engine, ref)) if ref and ref.exists() else None
+    return Pace(**entry) if entry else None
 
 
-def voice_rate(wd: WorkDir, settings: Settings) -> float:
-    """Speaking rate of the voice the video will be dubbed with."""
+def voice_rate(wd: WorkDir, settings: Settings) -> Pace:
+    """Pace of the voice the video will be dubbed with."""
     if settings.tts == "clone":  # Voice.clone resolves the engine (auto needs the reference)
         return cloned_speaking_rate(settings, Voice.clone(settings, reference.reference(wd)))
     resolve_engine(settings)  # validates --tts
-    return speaking_rate(settings.work_root, settings.voice, settings.rate)
+    return Pace(speaking_rate(settings.work_root, settings.voice, settings.rate))
 
 
 CLONE_ENGINES = ("chatterbox", "indextts")  # --engine; Settings.engine defaults to chatterbox
@@ -325,21 +401,21 @@ def engine_model(engine: str) -> str:
     return {"chatterbox": clone.MODEL, "indextts": indextts.MODEL}[engine]
 
 
-def _calibrate(settings: Settings, voice: Voice) -> float:
-    """Synthesize the calibration sentences and measure their characters per second."""
+def _calibrate(settings: Settings, voice: Voice, sentences: list[str]) -> list[tuple[int, float]]:
+    """Synthesize the sentences and measure each one: (spoken characters, seconds without silence)."""
     tmp_dir = settings.work_root / ".calibration"
     tmp_dir.mkdir(parents=True, exist_ok=True)
     ext = ".mp3" if voice.engine == "edge" else ".raw.wav"
-    jobs = [(text, tmp_dir / f"ref{i}{ext}") for i, text in enumerate(CALIBRATION_SENTENCES)]
+    jobs = [(text, tmp_dir / f"ref{i}{ext}") for i, text in enumerate(sentences)]
     for _, raw in jobs:
         raw.unlink(missing_ok=True)
     _synthesize(jobs, voice, settings)
-    total = 0.0
-    for i, (_, raw) in enumerate(jobs):
+    samples = []
+    for i, (text, raw) in enumerate(jobs):
         trimmed = tmp_dir / f"ref{i}.wav"
         ffmpeg("-i", str(raw), "-af", TRIM, "-ac", "1", "-ar", str(SAMPLE_RATE), str(trimmed))
-        total += _wav_duration(trimmed)
-    return round(sum(len(t) for t, _ in jobs) / total, 2)
+        samples.append((spoken_len(text), _wav_duration(trimmed)))
+    return samples
 
 
 def _process(seg: Segment, slot: float, raw: Path, out_dir: Path, settings: Settings, voice: Voice) -> Clip:
@@ -375,17 +451,28 @@ def _render(
     regenerate: bool = False,
 ) -> list[Clip]:
     """Synthesize (whatever is not cached) and process the given segments."""
-    raws = [_raw_path(wd, voice, s.text) for s in segments]
+    return _render_jobs(wd, [(s, voice) for s in segments], slots, settings, regenerate=regenerate)
+
+
+def _render_jobs(
+    wd: WorkDir, jobs: list[tuple[Segment, Voice]], slots: dict[int, float], settings: Settings,
+    regenerate: bool = False,
+) -> list[Clip]:
+    """Synthesize (whatever is not cached) and process segments, each with its own voice, in one pass."""
+    raws = [_raw_path(wd, voice, seg.text) for seg, voice in jobs]
     if regenerate:
         for p in raws:
             p.unlink(missing_ok=True)
-    pending = {p: s.text for s, p in zip(segments, raws) if not p.exists()}
+    pending: dict[Path, tuple[str, Path, Voice]] = {}
+    for (seg, voice), raw in zip(jobs, raws):
+        if not raw.exists():
+            pending.setdefault(raw, (seg.text, raw, voice))
     if pending:
-        _synthesize([(t, p) for p, t in pending.items()], voice, settings)
+        _synthesize_jobs(list(pending.values()), settings)
     with ThreadPoolExecutor(max_workers=CONCURRENCY) as pool:
         return list(pool.map(
-            lambda args: _process(args[0], slots[args[0].id], args[1], wd.tts_dir, settings, voice),
-            zip(segments, raws),
+            lambda args: _process(args[0][0], slots[args[0][0].id], args[1], wd.tts_dir, settings, args[0][1]),
+            zip(jobs, raws),
         ))
 
 
@@ -395,13 +482,7 @@ def _render_each(
 ) -> list[Clip]:
     """Like _render, but every segment with its own voice (IndexTTS clips fitted to their slot)."""
     jobs = _predict_factors(jobs, slots, settings)
-    by_voice: dict[Voice, list[Segment]] = {}
-    for seg, voice in jobs:
-        by_voice.setdefault(voice, []).append(seg)
-    clips = [
-        clip for voice, segs in by_voice.items()
-        for clip in _render(wd, segs, slots, settings, voice, regenerate=regenerate)
-    ]
+    clips = _render_jobs(wd, jobs, slots, settings, regenerate=regenerate)
     return _fit_indextts(wd, clips, jobs, slots, settings)
 
 
@@ -430,12 +511,8 @@ def _fit_indextts(
     if not redo:
         return clips
     by_id = {c.id: c for c in clips}
-    by_voice: dict[Voice, list[Segment]] = {}
-    for seg, voice in redo:
-        by_voice.setdefault(voice, []).append(seg)
-    for voice, group in by_voice.items():
-        for clip in _render(wd, group, slots, settings, voice):
-            by_id[clip.id] = clip
+    for clip in _render_jobs(wd, redo, slots, settings):
+        by_id[clip.id] = clip
     return [by_id[c.id] for c in clips]
 
 
@@ -453,11 +530,19 @@ def _predict_factors(
     for seg, voice in jobs:
         if voice.engine == "indextts":
             cal = indextts.CALIBRATION_FACTOR
-            expected = len(seg.text) / cloned_speaking_rate(settings, voice)  # seconds at `cal`
+            expected = cloned_speaking_rate(settings, voice).seconds(spoken_len(seg.text))  # seconds at `cal`
             factor = indextts.fit_factor(expected, slots[seg.id], cal, floor=settings.min_factor, ceiling=1.0)
             voice = replace(voice, factor=factor)
         out.append((seg, voice))
     return out
+
+
+def _clip_overhead(clip: Clip, voice: Voice, settings: Settings) -> float:
+    """Seconds of this clip that don't depend on its length (cloned voices' calibrated overhead)."""
+    if voice.engine == "edge":
+        return 0.0
+    overhead = cloned_speaking_rate(settings, voice).overhead
+    return overhead * clip.factor / calibration_factor(voice.engine)
 
 
 def _needs_shortening(clip: Clip, voice: Voice) -> bool:
@@ -485,13 +570,10 @@ def _below_floor(
             factor = indextts.fit_factor(c.raw_duration, c.slot, c.factor, floor=indextts.MIN_FACTOR)
             if factor < c.factor - 0.01:
                 jobs.append((replace(by_id[c.id], text=c.text), replace(v, factor=factor)))
-    by_voice: dict[Voice, list[Segment]] = {}
-    for seg, voice in jobs:
-        by_voice.setdefault(voice, []).append(seg)
-    for voice, group in by_voice.items():
-        for clip in _render(wd, group, slots, settings, voice):
-            clips[clip.id] = clip
-    return {seg.id for seg, _ in jobs}
+    for clip in _render_jobs(wd, jobs, slots, settings):
+        clips[clip.id] = clip
+    # a last correction that stays above the floor is routine; only the ones below it are reported
+    return {seg.id for seg, voice in jobs if voice.factor < settings.min_factor}
 
 
 def _shorten_overflows(
@@ -509,7 +591,8 @@ def _shorten_overflows(
         log.info(f"Shortening round {round_}: {len(bad)} sentence(s) do not fit, asking for shorter versions…")
         # IndexTTS aims to fit without atempo: the target leaves it out
         items = [(c.id, originals[c.id], c.text,
-                  shorten_target(c.text, c, 1.0 if voices[c.id].engine == "indextts" else settings.max_tempo))
+                  shorten_target(c.text, c, 1.0 if voices[c.id].engine == "indextts" else settings.max_tempo,
+                                 _clip_overhead(c, voices[c.id], settings)))
                  for c in bad]
         new_texts = translate.shorten(items, settings.voice, settings)
         jobs = [(replace(by_id[i], text=t), voices[i]) for i, t in new_texts.items()]

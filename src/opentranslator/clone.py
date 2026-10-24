@@ -24,6 +24,8 @@ from .log import log
 MODEL = "chatterbox-multilingual-v3"
 SAMPLE_RATE = 24000
 QC_MAX_CER = 0.3  # whisper character error rate above which a clip is redone
+# On very short texts one misheard word swings the rate: "Ups, llénalo" failed on a fine clip
+QC_SHORT_CHARS, QC_SHORT_MAX_CER = 20, 0.6
 INSTALL_HINT = "Install the optional dependencies with: uv sync --extra clone"
 
 _model = None
@@ -56,6 +58,12 @@ def _load():
     return _model
 
 
+def unload() -> None:
+    """Drop the Chatterbox model (the next clip loads it again)."""
+    global _model
+    _model = None
+
+
 def synthesize(text: str, ref: Path, seed: int, out: Path) -> None:
     """Speak `text` with the voice of `ref` and write it as a 24 kHz mono wav."""
     import torch
@@ -74,7 +82,10 @@ def synthesize(text: str, ref: Path, seed: int, out: Path) -> None:
 
 
 def normalize(text: str) -> str:
-    text = unicodedata.normalize("NFC", text.lower())
+    """Lowercase, no punctuation, figures written out: "Llegó 4x4" ≈ "llego cuatro por cuatro"."""
+    from .spoken import spell_numbers
+
+    text = unicodedata.normalize("NFC", spell_numbers(text).lower())
     return re.sub(r"\s+", " ", re.sub(r"[^\w\s]", " ", text)).strip()
 
 
@@ -105,6 +116,7 @@ def unintelligible(clips: list[tuple[int, Path, str]], whisper_model: str) -> se
             capture_output=True, check=True,
         ).stdout
         segments, _ = model.transcribe(np.frombuffer(raw, dtype=np.float32), language="es", beam_size=5)
-        if cer(text, " ".join(s.text for s in segments)) > QC_MAX_CER:
+        limit = QC_SHORT_MAX_CER if len(normalize(text)) < QC_SHORT_CHARS else QC_MAX_CER
+        if cer(text, " ".join(s.text for s in segments)) > limit:
             bad.add(clip_id)
     return bad

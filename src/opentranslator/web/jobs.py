@@ -189,3 +189,4 @@ class JobManager:
             unsubscribe()
             log.removeHandler(handler)
             self._save(job)
+            pipeline.release_models()  # don't keep GPU memory between jobs

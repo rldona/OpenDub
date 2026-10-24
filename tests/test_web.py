@@ -284,3 +284,17 @@ def test_issues_list_overflow_fallback_repairs_and_delays(tmp_path):
     assert c.get(fallback["wav"]).status_code == 200
     assert c.get(f"/videos/{VID}/tts/..%2Fmeta.json").status_code == 404
     assert c.get(f"/videos/{VID}/tts/meta.json").status_code == 404
+
+
+def test_models_are_released_after_each_job(tmp_path, monkeypatch):
+    from opentranslator import pipeline
+
+    released = []
+    monkeypatch.setattr(pipeline, "release_models", lambda: released.append(1))
+    c = client(tmp_path, FakePipeline(fail_in="TTS"))
+    c.post("/jobs", json={"url": VID})
+    wait_status(c, VID)
+    end = time.monotonic() + 2
+    while not released and time.monotonic() < end:
+        time.sleep(0.01)
+    assert released == [1]  # also when the job fails

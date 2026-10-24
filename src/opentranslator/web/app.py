@@ -55,6 +55,15 @@ def create_app(work_root: Path = Path("work"), runner: Runner | None = None,
     app = FastAPI(title="OpenTranslator", docs_url=None, redoc_url=None)
     app.add_middleware(TrustedHostMiddleware, allowed_hosts=list(allowed_hosts))
     app.state.manager = manager
+
+    @app.middleware("http")
+    async def revalidate_page(request: Request, call_next):
+        """The page and its files change with the code: make the browser revalidate them on every load."""
+        response = await call_next(request)
+        if request.url.path == "/" or request.url.path.startswith("/static/"):
+            response.headers["Cache-Control"] = "no-cache"
+        return response
+
     app.state.work_root = work_root
 
     # --- jobs --------------------------------------------------------------

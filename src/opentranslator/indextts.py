@@ -117,6 +117,14 @@ def synthesize(home: Path, log_path: Path, text: str, ref: Path, out: Path, fact
     _worker.synthesize(text, ref, out, factor, seed)
 
 
+def shutdown() -> None:
+    """Stop the worker and free its GPU memory (the next clip starts a new one)."""
+    global _worker
+    if _worker is not None:
+        _worker.close()
+        _worker = None
+
+
 def fit_factor(duration: float, slot: float, factor: float = 1.0, floor: float = MIN_FACTOR,
                ceiling: float | None = None) -> float:
     """duration_factor that makes a clip of `duration` (spoken at `factor`) fit `slot`, with a 3% margin.

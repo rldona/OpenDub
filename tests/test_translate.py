@@ -5,6 +5,7 @@ import pytest
 from opentranslator import translate
 from opentranslator.config import Settings
 from opentranslator.models import Segment, load_segments, save_segments
+from opentranslator.tts import Pace
 from opentranslator.workdir import WorkDir
 
 
@@ -29,7 +30,7 @@ def test_slot_borrows_at_most_one_second_of_silence():
 
 def test_user_prompt_includes_limits_and_context():
     seg = Segment(4, 0.0, 2.0, "Hello there.")
-    data = json.loads(translate._user_prompt([(seg, 2.0)], [("Hi.", "Hola.")], 15.0))
+    data = json.loads(translate._user_prompt([(seg, 2.0)], [("Hi.", "Hola.")], Pace(15.0)))
     assert data["previous_context"] == [{"original": "Hi.", "translation": "Hola."}]
     assert data["segments"] == [{"id": 4, "duration_s": 2.0, "max_chars": 30, "text": "Hello there."}]
 
@@ -106,6 +107,15 @@ def test_shorten_sends_limits_and_returns_texts(monkeypatch):
     assert got == {3: "Corta."}
     assert seen["items"] == [{"id": 3, "original": "Original long text.", "translation": "Traducción demasiado larga.", "max_chars": 12}]
     assert "Castilian Spanish (Spain)" in seen["system"]
+
+
+def test_shorten_drops_garbled_versions(monkeypatch):
+    def fake_cli(system, prompt, model):
+        return {"segments": [{"id": 1, "text": "Err\ufffd\ufffd."}, {"id": 3, "text": "Corta."}]}, 0.0
+
+    monkeypatch.setattr(translate, "_call_cli", fake_cli)
+    items = [(i, "Original.", "Traducción larga.", 10) for i in (1, 3)]
+    assert translate.shorten(items, "es-ES-AlvaroNeural", Settings()) == {3: "Corta."}
 
 
 def test_run_uses_calibrated_rate_when_not_given(wd, monkeypatch):

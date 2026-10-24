@@ -42,11 +42,11 @@ CPS = 10.0  # calibrated chars/s at indextts.CALIBRATION_FACTOR
 def _fake_render(rendered):
     """Clips whose duration follows the factor exactly, running 10% longer than the calibration predicts."""
 
-    def render(wd_, group, slots_, settings_, voice_, regenerate=False):
-        rendered.append([(s.id, voice_.factor) for s in group])
+    def render(wd_, jobs, slots_, settings_, regenerate=False):
+        rendered.append(sorted((s.id, v.factor) for s, v in jobs))
         cal = indextts.CALIBRATION_FACTOR
-        return [tts.Clip(s.id, s.start, slots_[s.id], len(s.text) / CPS * voice_.factor / cal * 1.1, 1.0,
-                         0.0, 0.0, f"tts/{s.id:04d}.wav", s.text, voice_.label, voice_.factor) for s in group]
+        return [tts.Clip(s.id, s.start, slots_[s.id], len(s.text) / CPS * v.factor / cal * 1.1, 1.0,
+                         0.0, 0.0, f"tts/{s.id:04d}.wav", s.text, v.label, v.factor) for s, v in jobs]
 
     return render
 
@@ -60,19 +60,19 @@ def test_indextts_factor_is_predicted_and_corrected_within_the_floor(tmp_path, m
     # 2 s, 4 s and 6 s at the calibration factor, all in 4 s slots
     segs = [Segment(1, 0.0, 2.0, "x" * 20), Segment(2, 5.0, 7.0, "x" * 40), Segment(3, 10.0, 12.0, "x" * 60)]
     slots = {1: 4.0, 2: 4.0, 3: 4.0}
-    monkeypatch.setattr(tts, "cloned_speaking_rate", lambda s, v: CPS)
+    monkeypatch.setattr(tts, "cloned_speaking_rate", lambda s, v: tts.Pace(CPS))
     rendered = []
-    monkeypatch.setattr(tts, "_render", _fake_render(rendered))
+    monkeypatch.setattr(tts, "_render_jobs", _fake_render(rendered))
 
     clips = {c.id: c for c in tts._render_each(wd, [(s, voice) for s in segs], slots, settings)}
 
     cal = indextts.CALIBRATION_FACTOR
     predicted = round(cal * 4.0 * 0.97 / 4.0, 3)
-    assert sorted(sum(rendered[:3], [])) == [(1, 1.0), (2, predicted), (3, 0.7)]  # room → natural pace; 3 → floor
+    assert rendered[0] == [(1, 1.0), (2, predicted), (3, 0.7)]  # one batch; room → natural pace; 3 → floor
     first_pass = 40 / CPS * predicted / cal * 1.1  # seg 2's duration at the predicted factor
     corrected = indextts.fit_factor(first_pass, 4.0, predicted, floor=0.7)
     assert corrected > 0.7
-    assert len(rendered) == 4 and rendered[3] == [(2, corrected)]  # one measured correction, still ≥ floor
+    assert len(rendered) == 2 and rendered[1] == [(2, corrected)]  # one measured correction, still ≥ floor
     assert clips[2].raw_duration <= 4.0 and clips[2].factor >= 0.7
     assert clips[3].factor == 0.7 and clips[3].raw_duration > 4.0  # left for shortening, not compressed further
 
@@ -104,9 +104,9 @@ def test_indextts_shortens_before_going_below_the_floor(tmp_path, monkeypatch, s
     monkeypatch.setattr(tts, "_check_voice", no_check)
     monkeypatch.setattr(reference, "reference", lambda wd_: ref)
     monkeypatch.setattr(reference, "mean_f0", lambda path: 212.0)
-    monkeypatch.setattr(tts, "cloned_speaking_rate", lambda s, v: CPS)
+    monkeypatch.setattr(tts, "cloned_speaking_rate", lambda s, v: tts.Pace(CPS))
     monkeypatch.setattr(tts, "_repair_clones", lambda *a: set())
-    monkeypatch.setattr(tts, "_render", _fake_render(rendered))
+    monkeypatch.setattr(tts, "_render_jobs", _fake_render(rendered))
     monkeypatch.setattr(translate, "shorten", fake_shorten)
 
     clips = tts.run(wd, Settings(tts="clone", engine="indextts"))

@@ -267,7 +267,8 @@ def web(
 
         threading.Timer(1.0, webbrowser.open, args=(url,)).start()
     log.info(f"OpenTranslator web on [bold]{url}[/] (Ctrl+C to stop)")
-    uvicorn.run(create_app(work), host="127.0.0.1", port=port, log_level="warning")
+    # A paused <video> keeps its connection open; don't let it hold Ctrl+C forever
+    uvicorn.run(create_app(work), host="127.0.0.1", port=port, log_level="warning", timeout_graceful_shutdown=3)
 
 
 @app.command("setup-indextts")
