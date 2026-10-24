@@ -45,6 +45,7 @@ TRIM = (
     "silenceremove=start_periods=1:start_threshold=-50dB:start_silence=0.05,"
     "areverse"
 )
+# Spanish on purpose: this is what gets synthesized to measure the Spanish voice.
 # Separate sentences, like real clips, so the measurement excludes pauses between sentences
 CALIBRATION_SENTENCES = [
     "Hoy vamos a ver cómo funciona este proceso paso a paso.",
@@ -114,7 +115,7 @@ def _wav_duration(path: Path) -> float:
 def check_rate(rate: str) -> str:
     """Validate the edge-tts rate format: "+0%", "-10%"…"""
     if not re.fullmatch(r"[+-]\d{1,2}%", rate):
-        raise SystemExit(f"--rate debe tener la forma -10% o +5% (no {rate!r})")
+        raise SystemExit(f"--rate must look like -10% or +5% (not {rate!r})")
     return rate
 
 
@@ -131,7 +132,7 @@ async def _synthesize_all(jobs: list[tuple[str, Path]], voice: str, rate: str) -
         "[progress.description]{task.description}", BarColumn(), MofNCompleteColumn(),
         TimeElapsedColumn(), console=console, transient=True,
     ) as progress:
-        task = progress.add_task("Sintetizando voz", total=len(jobs))
+        task = progress.add_task("Synthesizing voice", total=len(jobs))
 
         async def one(text: str, path: Path) -> None:
             async with sem:
@@ -143,7 +144,7 @@ async def _synthesize_all(jobs: list[tuple[str, Path]], voice: str, rate: str) -
                         break
                     except Exception as e:  # edge-tts does not type its network errors well
                         if attempt == MAX_ATTEMPTS:
-                            raise RuntimeError(f"edge-tts falló con {text[:40]!r}: {e}") from e
+                            raise RuntimeError(f"edge-tts failed on {text[:40]!r}: {e}") from e
                         await asyncio.sleep(2 * attempt)
             progress.advance(task)
 
@@ -156,7 +157,7 @@ async def _check_voice(voice: str) -> None:
     voices = {v["ShortName"] for v in await edge_tts.list_voices()}
     if voice not in voices:
         spanish = ", ".join(sorted(v for v in voices if v.startswith("es-")))
-        raise SystemExit(f"La voz {voice!r} no existe. Voces en español: {spanish}")
+        raise SystemExit(f"Voice {voice!r} does not exist. Spanish voices: {spanish}")
 
 
 def speaking_rate(work_root: Path, voice: str, rate: str) -> float:
@@ -184,7 +185,7 @@ def speaking_rate(work_root: Path, voice: str, rate: str) -> float:
         total += _wav_duration(trimmed)
     rates[key] = round(sum(len(t) for t, _ in jobs) / total, 2)
     cache.write_text(json.dumps(rates, indent=1))
-    log.info(f"Velocidad calibrada de {voice} ({rate}): {rates[key]} car/s")
+    log.info(f"Calibrated rate for {voice} ({rate}): {rates[key]} chars/s")
     return rates[key]
 
 
@@ -245,7 +246,7 @@ def _shorten_overflows(
         bad = [c for c in clips.values() if c.overflow > OVERFLOW_TOLERANCE]
         if not bad:
             break
-        log.info(f"Ronda {round_} de acortado: {len(bad)} frase(s) no caben, pidiendo versiones más cortas…")
+        log.info(f"Shortening round {round_}: {len(bad)} sentence(s) do not fit, asking for shorter versions…")
         items = [(c.id, originals[c.id], c.text, shorten_target(c.text, c, settings.max_tempo)) for c in bad]
         new_texts = translate.shorten(items, settings.voice, settings)
         segs = [replace(by_id[i], text=t) for i, t in new_texts.items()]
@@ -266,7 +267,7 @@ def run(wd: WorkDir, settings: Settings, force: bool = False) -> list[Clip]:
         "texts": [(s.id, s.start, s.text) for s in segments],
     }
     if not force and wd.is_done("tts", params) and wd.tts_index.exists():
-        log.info("TTS en caché, lo salto")
+        log.info("TTS cached, skipping")
         return load_clips(wd)
 
     asyncio.run(_check_voice(settings.voice))
@@ -277,13 +278,13 @@ def run(wd: WorkDir, settings: Settings, force: bool = False) -> list[Clip]:
     meta = json.loads(wd.meta.read_text(encoding="utf-8"))
     slots = {s.id: slot for s, slot in zip(segments, _slots(segments, meta.get("duration")))}
     by_id = {s.id: s for s in segments}
-    log.info(f"Voz {settings.voice} ({settings.rate}) · {len(segments)} segmentos")
+    log.info(f"Voice {settings.voice} ({settings.rate}) · {len(segments)} segments")
     clips = {c.id: c for c in _render(wd, segments, slots, settings, regenerate=force)}
 
     # Quality check: regenerate clips with abnormal duration once
     bad_qc = suspicious(list(clips.values()))
     if bad_qc:
-        log.warning(f"Control de calidad: {len(bad_qc)} clip(s) con duración anómala, regenerando…")
+        log.warning(f"Quality check: {len(bad_qc)} clip(s) with abnormal duration, regenerating…")
         segs = [replace(by_id[c.id], text=c.text) for c in bad_qc]
         for clip in _render(wd, segs, slots, settings, regenerate=True):
             clips[clip.id] = clip
@@ -303,20 +304,20 @@ def run(wd: WorkDir, settings: Settings, force: bool = False) -> list[Clip]:
         for c in result:
             if c.overflow > 0:
                 f.write(
-                    f"#{c.id} @{c.start:.2f}s: dura {c.duration:.2f}s a {c.tempo}x, hueco {c.slot:.2f}s "
+                    f"#{c.id} @{c.start:.2f}s: lasts {c.duration:.2f}s at {c.tempo}x, slot {c.slot:.2f}s "
                     f"(+{c.overflow:.2f}s) · {c.text}\n"
                 )
             if c.id in still_bad:
-                f.write(f"#{c.id} @{c.start:.2f}s: duración anómala tras regenerar ({c.raw_duration:.2f}s) · {c.text}\n")
+                f.write(f"#{c.id} @{c.start:.2f}s: abnormal duration after regenerating ({c.raw_duration:.2f}s) · {c.text}\n")
 
     sped = sum(1 for c in result if c.tempo > 1.0)
     chars_per_s = sum(len(c.text) for c in result) / sum(c.raw_duration for c in result)
     log.info(
-        f"Acelerados: {sped} · acortados: {n_short} · no caben: {len(overflows)}"
-        + (f" (máx +{max(c.overflow for c in overflows):.2f}s, ver overflow.log)" if overflows else "")
+        f"Sped up: {sped} · shortened: {n_short} · do not fit: {len(overflows)}"
+        + (f" (max +{max(c.overflow for c in overflows):.2f}s, see overflow.log)" if overflows else "")
     )
     if still_bad:
-        log.warning(f"{len(still_bad)} clip(s) siguen con duración anómala (ver overflow.log)")
-    log.info(f"Velocidad de locución medida: {chars_per_s:.1f} caracteres/s")
+        log.warning(f"{len(still_bad)} clip(s) still have an abnormal duration (see overflow.log)")
+    log.info(f"Measured speaking rate: {chars_per_s:.1f} chars/s")
     wd.mark_done("tts", params)
     return result

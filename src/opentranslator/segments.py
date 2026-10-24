@@ -41,7 +41,7 @@ def clean_text(text: str) -> str:
 def _vtt_seconds(stamp: str) -> float:
     m = _VTT_TIME.fullmatch(stamp.strip())
     if not m:
-        raise ValueError(f"Marca de tiempo VTT inválida: {stamp!r}")
+        raise ValueError(f"Invalid VTT timestamp: {stamp!r}")
     h = int(m.group(1)[:-1]) if m.group(1) else 0
     return h * 3600 + int(m.group(2)) * 60 + int(m.group(3)) + int(m.group(4)) / 1000
 
@@ -105,7 +105,7 @@ def parse_subtitles(path: Path) -> list[Piece]:
         return parse_json3(path)
     if path.suffix == ".vtt":
         return parse_vtt(path)
-    raise ValueError(f"Formato de subtítulos no soportado: {path.name}")
+    raise ValueError(f"Unsupported subtitle format: {path.name}")
 
 
 def normalize(pieces: list[Piece]) -> list[Piece]:

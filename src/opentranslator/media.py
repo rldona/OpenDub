@@ -11,14 +11,14 @@ from pathlib import Path
 def require_ffmpeg() -> None:
     for tool in ("ffmpeg", "ffprobe"):
         if not shutil.which(tool):
-            raise SystemExit(f"No encuentro {tool}. Instálalo con: brew install ffmpeg")
+            raise SystemExit(f"{tool} not found. Install it with: brew install ffmpeg")
 
 
 def ffmpeg(*args: str) -> None:
     cmd = ["ffmpeg", "-hide_banner", "-loglevel", "error", "-y", *args]
     result = subprocess.run(cmd, capture_output=True, text=True)
     if result.returncode != 0:
-        raise RuntimeError(f"ffmpeg falló: {' '.join(cmd)}\n{result.stderr}")
+        raise RuntimeError(f"ffmpeg failed: {' '.join(cmd)}\n{result.stderr}")
 
 
 def probe(path: Path) -> dict:

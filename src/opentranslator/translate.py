@@ -24,7 +24,7 @@ from .workdir import WorkDir, params_hash
 CONTEXT_SEGMENTS = 5
 MAX_ATTEMPTS = 3
 
-LANG_NAMES = {"en": "inglés", "fr": "francés", "de": "alemán", "it": "italiano", "pt": "portugués", "ja": "japonés"}
+LANG_NAMES = {"en": "English", "fr": "French", "de": "German", "it": "Italian", "pt": "Portuguese", "ja": "Japanese"}
 
 SCHEMA: dict[str, Any] = {
     "type": "object",
@@ -44,41 +44,45 @@ SCHEMA: dict[str, Any] = {
 }
 
 SYSTEM_PROMPT = """\
-Eres un traductor profesional de doblaje. Traduces la transcripción de un vídeo \
-del {source} al {target} para locutarla con voz sintética sincronizada con la imagen.
+You are a professional dubbing translator. You translate a video's transcript from \
+{source} into {target} so it can be voiced with a synthetic voice kept in sync with \
+the picture.
 
-Recibirás un JSON con `segmentos` (id, duracion_s, max_chars, texto) y, a veces, \
-`contexto_previo` con los últimos segmentos ya traducidos, solo como referencia.
+You will receive JSON with `segments` (id, duration_s, max_chars, text) and sometimes \
+`previous_context` with the last segments already translated, for reference only.
 
-Reglas:
-- Devuelve exactamente un elemento por segmento, con el mismo id y en el mismo orden. \
-No unas, partas ni omitas segmentos.
-- La traducción se leerá en el mismo tiempo que el original: no superes max_chars \
-(caracteres que caben en el hueco). Si el original no cabe, condensa sin perder el \
-sentido. Si cabe, traduce completo sin resumir: max_chars es un límite, no un objetivo \
-de recorte. Prefiere frases naturales y habladas a traducciones literales.
-- Un segmento puede empezar o terminar a mitad de frase: tradúcelo para que encaje \
-con sus vecinos.
-- Mantén el registro del original (tuteo o trato de usted, tono formal o coloquial).
-- Deja en el idioma original los nombres propios y los términos técnicos que se usen \
-así en español.
-- Solo texto para leer en voz alta: sin markdown, emojis, acotaciones ni notas del traductor.
+Rules:
+- Write every translation in {target}.
+- Return exactly one item per segment, with the same id and in the same order. Do not \
+merge, split or drop segments.
+- The translation will be read in the same time as the original: do not exceed \
+max_chars (the characters that fit in the slot). If the original does not fit, condense \
+it without losing meaning. If it fits, translate it fully without summarizing: max_chars \
+is a cap, not a target to cut down to. Prefer natural, spoken phrasing over literal \
+translation.
+- A segment may start or end mid-sentence: translate it so it joins up with its \
+neighbours.
+- Keep the original's register (tú or usted, formal or casual tone).
+- Leave proper nouns, and technical terms that are used as-is in Spanish, in the \
+original language.
+- Output only text to be read aloud: no markdown, emojis, stage directions or \
+translator's notes.
 """
 
 
 SHORTEN_PROMPT = """\
-Eres un adaptador de doblaje. Recibirás frases ya traducidas al {target} que, \
-locutadas, no caben en su hueco del vídeo.
+You are a dubbing adapter. You will receive sentences already translated into \
+{target} that, once voiced, do not fit their slot in the video.
 
-Para cada elemento (id, original, traduccion, max_chars), reescribe la traducción \
-más corta, sin superar max_chars, conservando el sentido y la naturalidad hablada. \
-El original es solo referencia. Devuelve un elemento por id, con el mismo id. \
-Solo texto para leer en voz alta: sin markdown, emojis ni notas.
+For each item (id, original, translation, max_chars), rewrite the translation shorter, \
+still in {target}, without exceeding max_chars, keeping its meaning and a natural \
+spoken style. The original is for reference only. Return one item per id, with the \
+same id. Only text to be read aloud: no markdown, emojis or notes.
 """
 
 
 def _target_name(voice: str) -> str:
-    return "español de España" if voice.startswith("es-ES") else "español latinoamericano neutro"
+    return "Castilian Spanish (Spain)" if voice.startswith("es-ES") else "neutral Latin American Spanish"
 
 
 def _slot(segments: list[Segment], i: int) -> float:
@@ -94,13 +98,13 @@ def _user_prompt(
 ) -> str:
     payload: dict[str, Any] = {}
     if context:
-        payload["contexto_previo"] = [{"original": o, "traduccion": t} for o, t in context]
-    payload["segmentos"] = [
+        payload["previous_context"] = [{"original": o, "translation": t} for o, t in context]
+    payload["segments"] = [
         {
             "id": s.id,
-            "duracion_s": round(slot, 1),
+            "duration_s": round(slot, 1),
             "max_chars": round(slot * chars_per_second),
-            "texto": s.text,
+            "text": s.text,
         }
         for s, slot in block
     ]
@@ -111,8 +115,8 @@ def _call_cli(system: str, prompt: str, model: str) -> tuple[dict[str, Any], flo
     claude = shutil.which("claude") or str(Path.home() / ".local/bin/claude")
     if not Path(claude).exists():
         raise SystemExit(
-            "No encuentro el CLI de Claude Code. Instálalo con "
-            "`curl -fsSL https://claude.ai/install.sh | bash` o usa --backend api"
+            "Claude Code CLI not found. Install it with "
+            "`curl -fsSL https://claude.ai/install.sh | bash` or use --backend api"
         )
     cmd = [
         claude, "-p",
@@ -130,10 +134,10 @@ def _call_cli(system: str, prompt: str, model: str) -> tuple[dict[str, Any], flo
     try:
         data = json.loads(result.stdout)
     except json.JSONDecodeError:
-        raise RuntimeError(f"Salida inesperada de claude (código {result.returncode}): "
+        raise RuntimeError(f"Unexpected output from claude (exit code {result.returncode}): "
                            f"{(result.stderr or result.stdout)[:500]}")
     if data.get("is_error") or not data.get("structured_output"):
-        raise RuntimeError(f"claude devolvió un error: {data.get('result') or data.get('subtype')}")
+        raise RuntimeError(f"claude returned an error: {data.get('result') or data.get('subtype')}")
     return data["structured_output"], float(data.get("total_cost_usd") or 0)
 
 
@@ -141,7 +145,7 @@ def _call_api(system: str, prompt: str, model: str, api_key: str | None) -> tupl
     import anthropic
 
     if not api_key:
-        raise SystemExit("--backend api necesita ANTHROPIC_API_KEY en .env")
+        raise SystemExit("--backend api needs ANTHROPIC_API_KEY in .env")
     client = anthropic.Anthropic(api_key=api_key)
     response = client.beta.messages.create(
         model=model,
@@ -154,9 +158,9 @@ def _call_api(system: str, prompt: str, model: str, api_key: str | None) -> tupl
         fallbacks="default",
     )
     if response.stop_reason == "refusal":
-        raise RuntimeError(f"Claude rechazó el bloque: {response.stop_details}")
+        raise RuntimeError(f"Claude refused the block: {response.stop_details}")
     if response.stop_reason == "max_tokens":
-        raise RuntimeError("Respuesta truncada por max_tokens")
+        raise RuntimeError("Response truncated by max_tokens")
     text = next(b.text for b in response.content if b.type == "text")
     return json.loads(text), 0.0
 
@@ -174,17 +178,17 @@ def _ask(system: str, prompt: str, expected: list[int], settings: Settings) -> t
             got = {item["id"]: item["text"].strip() for item in out["segments"]}
             if sorted(got) == sorted(expected) and all(got.values()):
                 return got, cost
-            log.warning(f"Ids no coinciden (esperados {expected[0]}–{expected[-1]}), reintento {attempt}")
+            log.warning(f"Ids do not match (expected {expected[0]}–{expected[-1]}), retry {attempt}")
         except (RuntimeError, subprocess.TimeoutExpired) as e:
-            log.warning(f"Fallo en el intento {attempt}: {e}")
-    raise SystemExit(f"Claude no devolvió una respuesta válida para los ids {expected[0]}–{expected[-1]}")
+            log.warning(f"Attempt {attempt} failed: {e}")
+    raise SystemExit(f"Claude did not return a valid response for ids {expected[0]}–{expected[-1]}")
 
 
 def shorten(items: list[tuple[int, str, str, int]], voice: str, settings: Settings) -> dict[int, str]:
     """Ask for shorter versions of sentences that do not fit: (id, original, translation, max_chars)."""
     system = SHORTEN_PROMPT.format(target=_target_name(voice))
     prompt = json.dumps(
-        [{"id": i, "original": o, "traduccion": t, "max_chars": m} for i, o, t, m in items],
+        [{"id": i, "original": o, "translation": t, "max_chars": m} for i, o, t, m in items],
         ensure_ascii=False, indent=1,
     )
     got, _ = _ask(system, prompt, [i for i, *_ in items], settings)
@@ -193,7 +197,7 @@ def shorten(items: list[tuple[int, str, str, int]], voice: str, settings: Settin
 
 def run(wd: WorkDir, settings: Settings, force: bool = False) -> list[Segment]:
     if settings.backend not in ("cli", "api"):
-        raise SystemExit(f"--backend debe ser cli o api (no {settings.backend!r})")
+        raise SystemExit(f"--backend must be cli or api (not {settings.backend!r})")
     segments = load_segments(wd.segments)
     meta = json.loads(wd.meta.read_text(encoding="utf-8"))
     source_code = (meta.get("language") or "en").split("-")[0]
@@ -212,7 +216,7 @@ def run(wd: WorkDir, settings: Settings, force: bool = False) -> list[Segment]:
         "source": [(s.id, s.text) for s in segments],
     }
     if not force and wd.is_done("translate", params) and wd.translation.exists():
-        log.info("Traducción en caché, la salto")
+        log.info("Translation cached, skipping")
         return load_segments(wd.translation)
 
     # Each translated block is saved separately so a run can resume if something fails midway
@@ -225,8 +229,8 @@ def run(wd: WorkDir, settings: Settings, force: bool = False) -> list[Segment]:
     slots = [_slot(segments, i) for i in range(len(segments))]
     pairs = list(zip(segments, slots))
     blocks = [pairs[i : i + settings.batch_size] for i in range(0, len(pairs), settings.batch_size)]
-    log.info(f"{len(segments)} segmentos en {len(blocks)} bloques · backend {settings.backend} · {settings.claude_model}")
-    log.info(f"Velocidad de locución para max_chars: {cps:.1f} car/s")
+    log.info(f"{len(segments)} segments in {len(blocks)} blocks · backend {settings.backend} · {settings.claude_model}")
+    log.info(f"Speaking rate for max_chars: {cps:.1f} chars/s")
 
     translated: dict[int, str] = {}
     total_cost = 0.0
@@ -234,7 +238,7 @@ def run(wd: WorkDir, settings: Settings, force: bool = False) -> list[Segment]:
         "[progress.description]{task.description}", BarColumn(), MofNCompleteColumn(),
         TimeElapsedColumn(), console=console, transient=True,
     ) as progress:
-        task = progress.add_task("Traduciendo bloques", total=len(blocks))
+        task = progress.add_task("Translating blocks", total=len(blocks))
         for n, block in enumerate(blocks):
             path = block_dir / f"block_{n:03d}.json"
             if path.exists():
@@ -256,8 +260,8 @@ def run(wd: WorkDir, settings: Settings, force: bool = False) -> list[Segment]:
         (s, slot) for s, slot in zip(result, slots) if len(s.text) > slot * cps * 1.25
     ]
     ratio = sum(len(s.text) for s in result) / sum(len(s.text) for s in segments)
-    log.info(f"Longitud ES/original: {ratio:.0%} · segmentos probablemente largos: {len(over)}")
+    log.info(f"ES/original length: {ratio:.0%} · probably too long: {len(over)}")
     if settings.backend == "cli" and total_cost:
-        log.info(f"Coste equivalente en API: ${total_cost:.3f} (con suscripción no se cobra aparte)")
+        log.info(f"Equivalent API cost: ${total_cost:.3f} (not billed separately with a subscription)")
     wd.mark_done("translate", params)
     return result

@@ -47,7 +47,7 @@ def place(clips: list[Clip], min_gap: float = MIN_GAP) -> list[Placement]:
 def _read_wav(path: Path) -> np.ndarray:
     with wave.open(str(path)) as w:
         if w.getframerate() != SAMPLE_RATE or w.getnchannels() != 1:
-            raise ValueError(f"{path.name}: se esperaba wav mono a {SAMPLE_RATE} Hz")
+            raise ValueError(f"{path.name}: expected a mono wav at {SAMPLE_RATE} Hz")
         frames = w.readframes(w.getnframes())
     return np.frombuffer(frames, dtype=np.int16).astype(np.float32) / 32768.0
 
@@ -80,7 +80,7 @@ def _write_wav(path: Path, track: np.ndarray) -> None:
 def run(wd: WorkDir, settings: Settings, force: bool = False, output: Path | None = None) -> Path:
     params = {"bg_volume_db": settings.bg_volume_db, "mute": settings.mute_original}
     if not force and wd.is_done("mix", params) and wd.output.exists():
-        log.info("Mezcla en caché, la salto")
+        log.info("Mix cached, skipping")
     else:
         clips = load_clips(wd)
         total = media_duration(wd.video)
@@ -88,29 +88,29 @@ def run(wd: WorkDir, settings: Settings, force: bool = False, output: Path | Non
         delayed = [p for p in placements if p.delay > 0]
         if delayed:
             log.info(
-                f"Clips retrasados para no solaparse: {len(delayed)} "
-                f"(máx {max(p.delay for p in delayed):.2f}s)"
+                f"Clips delayed to avoid overlapping: {len(delayed)} "
+                f"(max {max(p.delay for p in delayed):.2f}s)"
             )
             with wd.overflow_log.open("a", encoding="utf-8") as f:
                 for p in delayed:
-                    f.write(f"#{p.id} retrasado {p.delay:.2f}s en la mezcla\n")
+                    f.write(f"#{p.id} delayed {p.delay:.2f}s in the mix\n")
 
         track, cut = compose(clips, placements, wd.path, total)
         if cut:
-            log.warning(f"{cut} clip(s) recortados por pasarse del final del vídeo")
+            log.warning(f"{cut} clip(s) cut for running past the end of the video")
         _write_wav(wd.dub, track)
 
         if settings.mute_original:
-            log.info("Audio original silenciado")
+            log.info("Original audio muted")
             graph = "[1:a]aresample=48000,pan=stereo|c0=c0|c1=c0[a]"
         else:
-            log.info(f"Audio original a {settings.bg_volume_db:+.0f} dB")
+            log.info(f"Original audio at {settings.bg_volume_db:+.0f} dB")
             graph = (
                 f"[0:a]volume={settings.bg_volume_db}dB[bg];"
                 "[1:a]aresample=48000,pan=stereo|c0=c0|c1=c0[dub];"
                 "[bg][dub]amix=inputs=2:duration=first:normalize=0[a]"
             )
-        log.info("Mezclando y muxeando (vídeo sin recodificar)…")
+        log.info("Mixing and muxing (video not re-encoded)…")
         ffmpeg(
             "-i", str(wd.video), "-i", str(wd.dub),
             "-filter_complex", graph,
@@ -124,7 +124,7 @@ def run(wd: WorkDir, settings: Settings, force: bool = False, output: Path | Non
     if output:
         output.parent.mkdir(parents=True, exist_ok=True)
         shutil.copyfile(wd.output, output)
-        log.info(f"Copiado a {output}")
+        log.info(f"Copied to {output}")
         return output
-    log.info(f"Resultado: [bold]{wd.output}[/]")
+    log.info(f"Output: [bold]{wd.output}[/]")
     return wd.output

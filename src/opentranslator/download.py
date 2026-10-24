@@ -56,7 +56,7 @@ class _ProgressHook:
         name = d.get("info_dict", {}).get("format_id", "?")
         total = d.get("total_bytes") or d.get("total_bytes_estimate")
         if name not in self.tasks:
-            self.tasks[name] = self.progress.add_task(f"formato {name}", total=total)
+            self.tasks[name] = self.progress.add_task(f"format {name}", total=total)
         self.progress.update(self.tasks[name], completed=d.get("downloaded_bytes", 0), total=total)
 
 
@@ -79,17 +79,17 @@ def _download_subs(raw: dict[str, Any], wd: WorkDir, kind: str, key: str) -> str
 def run(url: str, wd: WorkDir, settings: Settings, force: bool = False) -> dict[str, Any]:
     params = {"max_height": settings.max_height, "source_lang": settings.source_lang}
     if not force and wd.is_done("download", params) and wd.meta.exists():
-        log.info("Descarga en caché, la salto")
+        log.info("Download cached, skipping")
         return json.loads(wd.meta.read_text())
 
     for old in wd.path.glob("subs.*"):
         old.unlink()
 
-    log.info("Obteniendo información del vídeo…")
+    log.info("Fetching video info…")
     with yt_dlp.YoutubeDL(_BASE_OPTS) as ydl:
         raw = ydl.sanitize_info(ydl.extract_info(url, download=False, process=False))
     lang = settings.source_lang or raw.get("language")  # None: whisper will detect it
-    log.info(f"[bold]{raw['title']}[/] · {raw.get('duration', 0)}s · idioma {lang or '¿?'}")
+    log.info(f"[bold]{raw['title']}[/] · {raw.get('duration', 0)}s · language {lang or '?'}")
 
     h = settings.max_height
     opts = {
@@ -110,9 +110,9 @@ def run(url: str, wd: WorkDir, settings: Settings, force: bool = False) -> dict[
         with yt_dlp.YoutubeDL(opts) as ydl:
             ydl.process_ie_result(copy.deepcopy(raw), download=True)
     v = next(s for s in probe(wd.video)["streams"] if s["codec_type"] == "video")
-    log.info(f"Vídeo: {v['codec_name']} {v['width']}x{v['height']}")
+    log.info(f"Video: {v['codec_name']} {v['width']}x{v['height']}")
 
-    log.info("Extrayendo audio (16 kHz mono para whisper)…")
+    log.info("Extracting audio (16 kHz mono for whisper)…")
     ffmpeg("-i", str(wd.video), "-vn", "-ac", "1", "-ar", "16000", str(wd.audio))
 
     subs: dict[str, str | None] = {"manual": None, "auto": None}
@@ -120,7 +120,7 @@ def run(url: str, wd: WorkDir, settings: Settings, force: bool = False) -> dict[
         subs["manual"] = _download_subs(raw, wd, "manual", key)
     if key := _pick_auto_track(raw.get("automatic_captions") or {}, lang or "en"):
         subs["auto"] = _download_subs(raw, wd, "auto", key)
-    log.info(f"Subtítulos manuales: {subs['manual'] or '—'} · automáticos: {subs['auto'] or '—'}")
+    log.info(f"Manual subtitles: {subs['manual'] or '—'} · auto-generated: {subs['auto'] or '—'}")
 
     meta = {
         "id": raw["id"],

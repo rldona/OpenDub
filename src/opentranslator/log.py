@@ -28,4 +28,4 @@ def phase(name: str):
     console.rule(f"[bold cyan]{name}")
     start = time.monotonic()
     yield
-    log.info(f"[green]✔ {name}[/] en {time.monotonic() - start:.1f}s")
+    log.info(f"[green]✔ {name}[/] in {time.monotonic() - start:.1f}s")

@@ -20,7 +20,7 @@ from .workdir import WorkDir
 def _choose_source(meta: dict[str, Any], subs_mode: str) -> str:
     """Priority: manual → (auto-generated if --subs auto) → whisper."""
     if subs_mode not in ("manual", "auto", "none"):
-        raise SystemExit(f"--subs debe ser manual, auto o none (no {subs_mode!r})")
+        raise SystemExit(f"--subs must be manual, auto or none (not {subs_mode!r})")
     subs = meta.get("subs", {})
     if subs_mode in ("manual", "auto") and subs.get("manual"):
         return "manual"
@@ -39,7 +39,7 @@ def _load_wav(path: Path) -> np.ndarray:
 def _whisper(wd: WorkDir, model_name: str, lang: str | None) -> tuple[list[Piece], str]:
     from faster_whisper import WhisperModel  # lazy import: slow to load
 
-    log.info(f"Cargando modelo whisper [bold]{model_name}[/] (CPU int8)…")
+    log.info(f"Loading whisper model [bold]{model_name}[/] (CPU int8)…")
     model = WhisperModel(model_name, device="cpu", compute_type="int8")
     segments, info = model.transcribe(
         _load_wav(wd.audio),
@@ -48,7 +48,7 @@ def _whisper(wd: WorkDir, model_name: str, lang: str | None) -> tuple[list[Piece
         vad_filter=True,
     )
     if not lang:
-        log.info(f"Idioma detectado: {info.language} ({info.language_probability:.0%})")
+        log.info(f"Detected language: {info.language} ({info.language_probability:.0%})")
 
     pieces: list[Piece] = []
     with Progress(
@@ -56,7 +56,7 @@ def _whisper(wd: WorkDir, model_name: str, lang: str | None) -> tuple[list[Piece
         "[progress.percentage]{task.percentage:>3.0f}%", TimeElapsedColumn(),
         console=console, transient=True,
     ) as progress:
-        task = progress.add_task("Transcribiendo", total=info.duration)
+        task = progress.add_task("Transcribing", total=info.duration)
         for seg in segments:
             pieces.extend(Piece(w.start, w.end, w.word) for w in seg.words or [])
             progress.update(task, completed=seg.end)
@@ -68,7 +68,7 @@ def run(wd: WorkDir, settings: Settings, force: bool = False) -> list[Segment]:
     source = _choose_source(meta, settings.subs)
     params = {"source": source, "whisper_model": settings.whisper_model if source == "whisper" else None}
     if not force and wd.is_done("transcribe", params) and wd.segments.exists():
-        log.info("Transcripción en caché, la salto")
+        log.info("Transcription cached, skipping")
         return load_segments(wd.segments)
 
     if source == "whisper":
@@ -78,17 +78,17 @@ def run(wd: WorkDir, settings: Settings, force: bool = False) -> list[Segment]:
             wd.meta.write_text(json.dumps(meta, ensure_ascii=False, indent=2), encoding="utf-8")
     else:
         path = wd.path / meta["subs"][source]
-        log.info(f"Usando subtítulos {source}: {path.name}")
+        log.info(f"Using {source} subtitles: {path.name}")
         pieces = parse_subtitles(path)
 
     segments = regroup(pieces)
     if not segments:
-        raise SystemExit("No se ha obtenido ningún segmento de texto")
+        raise SystemExit("No text segments were obtained")
     save_segments(wd.segments, segments)
     durs = [s.duration for s in segments]
     log.info(
-        f"{len(pieces)} piezas → {len(segments)} segmentos · "
-        f"duración media {sum(durs) / len(durs):.1f}s, máx {max(durs):.1f}s"
+        f"{len(pieces)} pieces → {len(segments)} segments · "
+        f"mean duration {sum(durs) / len(durs):.1f}s, max {max(durs):.1f}s"
     )
     wd.mark_done("transcribe", params)
     return segments

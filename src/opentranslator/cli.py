@@ -70,13 +70,13 @@ Output = Annotated[
 def _setup(url: str, settings: Settings) -> WorkDir:
     require_ffmpeg()
     wd = WorkDir(settings.work_root, download_mod.video_id(url))
-    log.info(f"Carpeta de trabajo: {wd.path}")
+    log.info(f"Working folder: {wd.path}")
     return wd
 
 
 def _require(wd: WorkDir, step: str) -> None:
     if not wd.has(step):
-        raise typer.BadParameter(f"Falta la fase '{step}'. Ejecútala antes (o usa `dub`).")
+        raise typer.BadParameter(f"Phase '{step}' is missing. Run it first (or use `dub`).")
 
 
 @app.command()
@@ -90,7 +90,7 @@ def download(
     """Download the video, audio and subtitles."""
     settings = Settings(work_root=work, source_lang=source_lang, max_height=max_height)
     wd = _setup(url, settings)
-    with phase("Descarga"):
+    with phase("Download"):
         download_mod.run(url, wd, settings, force=force)
 
 
@@ -106,7 +106,7 @@ def transcribe(
     settings = Settings(work_root=work, subs=subs, whisper_model=whisper_model)
     wd = _setup(url, settings)
     _require(wd, "download")
-    with phase("Transcripción"):
+    with phase("Transcription"):
         transcribe_mod.run(wd, settings, force=force)
 
 
@@ -129,7 +129,7 @@ def translate(
     )
     wd = _setup(url, settings)
     _require(wd, "transcribe")
-    with phase("Traducción"):
+    with phase("Translation"):
         translate_mod.run(wd, settings, force=force)
 
 
@@ -170,7 +170,7 @@ def mix(
     settings = Settings(work_root=work, bg_volume_db=bg_volume, mute_original=mute_original)
     wd = _setup(url, settings)
     _require(wd, "tts")
-    with phase("Mezcla"):
+    with phase("Mix"):
         mix_mod.run(wd, settings, force=force, output=output)
 
 
@@ -207,15 +207,15 @@ def dub(
     wd = _setup(url, settings)
     if force:
         wd.invalidate_from("download")
-    with phase("Descarga"):
+    with phase("Download"):
         download_mod.run(url, wd, settings)
-    with phase("Transcripción"):
+    with phase("Transcription"):
         transcribe_mod.run(wd, settings)
-    with phase("Traducción"):
+    with phase("Translation"):
         translate_mod.run(wd, settings)
     with phase("TTS"):
         tts_mod.run(wd, settings)
-    with phase("Mezcla"):
+    with phase("Mix"):
         mix_mod.run(wd, settings, output=output)
 
 
