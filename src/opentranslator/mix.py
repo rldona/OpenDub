@@ -77,8 +77,37 @@ def _write_wav(path: Path, track: np.ndarray) -> None:
         w.writeframes((track * 32767).astype(np.int16).tobytes())
 
 
+def filter_graph(settings: Settings, background: Path) -> tuple[list[str], str]:
+    """Extra ffmpeg inputs and filter graph. Inputs 0 and 1 are the video and the dub.
+
+    Priority: muted original (dub only) → separated background → original audio
+    turned down.
+    """
+    dub = "[1:a]aresample=48000,pan=stereo|c0=c0|c1=c0"
+    if settings.mute_original:
+        log.info("Original audio muted")
+        return [], f"{dub}[a]"
+    if settings.separate:
+        log.info(f"Separated background (music and effects) at {settings.music_volume_db:+.0f} dB")
+        return ["-i", str(background)], (
+            f"[2:a]aresample=48000,volume={settings.music_volume_db}dB[bg];"
+            f"{dub}[dub];[bg][dub]amix=inputs=2:duration=first:normalize=0[a]"
+        )
+    log.info(f"Original audio at {settings.bg_volume_db:+.0f} dB")
+    return [], (
+        f"[0:a]volume={settings.bg_volume_db}dB[bg];"
+        f"{dub}[dub];[bg][dub]amix=inputs=2:duration=first:normalize=0[a]"
+    )
+
+
 def run(wd: WorkDir, settings: Settings, force: bool = False, output: Path | None = None) -> Path:
-    params = {"bg_volume_db": settings.bg_volume_db, "mute": settings.mute_original}
+    params = {
+        "bg_volume_db": settings.bg_volume_db,
+        "mute": settings.mute_original,
+        "separate": settings.music_volume_db if settings.separate else None,
+    }
+    if settings.separate and not settings.mute_original and not wd.background.exists():
+        raise SystemExit("--separate needs the separated background: run `separate` first (or use `dub --separate`)")
     if not force and wd.is_done("mix", params) and wd.output.exists():
         log.info("Mix cached, skipping")
     else:
@@ -100,19 +129,10 @@ def run(wd: WorkDir, settings: Settings, force: bool = False, output: Path | Non
             log.warning(f"{cut} clip(s) cut for running past the end of the video")
         _write_wav(wd.dub, track)
 
-        if settings.mute_original:
-            log.info("Original audio muted")
-            graph = "[1:a]aresample=48000,pan=stereo|c0=c0|c1=c0[a]"
-        else:
-            log.info(f"Original audio at {settings.bg_volume_db:+.0f} dB")
-            graph = (
-                f"[0:a]volume={settings.bg_volume_db}dB[bg];"
-                "[1:a]aresample=48000,pan=stereo|c0=c0|c1=c0[dub];"
-                "[bg][dub]amix=inputs=2:duration=first:normalize=0[a]"
-            )
+        inputs, graph = filter_graph(settings, wd.background)
         log.info("Mixing and muxing (video not re-encoded)…")
         ffmpeg(
-            "-i", str(wd.video), "-i", str(wd.dub),
+            "-i", str(wd.video), "-i", str(wd.dub), *inputs,
             "-filter_complex", graph,
             "-map", "0:v:0", "-map", "[a]",
             "-c:v", "copy", "-c:a", "aac", "-b:a", "192k",

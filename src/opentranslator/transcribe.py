@@ -36,11 +36,24 @@ def _load_wav(path: Path) -> np.ndarray:
     return np.frombuffer(frames, dtype=np.int16).astype(np.float32) / 32768.0
 
 
+def whisper_device() -> tuple[str, str]:
+    """(device, compute_type): CUDA in float16 when an NVIDIA GPU is visible, else CPU in int8.
+
+    CTranslate2 has no Metal backend, so Apple Silicon always runs on the CPU.
+    """
+    import ctranslate2
+
+    if ctranslate2.get_cuda_device_count() > 0:
+        return "cuda", "float16"
+    return "cpu", "int8"
+
+
 def _whisper(wd: WorkDir, model_name: str, lang: str | None) -> tuple[list[Piece], str]:
     from faster_whisper import WhisperModel  # lazy import: slow to load
 
-    log.info(f"Loading whisper model [bold]{model_name}[/] (CPU int8)…")
-    model = WhisperModel(model_name, device="cpu", compute_type="int8")
+    device, compute_type = whisper_device()
+    log.info(f"Loading whisper model [bold]{model_name}[/] ({device} {compute_type})…")
+    model = WhisperModel(model_name, device=device, compute_type=compute_type)
     segments, info = model.transcribe(
         _load_wav(wd.audio),
         language=lang.split("-")[0] if lang else None,

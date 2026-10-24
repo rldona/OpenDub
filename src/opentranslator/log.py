@@ -18,7 +18,7 @@ logging.basicConfig(
     handlers=[RichHandler(console=console, show_path=False, markup=True)],
 )
 log = logging.getLogger("opentranslator")
-for noisy in ("httpx", "huggingface_hub"):
+for noisy in ("httpx", "httpx2", "huggingface_hub", "filelock"):
     logging.getLogger(noisy).setLevel(logging.WARNING)
 
 

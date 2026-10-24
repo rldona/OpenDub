@@ -17,8 +17,12 @@ today, voice cloning (the most uncertain part) last.
 ## Phase B — Voice and music separation
 - New `separate` phase (cached and runnable on its own, like the others) that
   produces `stems/vocals.wav` and `stems/background.wav`.
-- Benchmark first: Mel-Band RoFormer (`audio-separator`) vs HTDemucs on MLX;
-  pick by quality and speed on Apple Silicon.
+- Benchmark on an M1 Pro (122 s and 155 s videos): HTDemucs on MLX took 8–10 s,
+  Mel-Band RoFormer 73–85 s and BS-RoFormer 480–600 s. HTDemucs and Mel-Band
+  left equally clean backgrounds (whisper found no speech in either), so HTDemucs
+  was chosen: demucs-mlx on Apple Silicon, demucs on PyTorch/CUDA elsewhere.
+- Pending: repeat the benchmark on the RTX 5080, where RoFormer models may be
+  fast enough to compete.
 - `mix` uses `background.wav` at 0 dB when it exists (`--separate`).
 - Heavy dependencies in an optional extra.
 

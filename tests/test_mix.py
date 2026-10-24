@@ -43,3 +43,18 @@ def test_compose_places_audio_and_cuts_at_end(tmp_path):
     assert abs(track[int(1.0 * SAMPLE_RATE)] - 0.5) < 1e-3
     assert abs(track[int(2.9 * SAMPLE_RATE)] - 0.5) < 1e-3
     assert cut == 1  # the second clip runs past the end
+
+
+def test_filter_graph_cases(tmp_path):
+    from opentranslator.config import Settings
+
+    bg = tmp_path / "background.wav"
+    inputs, graph = mix.filter_graph(Settings(bg_volume_db=-15), bg)
+    assert inputs == [] and "[0:a]volume=-15dB" in graph
+
+    inputs, graph = mix.filter_graph(Settings(separate=True, music_volume_db=-3), bg)
+    assert inputs == ["-i", str(bg)] and "[2:a]aresample=48000,volume=-3dB" in graph
+    assert "[0:a]" not in graph
+
+    inputs, graph = mix.filter_graph(Settings(separate=True, mute_original=True), bg)
+    assert inputs == [] and "amix" not in graph

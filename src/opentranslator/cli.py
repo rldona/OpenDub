@@ -9,6 +9,7 @@ import typer
 
 from . import download as download_mod
 from . import mix as mix_mod
+from . import separate as separate_mod
 from . import transcribe as transcribe_mod
 from . import translate as translate_mod
 from . import tts as tts_mod
@@ -62,6 +63,19 @@ BgVolume = Annotated[
     float, typer.Option("--bg-volume", help="Original audio volume in dB (negative = quieter)")
 ]
 MuteOriginal = Annotated[bool, typer.Option("--mute-original", help="Mute the original audio")]
+Separate = Annotated[
+    bool,
+    typer.Option(
+        "--separate/--no-separate",
+        help="Mix over the separated background (music and effects, no original voice)",
+    ),
+]
+Separator = Annotated[
+    str, typer.Option("--separator", help="auto, mlx (Apple Silicon) or torch (CUDA or CPU)")
+]
+MusicVolume = Annotated[
+    float, typer.Option("--music-volume", help="Separated background volume in dB")
+]
 Output = Annotated[
     Path | None, typer.Option("--output", "-o", help="Copy the final MP4 to this path")
 ]
@@ -158,18 +172,40 @@ def tts(
 
 
 @app.command()
+def separate(
+    url: Url,
+    work: WorkRoot = Path("work"),
+    separator: Separator = "auto",
+    force: Force = False,
+) -> None:
+    """Split the original audio into vocals and background. Requires `download`."""
+    settings = Settings(work_root=work, separator=separator)
+    wd = _setup(url, settings)
+    _require(wd, "download")
+    with phase("Separation"):
+        separate_mod.run(wd, settings, force=force)
+
+
+@app.command()
 def mix(
     url: Url,
     work: WorkRoot = Path("work"),
     bg_volume: BgVolume = -15.0,
     mute_original: MuteOriginal = False,
+    separate: Separate = False,
+    music_volume: MusicVolume = 0.0,
     output: Output = None,
     force: Force = False,
 ) -> None:
-    """Compose the dubbed track and produce the MP4. Requires `tts`."""
-    settings = Settings(work_root=work, bg_volume_db=bg_volume, mute_original=mute_original)
+    """Compose the dubbed track and produce the MP4. Requires `tts` (and `separate` with --separate)."""
+    settings = Settings(
+        work_root=work, bg_volume_db=bg_volume, mute_original=mute_original,
+        separate=separate, music_volume_db=music_volume,
+    )
     wd = _setup(url, settings)
     _require(wd, "tts")
+    if separate:
+        _require(wd, "separate")
     with phase("Mix"):
         mix_mod.run(wd, settings, force=force, output=output)
 
@@ -193,16 +229,20 @@ def dub(
     shorten: Shorten = True,
     bg_volume: BgVolume = -15.0,
     mute_original: MuteOriginal = False,
+    separate: Separate = False,
+    separator: Separator = "auto",
+    music_volume: MusicVolume = 0.0,
     output: Output = None,
     force: Force = False,
 ) -> None:
-    """Full pipeline: download → transcription → translation → TTS → mix."""
+    """Full pipeline: download → transcription → translation → TTS → (separation) → mix."""
     settings = Settings(
         work_root=work, source_lang=source_lang, max_height=max_height,
         subs=subs, whisper_model=whisper_model, backend=backend, claude_model=model,
         voice=voice, batch_size=batch_size, chars_per_second=chars_per_second, rate=rate,
         min_tempo=min_tempo, shorten=shorten, max_tempo=max_tempo,
         bg_volume_db=bg_volume, mute_original=mute_original,
+        separate=separate, separator=separator, music_volume_db=music_volume,
     )
     wd = _setup(url, settings)
     if force:
@@ -215,6 +255,9 @@ def dub(
         translate_mod.run(wd, settings)
     with phase("TTS"):
         tts_mod.run(wd, settings)
+    if separate:
+        with phase("Separation"):
+            separate_mod.run(wd, settings)
     with phase("Mix"):
         mix_mod.run(wd, settings, output=output)
 

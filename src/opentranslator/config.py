@@ -28,6 +28,9 @@ class Settings:
     max_tempo: float = 1.25
     shorten: bool = True  # re-translate shorter whatever does not fit even at max_tempo
     bg_volume_db: float = -15.0
+    separate: bool = False  # mix over the separated background instead of the original audio
+    separator: str = "auto"  # auto | mlx (Apple Silicon) | torch (CUDA or CPU)
+    music_volume_db: float = 0.0  # volume of the separated background
     mute_original: bool = False
     max_height: int = 1080
     anthropic_api_key: str | None = field(

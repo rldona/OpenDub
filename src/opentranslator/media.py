@@ -5,13 +5,16 @@ from __future__ import annotations
 import json
 import shutil
 import subprocess
+import sys
 from pathlib import Path
+
+INSTALL_FFMPEG = "brew install ffmpeg" if sys.platform == "darwin" else "sudo apt install ffmpeg"
 
 
 def require_ffmpeg() -> None:
     for tool in ("ffmpeg", "ffprobe"):
         if not shutil.which(tool):
-            raise SystemExit(f"{tool} not found. Install it with: brew install ffmpeg")
+            raise SystemExit(f"{tool} not found. Install it with: {INSTALL_FFMPEG}")
 
 
 def ffmpeg(*args: str) -> None:
