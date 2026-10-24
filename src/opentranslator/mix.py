@@ -9,6 +9,8 @@ audio, mixes and copies the video without re-encoding.
 
 from __future__ import annotations
 
+import json
+import os
 import shutil
 import wave
 from dataclasses import dataclass
@@ -100,6 +102,30 @@ def filter_graph(settings: Settings, background: Path) -> tuple[list[str], str]:
     )
 
 
+def archive(wd: WorkDir) -> Path | None:
+    """Keep this dub as outputs/<engine>.mp4 (with its tts.json), next to the ones made with other engines.
+
+    output.mp4 is always the latest dub; dubbing the video again with another
+    engine no longer loses the previous one. A hard link: no extra disk space.
+    """
+    if not (wd.output.exists() and wd.tts_index.exists()):
+        return None
+    index = json.loads(wd.tts_index.read_text(encoding="utf-8"))
+    engine = (index.get("engine") if isinstance(index, dict) else None) or "edge"
+    wd.outputs_dir.mkdir(exist_ok=True)
+    video = wd.outputs_dir / f"{engine}.mp4"
+    if not (video.exists() and video.samefile(wd.output)):
+        video.unlink(missing_ok=True)
+        try:
+            os.link(wd.output, video)
+        except OSError:  # no hard links on this filesystem
+            shutil.copyfile(wd.output, video)
+    shutil.copyfile(wd.tts_index, wd.outputs_dir / f"{engine}.tts.json")
+    if wd.overflow_log.exists():
+        shutil.copyfile(wd.overflow_log, wd.outputs_dir / f"{engine}.overflow.log")
+    return video
+
+
 def run(wd: WorkDir, settings: Settings, force: bool = False, output: Path | None = None) -> Path:
     params = {
         "bg_volume_db": settings.bg_volume_db,
@@ -137,9 +163,12 @@ def run(wd: WorkDir, settings: Settings, force: bool = False, output: Path | Non
             "-map", "0:v:0", "-map", "[a]",
             "-c:v", "copy", "-c:a", "aac", "-b:a", "192k",
             "-t", f"{total:.3f}", "-movflags", "+faststart",
-            str(wd.output),
+            str(tmp := wd.path / "output.part.mp4"),
         )
+        # a new file, not output.mp4 rewritten in place: outputs/<engine>.mp4 is a hard link to it
+        tmp.replace(wd.output)
         wd.mark_done("mix", params)
+    archive(wd)
 
     if output:
         output.parent.mkdir(parents=True, exist_ok=True)

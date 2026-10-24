@@ -85,7 +85,22 @@ def summary(wd: WorkDir, manager: JobManager) -> dict[str, Any]:
         "shortened": sum(1 for c in clips if c["id"] in translation and c.get("text") != translation[c["id"]]),
         "issues": len(issues(wd)) if state == "done" else 0,
         "options": (manager.saved(wd.path.name) or {}).get("options"),
+        "outputs": outputs(wd),
     }
+
+
+def outputs(wd: WorkDir) -> list[dict[str, Any]]:
+    """The dubs kept per engine (mix.archive), newest first, and which one output.mp4 is."""
+    if not wd.outputs_dir.exists():
+        return []
+    found = []
+    for video in wd.outputs_dir.glob("*.mp4"):
+        found.append({
+            "engine": video.stem,
+            "date": datetime.fromtimestamp(video.stat().st_mtime).isoformat(timespec="seconds"),
+            "current": wd.output.exists() and video.samefile(wd.output),
+        })
+    return sorted(found, key=lambda o: o["date"], reverse=True)
 
 
 def list_videos(work_root: Path, manager: JobManager) -> list[dict[str, Any]]:
@@ -117,6 +132,7 @@ def translation(wd: WorkDir, manager: JobManager) -> dict[str, Any] | None:
         return None
     originals = load_segments(wd.segments)
     texts = {s.id: s.text for s in load_segments(wd.translation)}
+    edited = set((_read_json(wd.translation_edits) or {}))
     pace = _speaking_rate(wd, manager)
     segments = []
     for i, seg in enumerate(originals):
@@ -125,6 +141,7 @@ def translation(wd: WorkDir, manager: JobManager) -> dict[str, Any] | None:
             "id": seg.id, "start": seg.start, "end": seg.end, "original": seg.text,
             "text": texts.get(seg.id, ""), "slot": round(slot, 2),
             "max_chars": pace.max_chars(slot) if pace else None,
+            "edited": str(seg.id) in edited,
         })
     return {"segments": segments, "chars_per_second": pace.cps if pace else None,
             "needs_regeneration": not (wd.has("tts") and wd.has("mix"))}
@@ -141,9 +158,14 @@ def save_translation(wd: WorkDir, edits: list[dict[str, Any]]) -> None:
     for edit in edits:
         if edit["id"] not in by_id:
             raise KeyError(edit["id"])
+    source = {s.id: s.text for s in load_segments(wd.segments)}
+    kept = _read_json(wd.translation_edits) or {}
     for edit in edits:
         by_id[edit["id"]].text = edit["text"].strip()
+        # remembered so a translation made again (e.g. for another engine) keeps them (translate.keep_edits)
+        kept[str(edit["id"])] = {"source": source.get(edit["id"]), "text": edit["text"].strip()}
     save_segments(wd.translation, segments)
+    wd.translation_edits.write_text(json.dumps(kept, ensure_ascii=False, indent=1), encoding="utf-8")
     wd.invalidate_from("tts")
 
 

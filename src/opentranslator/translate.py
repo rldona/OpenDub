@@ -199,6 +199,40 @@ def shorten(items: list[tuple[int, str, str, int]], voice: str, settings: Settin
     return {i: text for i, text in got.items() if i not in bad}
 
 
+def keep_edits(wd: WorkDir, originals: list[Segment], result: list[Segment], pace) -> list[Segment]:
+    """Put back the hand edits made from the web over a translation made again (e.g. for another engine).
+
+    Each edit remembers the original sentence it was made for; if the transcription
+    changed and it no longer matches, the edit is dropped rather than misplaced.
+    Edits longer than the new voice's limit are kept, with a warning.
+    """
+    if not wd.translation_edits.exists():
+        return result
+    edits = json.loads(wd.translation_edits.read_text(encoding="utf-8"))
+    source = {s.id: s.text for s in originals}
+    slots = {s.id: _slot(originals, i) for i, s in enumerate(originals)}
+    kept, dropped, long = {}, [], []
+    out = []
+    for seg in result:
+        edit = edits.get(str(seg.id))
+        if edit and edit.get("source") == source.get(seg.id):
+            kept[str(seg.id)] = edit
+            seg = replace(seg, text=edit["text"])
+            if len(seg.text) > pace.max_chars(slots[seg.id]) * 1.25:
+                long.append(seg.id)
+        elif edit:
+            dropped.append(seg.id)
+        out.append(seg)
+    if kept:
+        log.info(f"Kept {len(kept)} hand-edited sentence(s) from the web")
+    if long:
+        log.warning(f"Hand-edited sentence(s) probably too long for this voice: {long}")
+    if dropped:
+        log.warning(f"Dropped hand edits of sentence(s) whose original changed: {dropped}")
+    wd.translation_edits.write_text(json.dumps(kept, ensure_ascii=False, indent=1), encoding="utf-8")
+    return out
+
+
 def run(wd: WorkDir, settings: Settings, force: bool = False) -> list[Segment]:
     if settings.backend not in ("cli", "api"):
         raise SystemExit(f"--backend must be cli or api (not {settings.backend!r})")
@@ -257,7 +291,7 @@ def run(wd: WorkDir, settings: Settings, force: bool = False) -> list[Segment]:
             translated.update(got)
             progress.advance(task)
 
-    result = [replace(s, text=translated[s.id]) for s in segments]
+    result = keep_edits(wd, segments, [replace(s, text=translated[s.id]) for s in segments], pace)
     save_segments(wd.translation, result)
 
     over = [

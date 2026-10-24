@@ -151,6 +151,16 @@ def create_app(work_root: Path = Path("work"), runner: Runner | None = None,
         return FileResponse(wd.output, media_type="video/mp4", filename=f"{vid}.es.mp4",
                             content_disposition_type="inline")
 
+    @app.get("/videos/{vid}/outputs/{engine}.mp4")
+    def output_version(vid: str, engine: str) -> FileResponse:
+        """The dub made with a given engine (kept by mix.archive), with Range support."""
+        wd = folder(vid)
+        path = wd.outputs_dir / f"{engine}.mp4"
+        if not re.fullmatch(r"[a-z]+", engine) or not path.exists():
+            raise HTTPException(404, "No dub with that engine")
+        return FileResponse(path, media_type="video/mp4", filename=f"{vid}.es.{engine}.mp4",
+                            content_disposition_type="inline")
+
     @app.get("/videos/{vid}/translation")
     def get_translation(vid: str) -> dict:
         data = videos.translation(folder(vid), manager)

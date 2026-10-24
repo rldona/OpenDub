@@ -63,6 +63,8 @@ class WorkDir:
     overflow_log = property(lambda self: self.path / "overflow.log")
     output = property(lambda self: self.path / "output.mp4")
     thumbnail = property(lambda self: self.path / "thumbnail.jpg")
+    outputs_dir = property(lambda self: self.path / "outputs")  # one dubbed video per engine
+    translation_edits = property(lambda self: self.path / "translation_edits.json")  # hand edits from the web
     job = property(lambda self: self.path / "job.json")  # web frontend: last job's options and outcome
 
     def _read(self) -> dict[str, Any]:

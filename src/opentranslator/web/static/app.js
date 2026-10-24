@@ -26,6 +26,7 @@ const STRINGS = {
     overall: "Overall {p}%", eta_min: "about {m} min left", eta_sec: "under a minute left",
     elapsed: "{t} elapsed", took: "took {t}", estimating: "estimating time left…",
     finishing: "finishing: fitting and quality check…",
+    version: "Version", latest: "latest", edited: "edited by hand",
   },
   es: {
     preferences: "Preferencias", language: "Idioma", dub: "Doblar", voice: "Voz", voice_clone: "Clonada",
@@ -52,6 +53,7 @@ const STRINGS = {
     overall: "Total {p} %", eta_min: "faltan unos {m} min", eta_sec: "falta menos de un minuto",
     elapsed: "lleva {t}", took: "tardó {t}", estimating: "calculando lo que falta…",
     finishing: "terminando: ajuste y control de calidad…",
+    version: "Versión", latest: "la última", edited: "editada a mano",
   },
 };
 
@@ -435,7 +437,7 @@ async function showDetail(id) {
     section.replaceChildren(el("a", { href: "#/" }, `← ${t("back")}`), el("p", {}, t("not_found")));
     return;
   }
-  detail = { id, video, translation, issues, edits: new Map(), savedNote: false };
+  detail = { id, video, translation, issues, edits: new Map(), savedNote: false, version: null };
   renderDetail();
 }
 
@@ -446,16 +448,30 @@ function renderDetail() {
   if (video.engine) info.push(t("engine_label", { e: video.engine }));
   if (video.reference_f0_hz) info.push(t("ref_f0", { f0: Math.round(video.reference_f0_hz) }));
   if (video.clips) info.push(t("clips", { n: video.clips }), t("sped_up", { n: video.sped_up }), t("shortened", { n: video.shortened }));
+  // one dub per engine is kept (outputs/<engine>.mp4): pick which one to watch
+  const versions = video.outputs || [];
+  const version = detail.version && versions.some((o) => o.engine === detail.version) ? detail.version : null;
+  const src = version ? `/videos/${id}/outputs/${version}.mp4` : `/videos/${id}/output.mp4`;
+  const picker = versions.length > 1
+    ? el("div", { class: "versions", role: "group", "aria-label": t("version") },
+        el("span", { class: "muted small" }, t("version")),
+        versions.map((o) => {
+          const active = version ? o.engine === version : o.current;
+          return el("button", { type: "button", class: active ? "primary" : "", "aria-pressed": String(active),
+            onclick: () => { detail.version = o.current ? null : o.engine; renderDetail(); } },
+            o.engine + (o.current ? ` (${t("latest")})` : ""));
+        }))
+    : null;
   const head = el("div", { class: "detail-head" },
     video.status === "done"
-      ? el("video", { controls: true, preload: "metadata", src: `/videos/${id}/output.mp4` })
+      ? el("div", {}, el("video", { controls: true, preload: "metadata", src }), picker)
       : el("img", { class: "thumb", style: "width:100%", src: `/videos/${id}/thumbnail`, alt: "" }),
     el("div", {},
       el("h2", {}, video.title || id),
       el("div", { class: "muted small" }, info.filter(Boolean).join(" · ")),
       el("div", {}, statusBadge(video.status)),
       el("div", { class: "detail-actions" },
-        video.status === "done" ? el("a", { class: "badge", href: `/videos/${id}/output.mp4`, download: `${id}.es.mp4` }, t("download_file")) : null,
+        video.status === "done" ? el("a", { class: "badge", href: src, download: `${id}.es${version ? "." + version : ""}.mp4` }, t("download_file")) : null,
         translation ? el("button", { type: "button", class: "primary", onclick: regenerate }, t("regenerate")) : null),
       translation && translation.needs_regeneration && !detail.edits.size
         ? el("p", { class: "small", style: "color: var(--warning)" }, t("needs_regen")) : null));
@@ -487,7 +503,8 @@ function segmentRow(s) {
   const text = detail.edits.has(s.id) ? detail.edits.get(s.id) : s.text;
   const fit = el("td", { class: "fit" });
   const row = el("tr", { id: `seg-${s.id}` },
-    el("td", { class: "muted small" }, String(s.id), el("br"), duration(s.start)),
+    el("td", { class: "muted small" }, String(s.id), el("br"), duration(s.start),
+      s.edited ? el("span", { class: "edited", title: t("edited"), "aria-label": t("edited") }, " ✎") : null),
     el("td", { class: "original" }, s.original),
     el("td", { class: "es" }, el("textarea", { rows: 2, "aria-label": `${t("spanish")} #${s.id}`,
       oninput: (e) => { onEdit(s, e.target.value, row, fit); } }, text)),
