@@ -66,6 +66,17 @@ así en español.
 """
 
 
+SHORTEN_PROMPT = """\
+Eres un adaptador de doblaje. Recibirás frases ya traducidas al {target} que, \
+locutadas, no caben en su hueco del vídeo.
+
+Para cada elemento (id, original, traduccion, max_chars), reescribe la traducción \
+más corta, sin superar max_chars, conservando el sentido y la naturalidad hablada. \
+El original es solo referencia. Devuelve un elemento por id, con el mismo id. \
+Solo texto para leer en voz alta: sin markdown, emojis ni notas.
+"""
+
+
 def _target_name(voice: str) -> str:
     return "español de España" if voice.startswith("es-ES") else "español latinoamericano neutro"
 
@@ -150,11 +161,8 @@ def _call_api(system: str, prompt: str, model: str, api_key: str | None) -> tupl
     return json.loads(text), 0.0
 
 
-def _translate_block(
-    block: list[tuple[Segment, float]], context: list[tuple[str, str]], system: str, settings: Settings
-) -> tuple[dict[int, str], float]:
-    prompt = _user_prompt(block, context, settings.chars_per_second)
-    expected = [s.id for s, _ in block]
+def _ask(system: str, prompt: str, expected: list[int], settings: Settings) -> tuple[dict[int, str], float]:
+    """Llama al backend y valida que vuelvan exactamente los ids pedidos, con reintentos."""
     cost = 0.0
     for attempt in range(1, MAX_ATTEMPTS + 1):
         try:
@@ -169,7 +177,18 @@ def _translate_block(
             log.warning(f"Ids no coinciden (esperados {expected[0]}–{expected[-1]}), reintento {attempt}")
         except (RuntimeError, subprocess.TimeoutExpired) as e:
             log.warning(f"Fallo en el intento {attempt}: {e}")
-    raise SystemExit(f"No se pudo traducir el bloque {expected[0]}–{expected[-1]}")
+    raise SystemExit(f"Claude no devolvió una respuesta válida para los ids {expected[0]}–{expected[-1]}")
+
+
+def shorten(items: list[tuple[int, str, str, int]], voice: str, settings: Settings) -> dict[int, str]:
+    """Pide versiones más cortas de frases que no caben: (id, original, traducción, max_chars)."""
+    system = SHORTEN_PROMPT.format(target=_target_name(voice))
+    prompt = json.dumps(
+        [{"id": i, "original": o, "traduccion": t, "max_chars": m} for i, o, t, m in items],
+        ensure_ascii=False, indent=1,
+    )
+    got, _ = _ask(system, prompt, [i for i, *_ in items], settings)
+    return got
 
 
 def run(wd: WorkDir, settings: Settings, force: bool = False) -> list[Segment]:
@@ -179,10 +198,16 @@ def run(wd: WorkDir, settings: Settings, force: bool = False) -> list[Segment]:
     meta = json.loads(wd.meta.read_text(encoding="utf-8"))
     source_code = (meta.get("language") or "en").split("-")[0]
     target = _target_name(settings.voice)
+    if settings.chars_per_second:
+        cps = settings.chars_per_second
+    else:
+        from .tts import speaking_rate  # import perezoso: tts también importa este módulo
+
+        cps = speaking_rate(settings.work_root, settings.voice, settings.rate)
     params = {
         "model": settings.claude_model,
         "batch": settings.batch_size,
-        "chars_per_second": settings.chars_per_second,
+        "chars_per_second": cps,
         "target": target,
         "source": [(s.id, s.text) for s in segments],
     }
@@ -201,6 +226,7 @@ def run(wd: WorkDir, settings: Settings, force: bool = False) -> list[Segment]:
     pairs = list(zip(segments, slots))
     blocks = [pairs[i : i + settings.batch_size] for i in range(0, len(pairs), settings.batch_size)]
     log.info(f"{len(segments)} segmentos en {len(blocks)} bloques · backend {settings.backend} · {settings.claude_model}")
+    log.info(f"Velocidad de locución para max_chars: {cps:.1f} car/s")
 
     translated: dict[int, str] = {}
     total_cost = 0.0
@@ -216,7 +242,8 @@ def run(wd: WorkDir, settings: Settings, force: bool = False) -> list[Segment]:
             else:
                 prev = [s for s, _ in pairs[: n * settings.batch_size]][-CONTEXT_SEGMENTS:]
                 context = [(s.text, translated[s.id]) for s in prev]
-                got, cost = _translate_block(block, context, system, settings)
+                prompt = _user_prompt(block, context, cps)
+                got, cost = _ask(system, prompt, [s.id for s, _ in block], settings)
                 total_cost += cost
                 path.write_text(json.dumps(got, ensure_ascii=False, indent=1), encoding="utf-8")
             translated.update(got)
@@ -226,7 +253,7 @@ def run(wd: WorkDir, settings: Settings, force: bool = False) -> list[Segment]:
     save_segments(wd.translation, result)
 
     over = [
-        (s, slot) for s, slot in zip(result, slots) if len(s.text) > slot * settings.chars_per_second * 1.25
+        (s, slot) for s, slot in zip(result, slots) if len(s.text) > slot * cps * 1.25
     ]
     ratio = sum(len(s.text) for s in result) / sum(len(s.text) for s in segments)
     log.info(f"Longitud ES/original: {ratio:.0%} · segmentos probablemente largos: {len(over)}")

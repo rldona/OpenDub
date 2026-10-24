@@ -77,3 +77,64 @@ def test_raw_cache_key_depends_on_rate(tmp_path):
     b = tts._raw_path(wd, "es-ES-AlvaroNeural", "-10%", "Hola.")
     assert a != b
     assert a == tts._raw_path(wd, "es-ES-AlvaroNeural", "+0%", "Hola.")
+
+
+def _c(id, text, raw, slot=10.0, overflow=0.0):
+    return tts.Clip(id=id, start=0.0, slot=slot, raw_duration=raw, tempo=1.0, duration=raw,
+                    overflow=overflow, file=f"tts/{id:04d}.wav", text=text)
+
+
+def test_shorten_target_fits_at_max_tempo():
+    clip = _c(1, "x" * 40, raw=4.0, slot=2.0)
+    assert tts.shorten_target("x" * 40, clip, 1.25) == 23  # 40·2·1,25/4 = 25, menos un 5 %
+
+
+def test_suspicious_flags_empty_and_too_fast_clips():
+    clips = [_c(i, "a" * 34, raw=2.0) for i in range(1, 6)]  # 17 car/s
+    clips.append(_c(6, "a" * 34, raw=0.5))  # 68 car/s: cortado
+    clips.append(_c(7, "a" * 34, raw=6.0))  # 5,7 car/s: repeticiones o ruido
+    clips.append(_c(8, "Sí.", raw=0.1))  # prácticamente vacío
+    clips.append(_c(9, "Vale.", raw=1.5))  # corto: no se juzga por velocidad
+    assert [c.id for c in tts.suspicious(clips)] == [6, 7, 8]
+
+
+def test_run_shortens_clips_that_do_not_fit(tmp_path, monkeypatch):
+    import json as _json
+
+    from opentranslator import translate
+    from opentranslator.models import save_segments
+    from opentranslator.workdir import WorkDir
+
+    wd = WorkDir(tmp_path, "vid")
+    wd.meta.write_text(_json.dumps({"duration": 6.0}))  # hueco del 2.º: 3 s
+    save_segments(wd.segments, [Segment(1, 0.0, 2.0, "Short."), Segment(2, 3.0, 5.0, "Long original.")])
+    save_segments(wd.translation, [Segment(1, 0.0, 2.0, "Corta."), Segment(2, 3.0, 5.0, "x" * 80)])
+
+    async def no_check(voice):
+        return None
+
+    def fake_render(wd_, segments, slots, settings, regenerate=False):
+        # 20 car/s sin acelerar: el clip cabe si len(text)/20 <= hueco·1,25
+        out = []
+        for s in segments:
+            raw = len(s.text) / 20
+            dur = min(raw, raw / min(raw / slots[s.id], 1.25)) if raw > slots[s.id] else raw
+            out.append(tts.Clip(s.id, s.start, slots[s.id], raw, round(raw / dur, 3), dur,
+                                max(dur - slots[s.id], 0), f"tts/{s.id:04d}.wav", s.text))
+        return out
+
+    calls = []
+
+    def fake_shorten(items, voice, settings):
+        calls.append(items)
+        return {i: "y" * m for i, _o, _t, m in items}
+
+    monkeypatch.setattr(tts, "_check_voice", no_check)
+    monkeypatch.setattr(tts, "_render", fake_render)
+    monkeypatch.setattr(translate, "shorten", fake_shorten)
+    clips = tts.run(wd, Settings())
+
+    assert len(calls) == 1 and calls[0][0][:3] == (2, "Long original.", "x" * 80)
+    assert clips[1].text.startswith("y") and clips[1].overflow == 0
+    assert clips[0].text == "Corta."
+    assert tts.load_clips(wd)[1].text == clips[1].text

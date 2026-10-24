@@ -43,7 +43,7 @@ def test_run_translates_in_blocks_with_context(wd, monkeypatch):
         return {"segments": [{"id": s["id"], "text": f"Frase {s['id']}."} for s in data["segmentos"]]}, 0.01
 
     monkeypatch.setattr(translate, "_call_cli", fake_cli)
-    result = translate.run(wd, Settings(batch_size=3))
+    result = translate.run(wd, Settings(batch_size=3, chars_per_second=15))
     assert [len(c["segmentos"]) for c in calls] == [3, 3, 1]
     assert "contexto_previo" not in calls[0]
     assert calls[1]["contexto_previo"][-1] == {"original": "Sentence 3.", "traduccion": "Frase 3."}
@@ -63,7 +63,7 @@ def test_run_retries_when_ids_mismatch(wd, monkeypatch):
         return {"segments": [{"id": s["id"], "text": "x"} for s in segs]}, 0.0
 
     monkeypatch.setattr(translate, "_call_cli", flaky_cli)
-    translate.run(wd, Settings(batch_size=10))
+    translate.run(wd, Settings(batch_size=10, chars_per_second=15))
     assert attempts["n"] == 2
 
 
@@ -76,7 +76,7 @@ def test_run_resumes_from_saved_blocks_and_caches(wd, monkeypatch):
 
     monkeypatch.setattr(translate, "_call_cli", failing_after_first)
     with pytest.raises(SystemExit):
-        translate.run(wd, Settings(batch_size=4))
+        translate.run(wd, Settings(batch_size=4, chars_per_second=15))
 
     seen = []
 
@@ -86,9 +86,40 @@ def test_run_resumes_from_saved_blocks_and_caches(wd, monkeypatch):
         return {"segments": [{"id": s["id"], "text": "bien"} for s in segs]}, 0.0
 
     monkeypatch.setattr(translate, "_call_cli", ok_cli)
-    result = translate.run(wd, Settings(batch_size=4))
+    result = translate.run(wd, Settings(batch_size=4, chars_per_second=15))
     assert seen == [5, 6, 7]  # el primer bloque sale de disco
     assert [s.text for s in result] == ["ok"] * 4 + ["bien"] * 3
 
     monkeypatch.setattr(translate, "_call_cli", lambda *a: pytest.fail("no debería llamar"))
-    translate.run(wd, Settings(batch_size=4))
+    translate.run(wd, Settings(batch_size=4, chars_per_second=15))
+
+
+def test_shorten_sends_limits_and_returns_texts(monkeypatch):
+    seen = {}
+
+    def fake_cli(system, prompt, model):
+        seen["system"], seen["items"] = system, json.loads(prompt)
+        return {"segments": [{"id": 3, "text": "Corta."}]}, 0.0
+
+    monkeypatch.setattr(translate, "_call_cli", fake_cli)
+    got = translate.shorten([(3, "Original long text.", "Traducción demasiado larga.", 12)], "es-ES-AlvaroNeural", Settings())
+    assert got == {3: "Corta."}
+    assert seen["items"] == [{"id": 3, "original": "Original long text.", "traduccion": "Traducción demasiado larga.", "max_chars": 12}]
+    assert "español de España" in seen["system"]
+
+
+def test_run_uses_calibrated_rate_when_not_given(wd, monkeypatch):
+    from opentranslator import tts
+
+    monkeypatch.setattr(tts, "speaking_rate", lambda root, voice, rate: 20.0)
+    prompts = []
+
+    def fake_cli(system, prompt, model):
+        data = json.loads(prompt)
+        prompts.append(data)
+        return {"segments": [{"id": s["id"], "text": "x"} for s in data["segmentos"]]}, 0.0
+
+    monkeypatch.setattr(translate, "_call_cli", fake_cli)
+    translate.run(wd, Settings(batch_size=10))
+    # primer segmento: hueco 3 s (dura 2 s + 1 s prestado) a 20 car/s
+    assert prompts[0]["segmentos"][0]["max_chars"] == 60

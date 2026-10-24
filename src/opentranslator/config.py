@@ -20,12 +20,13 @@ class Settings:
     backend: str = "cli"  # cli (suscripción vía Claude Code) | api
     claude_model: str = "claude-sonnet-5-5"
     batch_size: int = 30  # segmentos por llamada de traducción
-    # Velocidad de locución con la que se calcula max_chars; edge-tts en español ronda 18-19
-    chars_per_second: float = 17.0
+    # Velocidad de locución con la que se calcula max_chars; None = calibrarla con la voz
+    chars_per_second: float | None = None
     voice: str = "es-ES-AlvaroNeural"
-    rate: str = "+0%"  # velocidad nativa de edge-tts ("-10%" = más despacio)
+    rate: str = "-10%"  # velocidad nativa de edge-tts (más negativo = más despacio)
     min_tempo: float = 1.0  # < 1 permite ralentizar clips cortos para llenar su hueco
     max_tempo: float = 1.25
+    shorten: bool = True  # retraducir más corto lo que no cabe ni a max_tempo
     bg_volume_db: float = -15.0
     mute_original: bool = False
     max_height: int = 1080

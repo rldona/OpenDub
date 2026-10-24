@@ -42,8 +42,9 @@ Opciones habituales de `dub`:
 | `--source-lang` | el de YouTube | Idioma original (si no se sabe, lo detecta whisper) |
 | `--whisper-model` | `small` | Modelo de faster-whisper (`medium`, `large-v3`… más lentos) |
 | `--backend` / `--model` | `cli` / `claude-sonnet-5-5` | Cómo y con qué modelo traducir |
-| `--rate` | `+0%` | Velocidad nativa de la voz en edge-tts; `--rate=-10%` habla más despacio sin estirar el audio |
-| `--chars-per-second` | `17` | Velocidad de locución con la que se limita la longitud de cada traducción |
+| `--rate` | `-10%` | Velocidad nativa de la voz en edge-tts (más negativo = más despacio, sin estirar el audio) |
+| `--chars-per-second` | calibrada | Velocidad de locución con la que se limita la longitud de cada traducción; por defecto se mide con la voz elegida |
+| `--shorten` / `--no-shorten` | sí | Si una frase no cabe ni a `--max-tempo`, pedir a Claude una versión más corta y resintetizarla |
 | `--max-tempo` / `--min-tempo` | `1.25` / `1.0` | Rango de atempo (`--min-tempo 0.9` permite ralentizar estirando el audio) |
 | `--force` | no | Rehace todas las fases |
 
@@ -63,14 +64,17 @@ traducción).
 | `video.mp4`, `audio.wav`, `subs.*` | Descarga |
 | `segments.json` | Frases originales con timestamps |
 | `translation.json` | Traducción (puedes editarla a mano y relanzar `tts`) |
-| `tts/`, `tts.json` | Un clip por frase, con su tempo y duración |
-| `overflow.log` | Frases que no cupieron en su hueco y clips retrasados |
+| `tts/`, `tts.json` | Un clip por frase, con su tempo, duración y el texto locutado (acortado si hizo falta) |
+| `overflow.log` | Frases que no cupieron en su hueco, clips con duración anómala y clips retrasados |
+
+La velocidad calibrada de cada voz se guarda en `work/voice_rates.json`; bórralo
+para volver a medirla.
 | `dub.wav`, `output.mp4` | Pista doblada y vídeo final |
 
 ## Limitaciones conocidas
 
-- Si una frase no cabe ni a 1,25×, el siguiente clip se retrasa en lugar de
-  solaparse; el desfase se recupera en el siguiente silencio.
+- Si una frase no cabe ni a 1,25× tras dos rondas de acortado, el siguiente clip
+  se retrasa en lugar de solaparse; el desfase se recupera en el siguiente silencio.
 - faster-whisper corre en CPU (CTranslate2 no usa Metal): `small` transcribe unos
   2 minutos de audio en ~20 s.
 - edge-tts usa un servicio no oficial de Microsoft y podría dejar de funcionar.
