@@ -149,7 +149,7 @@ def tts(
 def mix(
     url: Url,
     work: WorkRoot = Path("work"),
-    bg_volume: BgVolume = -20.0,
+    bg_volume: BgVolume = -15.0,
     mute_original: MuteOriginal = False,
     output: Output = None,
     force: Force = False,
@@ -178,7 +178,7 @@ def dub(
     rate: Rate = "+0%",
     min_tempo: MinTempo = 1.0,
     max_tempo: MaxTempo = 1.25,
-    bg_volume: BgVolume = -20.0,
+    bg_volume: BgVolume = -15.0,
     mute_original: MuteOriginal = False,
     output: Output = None,
     force: Force = False,

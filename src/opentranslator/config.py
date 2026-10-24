@@ -26,7 +26,7 @@ class Settings:
     rate: str = "+0%"  # velocidad nativa de edge-tts ("-10%" = más despacio)
     min_tempo: float = 1.0  # < 1 permite ralentizar clips cortos para llenar su hueco
     max_tempo: float = 1.25
-    bg_volume_db: float = -20.0
+    bg_volume_db: float = -15.0
     mute_original: bool = False
     max_height: int = 1080
     anthropic_api_key: str | None = field(

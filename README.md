@@ -36,7 +36,7 @@ Opciones habituales de `dub`:
 | Opción | Por defecto | Qué hace |
 |---|---|---|
 | `--voice` | `es-ES-AlvaroNeural` | Voz de edge-tts (`es-ES-ElviraNeural`, `es-MX-JorgeNeural`…) |
-| `--bg-volume` | `-20` | Volumen del audio original, en dB |
+| `--bg-volume` | `-15` | Volumen del audio original, en dB |
 | `--mute-original` | no | Quita el audio original |
 | `--subs` | `manual` | `manual`: subtítulos manuales o whisper · `auto`: también automáticos · `none`: siempre whisper |
 | `--source-lang` | el de YouTube | Idioma original (si no se sabe, lo detecta whisper) |
