@@ -56,7 +56,7 @@ def test_the_web_refuses_edits_while_another_process_holds_the_video(tmp_path):
     wd = make_video(tmp_path / "work")
     with wd.lock("opendub dub"):
         r = c.put(f"/videos/{wd.path.name}/translation", json=[{"id": 1, "text": "Hola."}])
-        assert r.status_code == 409 and "opendub dub" in r.json()["detail"]
+        assert r.status_code == 409 and "opendub dub" in r.json()["detail"]["message"]
         assert c.post(f"/videos/{wd.path.name}/retouch", json={"takes": [1]}).status_code == 409
     assert c.put(f"/videos/{wd.path.name}/translation", json=[{"id": 1, "text": "Hola."}]).status_code == 200
 

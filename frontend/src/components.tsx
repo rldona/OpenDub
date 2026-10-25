@@ -79,3 +79,14 @@ export function StatusBadge({ status, label }: { status: Status; label?: string 
   const { t } = usePrefs();
   return <span className={`badge ${status}`}>{label ?? t(`status_${status}`)}</span>;
 }
+
+/** While a page's data is on its way: a spinner and the word, instead of a bare "…". */
+export function Loading() {
+  const { t } = usePrefs();
+  return (
+    <p className="muted loading" role="status">
+      <span className="spinner" aria-hidden="true" />
+      {t("loading")}
+    </p>
+  );
+}

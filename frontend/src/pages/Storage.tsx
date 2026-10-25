@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { api, type Storage } from "../api";
 import type { Key } from "../i18n";
 import { usePrefs } from "../prefs";
+import { errorText } from "../errors";
 
 export function bytes(n: number, lang: "en" | "es"): string {
   const units = ["B", "KB", "MB", "GB"];
@@ -22,7 +23,7 @@ export function StorageCard({ id, busy, onChanged }: { id: string; busy: boolean
   const [note, setNote] = useState<string | null>(null);
 
   useEffect(() => {
-    if (open) api.storage(id).then(setUsage).catch((e) => setNote((e as Error).message));
+    if (open) api.storage(id).then(setUsage).catch((e) => setNote(errorText(e, t)));
   }, [id, open]);
 
   const deletable = usage ? usage.groups.reduce((sum, g) => sum + g.bytes, 0) : 0;
@@ -36,7 +37,7 @@ export function StorageCard({ id, busy, onChanged }: { id: string; busy: boolean
       setNote(t("st_freed", { n: bytes(r.freed, prefs.lang) }));
       onChanged();
     } catch (err) {
-      setNote((err as Error).message);
+      setNote(errorText(err, t));
     }
   }
 

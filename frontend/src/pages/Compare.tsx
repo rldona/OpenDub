@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { api, media, type Video, type VersionDetail } from "../api";
 import { engineShort } from "../catalog";
-import { PauseIcon, PlayIcon } from "../components";
+import { Loading, PauseIcon, PlayIcon } from "../components";
 import { duration, when } from "../format";
 import { useJobs } from "../job";
 import { usePrefs } from "../prefs";
@@ -21,7 +21,7 @@ export function Compare({ id }: { id: string | null }) {
 
   const comparable = (videos ?? []).filter((v) => v.outputs.length > 1);
   const video = comparable.find((v) => v.id === id) ?? comparable[0];
-  if (!videos) return <p className="muted">…</p>;
+  if (!videos) return <Loading />;
   return (
     <>
       <div className="page-head">

@@ -3,6 +3,7 @@ import { api, type Speaker, type Translation } from "../api";
 import { engineShort } from "../catalog";
 import { PlayIcon } from "../components";
 import { usePrefs } from "../prefs";
+import { errorText } from "../errors";
 
 /** "Andy" when named, else the diarization's letter. */
 export function speakerName(speakers: Speaker[], id: string | null): string {
@@ -37,7 +38,7 @@ export function SpeakersCard({ id, speakers, busy, onSpeakers, onTranslation }: 
     try {
       onSpeakers(await api.renameSpeaker(id, speaker.id, name));
     } catch (err) {
-      setNote((err as Error).message);
+      setNote(errorText(err, t));
     }
   }
 
@@ -49,7 +50,7 @@ export function SpeakersCard({ id, speakers, busy, onSpeakers, onTranslation }: 
       onTranslation(r.translation);
       setNote(t("merged_n", { n: r.moved }));
     } catch (err) {
-      setNote((err as Error).message);
+      setNote(errorText(err, t));
     }
   }
 

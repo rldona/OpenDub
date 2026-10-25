@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { api, media, redub, type Engine, type Issue, type Speaker, type Style, type Translation, type Video, type VersionDetail, type VideoStyle } from "../api";
 import { engineShort } from "../catalog";
-import { PlayIcon, StatusBadge } from "../components";
+import { Loading, PlayIcon, StatusBadge } from "../components";
 import { duration, seconds, when } from "../format";
 import type { Key } from "../i18n";
 import { useJobs } from "../job";
@@ -12,6 +12,7 @@ import { SpeakersCard, speakerName } from "./Speakers";
 import { StorageCard } from "./Storage";
 import { retouchQueue } from "../retouch";
 import { cleanStyle, sameStyle, StyleEditor } from "./StyleEditor";
+import { errorText } from "../errors";
 
 type Filter = "all" | "issues" | "edited";
 
@@ -106,7 +107,7 @@ export function VideoPage({ id }: { id: string }) {
     return map;
   }, [detail]);
 
-  if (video === undefined) return <p className="muted">…</p>;
+  if (video === undefined) return <Loading />;
   if (video === null) {
     return (
       <>
@@ -132,7 +133,7 @@ export function VideoPage({ id }: { id: string }) {
       setNote(t("saved_ok"));
       return true;
     } catch (err) {
-      setNote((err as Error).message);
+      setNote(errorText(err, t));
       return false;
     }
   }
@@ -145,7 +146,7 @@ export function VideoPage({ id }: { id: string }) {
       setVideo({ ...video!, outputs: r.outputs });
       setVersion(null);
     } catch (err) {
-      alert((err as Error).message);
+      alert(errorText(err, t));
     }
   }
 
@@ -164,7 +165,7 @@ export function VideoPage({ id }: { id: string }) {
       setNote(null);
       refresh();
     } catch (err) {
-      setNote((err as Error).message);
+      setNote(errorText(err, t));
     }
   }
 
@@ -175,7 +176,7 @@ export function VideoPage({ id }: { id: string }) {
       setTranslation(r.translation);
       setNote(null);
     } catch (err) {
-      setNote((err as Error).message);
+      setNote(errorText(err, t));
     }
   }
 
@@ -193,7 +194,7 @@ export function VideoPage({ id }: { id: string }) {
       setStyleNote(t("style_saved"));
       setIssuesStamp((n) => n + 1);
     } catch (err) {
-      setStyleNote((err as Error).message);
+      setStyleNote(errorText(err, t));
     }
   }
 
@@ -213,7 +214,7 @@ export function VideoPage({ id }: { id: string }) {
       refresh();
       void load();
     } catch (err) {
-      setStyleNote((err as Error).message);
+      setStyleNote(errorText(err, t));
     }
   }
 

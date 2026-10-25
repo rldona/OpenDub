@@ -104,4 +104,4 @@ def test_the_mkv_needs_the_original_video(tmp_path):
     (wd.outputs_dir / "20261024-090000-edge.mp4").write_bytes(b"x")
     (wd.outputs_dir / "20261024-090000-edge.tts.json").write_text(wd.tts_index.read_text())
     r = c.get(f"/videos/{VID}/outputs/20261024-090000-edge/export/mkv")
-    assert r.status_code == 409 and "deleted to save space" in r.json()["detail"]
+    assert r.status_code == 409 and "deleted to save space" in r.json()["detail"]["message"]

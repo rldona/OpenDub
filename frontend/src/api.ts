@@ -175,7 +175,8 @@ export interface ServerStatus {
 }
 
 export class ApiError extends Error {
-  constructor(message: string, readonly status: number) {
+  // message: the server's technical text (English); code and params: what the page translates (errors.ts)
+  constructor(message: string, readonly status: number, readonly code?: string, readonly params: Record<string, string | number> = {}) {
     super(message);
   }
 }
@@ -189,13 +190,17 @@ async function call<T>(path: string, init: RequestInit = {}): Promise<T> {
   }
   if (!r.ok) {
     let message = r.statusText;
+    let code: string | undefined;
+    let params: Record<string, string | number> = {};
     try {
-      const body = await r.json();
-      message = typeof body.detail === "string" ? body.detail : JSON.stringify(body.detail);
+      const { detail } = await r.json();
+      if (typeof detail === "string") message = detail;
+      else if (detail && typeof detail.code === "string") ({ code, message, params = {} } = detail);
+      else message = JSON.stringify(detail); // FastAPI's own validation errors
     } catch {
       /* not JSON */
     }
-    throw new ApiError(message, r.status);
+    throw new ApiError(message, r.status, code, params);
   }
   return r.json() as Promise<T>;
 }

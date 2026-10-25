@@ -1,11 +1,12 @@
 import { useEffect, useMemo, useState, type FormEvent } from "react";
-import { api, ApiError, media, redub, type EngineChoice, type JobOptions, type Video } from "../api";
+import { api, media, redub, type EngineChoice, type JobOptions, type Video } from "../api";
 import { useEngines } from "../App";
 import { ENGINES, engineShort } from "../catalog";
 import { EngineTag, StatusBadge } from "../components";
 import { clock, duration, when } from "../format";
 import { overall, PHASES, timing, useJobs, useNow, type LiveJob } from "../job";
 import { usePrefs } from "../prefs";
+import { errorText } from "../errors";
 
 export function Library() {
   const { t } = usePrefs();
@@ -76,7 +77,7 @@ function NewDub({ onSubmitted }: { onSubmitted: () => void }) {
       refresh();
       onSubmitted();
     } catch (err) {
-      setError(err instanceof ApiError && err.status === 0 ? t("unreachable") : (err as Error).message);
+      setError(errorText(err, t));
     } finally {
       setBusy(false);
     }

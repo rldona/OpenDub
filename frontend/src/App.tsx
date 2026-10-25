@@ -56,7 +56,7 @@ export function App() {
     <div className="app">
       <TopBar />
       <div className="body">
-        <nav className="sidebar" aria-label="Main">
+        <nav className="sidebar" aria-label={t("main_nav")}>
           <span className="section">{t("workspace")}</span>
           <NavLink to="#/" icon="library" current={section === "library"}>{t("library")}</NavLink>
           <NavLink to="#/compare" icon="compare" current={section === "compare"}>{t("compare")}</NavLink>

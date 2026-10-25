@@ -22,14 +22,21 @@ const DEFAULTS: Prefs = {
   voice: "es-ES-AlvaroNeural",
 };
 
+// Spanish when the browser asks for any Spanish (es, es-ES, es-419…), English otherwise
+export function browserLang(languages: readonly string[] = navigator.languages ?? [navigator.language]): Lang {
+  const first = languages.find((l) => /^(es|en)\b/i.test(l)) ?? "";
+  return first.toLowerCase().startsWith("es") ? "es" : "en";
+}
+
 // Browser storage can be missing or throw (private mode, blocked site data): never rely on it
 function load(): Prefs {
   try {
     const saved = JSON.parse(localStorage.getItem(KEY) || "{}");
-    const lang = saved.lang ?? (localStorage.getItem("ot.lang") === "es" ? "es" : "en"); // the old page's setting
+    const old = localStorage.getItem("ot.lang"); // the old page's setting
+    const lang = saved.lang ?? (old === "es" || old === "en" ? old : browserLang());
     return { ...DEFAULTS, ...saved, lang };
   } catch {
-    return DEFAULTS;
+    return { ...DEFAULTS, lang: browserLang() };
   }
 }
 

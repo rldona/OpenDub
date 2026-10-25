@@ -6,6 +6,7 @@ import { Icon } from "../components";
 import { useJobs } from "../job";
 import { usePrefs } from "../prefs";
 import { useDefaultOptions } from "./Library";
+import { errorText } from "../errors";
 
 /** Dub the video again: the engine, and whether to keep its translation. Every version is kept. */
 export function RedubDialog({ video, watching, onClose, onStarted }: {
@@ -54,7 +55,7 @@ export function RedubDialog({ video, watching, onClose, onStarted }: {
       refresh();
       onStarted();
     } catch (err) {
-      setError((err as Error).message);
+      setError(errorText(err, t));
     }
   }
 

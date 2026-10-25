@@ -1,4 +1,4 @@
-// English by default, Spanish under Preferences.
+// The browser's language by default (Spanish or English), changed under Preferences.
 
 const en = {
   library: "Library", compare: "Compare", engines: "Engines", preferences: "Preferences",
@@ -128,9 +128,23 @@ const en = {
   st_confirm: "Delete “{what}”? {lost}.", st_freed: "{n} freed.",
   st_hint: "Versions, the translation and the dub's data always stay. Nothing is deleted automatically.",
   clips_gone: "The voice clips were deleted to save space: dub the video again to retouch it (the translation is kept).",
+  err_unknown_video: "This video isn't in the library.", err_not_installed: "{engine} is not installed: {cmd}",
+  err_no_diarizer: "Several voices need Nemotron 3 Diarization: {cmd}", err_not_youtube: "That isn't a YouTube link.",
+  err_no_job: "This video has no dub in progress.", err_busy: "Another OpenDub process ({holder}) is working on this video: try again when it ends.",
+  err_no_thumbnail: "No thumbnail.", err_not_dubbed: "This video isn't dubbed yet.", err_no_dub: "That dub doesn't exist.",
+  err_unknown_format: "Unknown format.", err_dubbing: "This video is being dubbed: try again when the job ends.",
+  err_not_translated: "This video isn't translated yet.", err_no_segment: "There's no sentence {id}.",
+  err_cannot_retouch: "This can't be retouched.", err_nothing_to_retouch: "Nothing to retouch: edit a sentence or ask for another take.",
+  err_no_sample: "No sample of that speaker.", err_unknown_group: "Unknown group.", err_no_clip: "That clip doesn't exist.",
+  err_cannot_delete_latest: "The latest dub can't be deleted.", err_needs_video: "The original video was deleted to save space: dub or retouch the video to download it again.",
+  err_no_speaker: "That speaker doesn't exist.", err_invalid_speakers: "Those speaker changes aren't valid.",
+  err_invalid_style: "That style isn't valid.", err_unknown: "Something went wrong.", detail: "Detail: {d}",
+  loading: "Loading…", main_nav: "Main",
 };
 
 export type Key = keyof typeof en;
+
+export const isKey = (key: string): key is Key => Object.hasOwn(en, key);
 
 const es: Record<Key, string> = {
   library: "Biblioteca", compare: "Comparar", engines: "Motores", preferences: "Preferencias",
@@ -260,6 +274,18 @@ const es: Record<Key, string> = {
   st_confirm: "¿Borrar «{what}»? {lost}.", st_freed: "{n} liberados.",
   st_hint: "Las versiones, la traducción y los datos del doblaje se conservan siempre. Nada se borra solo.",
   clips_gone: "Los clips de voz se borraron para ahorrar espacio: vuelve a doblar el vídeo para retocarlo (la traducción se conserva).",
+  err_unknown_video: "Este vídeo no está en la biblioteca.", err_not_installed: "{engine} no está instalado: {cmd}",
+  err_no_diarizer: "Varias voces necesitan Nemotron 3 Diarization: {cmd}", err_not_youtube: "No es un enlace de YouTube.",
+  err_no_job: "Este vídeo no tiene un doblaje en curso.", err_busy: "Otro proceso de OpenDub ({holder}) está trabajando con este vídeo: inténtalo cuando acabe.",
+  err_no_thumbnail: "Sin miniatura.", err_not_dubbed: "Este vídeo aún no está doblado.", err_no_dub: "Ese doblaje no existe.",
+  err_unknown_format: "Formato desconocido.", err_dubbing: "Este vídeo se está doblando: inténtalo cuando acabe.",
+  err_not_translated: "Este vídeo aún no está traducido.", err_no_segment: "No hay ninguna frase {id}.",
+  err_cannot_retouch: "No se puede retocar.", err_nothing_to_retouch: "Nada que retocar: edita una frase o pide otra toma.",
+  err_no_sample: "No hay muestra de esa voz.", err_unknown_group: "Grupo desconocido.", err_no_clip: "Ese clip no existe.",
+  err_cannot_delete_latest: "El último doblaje no se puede borrar.", err_needs_video: "El vídeo original se borró para ahorrar espacio: vuelve a doblar o retocar el vídeo para descargarlo de nuevo.",
+  err_no_speaker: "Esa voz no existe.", err_invalid_speakers: "Esos cambios de voces no son válidos.",
+  err_invalid_style: "Ese estilo no es válido.", err_unknown: "Algo ha fallado.", detail: "Detalle: {d}",
+  loading: "Cargando…", main_nav: "Principal",
 };
 
 export type Lang = "en" | "es";

@@ -403,7 +403,7 @@ def test_engines_say_which_are_installed_and_how(tmp_path, monkeypatch, engines_
     c = client(tmp_path, fake)
     assert c.get("/engines").json()[3]["id"] == "cosyvoice"
     r = c.post("/jobs", json={"url": VID, "engine": "cosyvoice"})
-    assert r.status_code == 422 and "setup-engine cosyvoice" in r.json()["detail"]
+    assert r.status_code == 422 and "setup-engine cosyvoice" in r.json()["detail"]["message"]
     assert c.post("/jobs", json={"url": VID, "tts": "edge", "engine": "cosyvoice"}).status_code == 200  # no cloning
     assert fake.runs == [] or fake.runs[0][1].tts == "edge"
 
@@ -477,7 +477,7 @@ def test_retouch_needs_a_cloned_voice_for_takes(tmp_path):
     c = client(tmp_path, FakePipeline())
     make_video(tmp_path / "work", engine="edge")
     r = c.post(f"/videos/{VID}/retouch", json={"takes": [2]})
-    assert r.status_code == 422 and "cloned voice" in r.json()["detail"]
+    assert r.status_code == 422 and "cloned voice" in r.json()["detail"]["message"]
 
 
 def test_versions_export_and_their_exports_go_with_them(tmp_path):
@@ -556,7 +556,7 @@ def test_several_voices_need_the_diarizer(tmp_path, monkeypatch):
     c = client(tmp_path, fake)
     monkeypatch.setattr(videos, "diarizer", lambda settings=None: {"installed": False, "setup": "uv run x"})
     r = c.post("/jobs", json={"url": VID, "multi_speaker": True})
-    assert r.status_code == 422 and "uv run x" in r.json()["detail"]
+    assert r.status_code == 422 and "uv run x" in r.json()["detail"]["message"]
     assert c.get("/status").json()["diarizer"]["installed"] is False
     monkeypatch.setattr(videos, "diarizer", lambda settings=None: {"installed": True, "setup": None})
     c.post("/jobs", json={"url": VID, "multi_speaker": True})
@@ -570,3 +570,11 @@ def test_a_dub_without_an_engine_uses_chatterbox(tmp_path):
     assert c.post("/jobs", json={"url": VID}).status_code == 200
     wait_status(c, VID)
     assert fake.runs[-1][1].engine == "chatterbox"
+
+
+def test_errors_carry_a_code_the_page_translates(tmp_path):
+    c = client(tmp_path, FakePipeline())
+    detail = c.get("/videos/zzzzzzzzzzz/translation").json()["detail"]
+    assert detail == {"code": "unknown_video", "message": "Unknown video", "params": {}}
+    detail = c.post("/jobs/AAAAAAAAAAA/cancel").json()["detail"]
+    assert detail["code"] == "no_job"

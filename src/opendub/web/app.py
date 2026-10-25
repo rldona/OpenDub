@@ -63,9 +63,15 @@ class SegmentEdit(BaseModel):
     text: str = Field(min_length=1)
 
 
+def fail(status: int, code: str, message: str, **params) -> HTTPException:
+    """An API error the page can translate: `code` names it (the page's err_<code> text, filled with
+    `params`), `message` is the English, technical text it shows only as a detail."""
+    return HTTPException(status, {"code": code, "message": message, "params": params})
+
+
 def check_id(vid: str) -> str:
     if not VIDEO_ID.fullmatch(vid):
-        raise HTTPException(404, "Unknown video")
+        raise fail(404, "unknown_video", "Unknown video")
     return vid
 
 
@@ -110,14 +116,15 @@ def create_app(work_root: Path = Path("work"), runner: Runner | None = None,
         if req.tts == "clone":
             engine = next(e for e in videos.engines() if e["id"] == req.engine)
             if not engine["installed"]:
-                raise HTTPException(422, f"{engine['name']} is not installed. Install it with: {engine['setup']}")
+                raise fail(422, "not_installed", f"{engine['name']} is not installed. Install it with: {engine['setup']}",
+                           engine=engine["name"], cmd=engine["setup"])
         if req.multi_speaker and not videos.diarizer()["installed"]:
-            raise HTTPException(422, f"Several voices need Nemotron 3 Diarization. Install it with: "
-                                     f"{videos.diarizer()['setup']}")
+            raise fail(422, "no_diarizer", f"Several voices need Nemotron 3 Diarization. Install it with: "
+                                          f"{videos.diarizer()['setup']}", cmd=videos.diarizer()["setup"])
         try:
             job = manager.submit(JobOptions(**req.model_dump()))
         except Exception as e:  # not a YouTube URL or id
-            raise HTTPException(422, f"Not a YouTube video: {e}") from e
+            raise fail(422, "not_youtube", f"Not a YouTube video: {e}") from e
         return {"id": job.id, **job.summary()}
 
     @app.get("/jobs")
@@ -132,7 +139,7 @@ def create_app(work_root: Path = Path("work"), runner: Runner | None = None,
             return job.summary()
         saved = manager.saved(vid)
         if not saved:
-            raise HTTPException(404, "No job for this video")
+            raise fail(404, "no_job", "No job for this video")
         return saved
 
     @app.post("/jobs/{vid}/cancel")
@@ -140,7 +147,7 @@ def create_app(work_root: Path = Path("work"), runner: Runner | None = None,
         """Cancel a video's queued or running job; what it had done stays cached."""
         job = manager.cancel(check_id(vid))
         if not job:
-            raise HTTPException(404, "No job for this video")
+            raise fail(404, "no_job", "No job for this video")
         return job.summary()
 
     @app.get("/jobs/{vid}/events")
@@ -148,7 +155,7 @@ def create_app(work_root: Path = Path("work"), runner: Runner | None = None,
         """Server-sent events: everything since the start (or since Last-Event-ID), then live, until the job ends."""
         job = manager.get(check_id(vid))
         if not job:
-            raise HTTPException(404, "No job for this video in this server run")
+            raise fail(404, "no_job", "No job for this video in this server run")
         last = request.headers.get("last-event-id")
         since = int(last) + 1 if last and last.isdigit() else 0
 
@@ -173,13 +180,13 @@ def create_app(work_root: Path = Path("work"), runner: Runner | None = None,
     def ensure_free(wd: WorkDir) -> None:
         """409 when another process (the CLI, or this server's running job) holds the video."""
         if holder := wd.holder():
-            raise HTTPException(409, f"Another OpenDub process is working on this video ({holder}): "
-                                     "edit it when it ends")
+            raise fail(409, "busy", f"Another OpenDub process is working on this video ({holder}): edit it when it ends",
+                       holder=holder)
 
     def folder(vid: str) -> WorkDir:
         wd = WorkDir(work_root, check_id(vid), create=False)  # unknown ids must not create folders
         if not wd.meta.exists():
-            raise HTTPException(404, "Unknown video")
+            raise fail(404, "unknown_video", "Unknown video")
         return wd
 
     @app.get("/videos")
@@ -196,7 +203,7 @@ def create_app(work_root: Path = Path("work"), runner: Runner | None = None,
         if vid not in no_thumbnail and not download.thumbnail(wd):  # videos downloaded before thumbnails
             no_thumbnail.add(vid)
         if not wd.thumbnail.exists():
-            raise HTTPException(404, "No thumbnail")
+            raise fail(404, "no_thumbnail", "No thumbnail")
         return FileResponse(wd.thumbnail, media_type="image/jpeg")
 
     no_thumbnail: set[str] = set()  # don't ask YouTube again in this server run
@@ -206,7 +213,7 @@ def create_app(work_root: Path = Path("work"), runner: Runner | None = None,
         """The dubbed video; FileResponse answers Range requests (206), so the player can seek."""
         wd = folder(vid)
         if not wd.output.exists():
-            raise HTTPException(404, "Not dubbed yet")
+            raise fail(404, "not_dubbed", "Not dubbed yet")
         return FileResponse(wd.output, media_type="video/mp4", filename=f"{vid}.es.mp4",
                             content_disposition_type="inline")
 
@@ -218,9 +225,9 @@ def create_app(work_root: Path = Path("work"), runner: Runner | None = None,
         try:
             videos.delete_output(wd, version)
         except LookupError:
-            raise HTTPException(404, "No such dub")
+            raise fail(404, "no_dub", "No such dub")
         except ValueError as e:
-            raise HTTPException(409, str(e))
+            raise fail(409, "cannot_delete_latest", str(e))
         return {"outputs": videos.outputs(wd)}
 
     @app.get("/videos/{vid}/outputs/{version}.mp4")
@@ -229,7 +236,7 @@ def create_app(work_root: Path = Path("work"), runner: Runner | None = None,
         wd = folder(vid)
         path = wd.outputs_dir / f"{version}.mp4"
         if not mix.VERSION.fullmatch(version) or not path.exists():
-            raise HTTPException(404, "No such dub")
+            raise fail(404, "no_dub", "No such dub")
         return FileResponse(path, media_type="video/mp4", filename=f"{vid}.es.{version}.mp4",
                             content_disposition_type="inline")
 
@@ -241,16 +248,16 @@ def create_app(work_root: Path = Path("work"), runner: Runner | None = None,
 
         wd = folder(vid)
         if fmt not in export.FORMATS:
-            raise HTTPException(404, "Unknown format")
+            raise fail(404, "unknown_format", "Unknown format")
         job = manager.get(vid)
         if version == "latest" and job and job.status == "running":
-            raise HTTPException(409, "This video is being dubbed; export it when the job ends")
+            raise fail(409, "dubbing", "This video is being dubbed; export it when the job ends")
         try:
             path = export.export(wd, fmt, version)
         except LookupError:
-            raise HTTPException(404, "No such dub")
+            raise fail(404, "no_dub", "No such dub")
         except ValueError as e:  # the original video was deleted to save space
-            raise HTTPException(409, str(e)) from e
+            raise fail(409, "needs_video", str(e)) from e
         media_type = {"mkv": "video/x-matroska", "m4a": "audio/mp4"}.get(fmt, "application/x-subrip")
         return FileResponse(path, media_type=media_type, filename=f"{vid}.{path.name}")
 
@@ -258,7 +265,7 @@ def create_app(work_root: Path = Path("work"), runner: Runner | None = None,
     def get_translation(vid: str) -> dict:
         data = videos.translation(folder(vid), manager)
         if data is None:
-            raise HTTPException(404, "Not translated yet")
+            raise fail(404, "not_translated", "Not translated yet")
         return data
 
     @app.put("/videos/{vid}/translation")
@@ -266,14 +273,14 @@ def create_app(work_root: Path = Path("work"), runner: Runner | None = None,
         wd = folder(vid)
         job = manager.get(vid)
         if job and job.status in ACTIVE:
-            raise HTTPException(409, "This video is being dubbed; edit it when the job ends")
+            raise fail(409, "dubbing", "This video is being dubbed; edit it when the job ends")
         if not wd.translation.exists():
-            raise HTTPException(404, "Not translated yet")
+            raise fail(404, "not_translated", "Not translated yet")
         ensure_free(wd)
         try:
             videos.save_translation(wd, [e.model_dump() for e in edits])
         except KeyError as e:
-            raise HTTPException(422, f"No segment {e.args[0]}") from e
+            raise fail(422, "no_segment", f"No segment {e.args[0]}", id=e.args[0]) from e
         return videos.translation(wd, manager)
 
     @app.post("/videos/{vid}/retouch")
@@ -282,14 +289,14 @@ def create_app(work_root: Path = Path("work"), runner: Runner | None = None,
         wd = folder(vid)
         job = manager.get(vid)
         if job and job.status in ACTIVE:
-            raise HTTPException(409, "This video is being dubbed; retouch it when the job ends")
+            raise fail(409, "dubbing", "This video is being dubbed; retouch it when the job ends")
         ensure_free(wd)
         try:
             pending = videos.retouchable(wd, req.takes)
         except LookupError as e:
-            raise HTTPException(404 if not e.args else 422, str(e.args[0]) if e.args else "No dub yet") from e
+            raise (fail(422, "cannot_retouch", str(e.args[0])) if e.args else fail(404, "not_dubbed", "No dub yet")) from e
         if not pending:
-            raise HTTPException(422, "Nothing to retouch: no edited sentence and no take asked for")
+            raise fail(422, "nothing_to_retouch", "Nothing to retouch: no edited sentence and no take asked for")
         saved = (manager.saved(vid) or {}).get("options") or {}
         fields = {f for f in JobOptions.__dataclass_fields__} - {"url", "retouch"}
         options = JobOptions(url=vid, **{k: v for k, v in saved.items() if k in fields}, retouch=sorted(set(req.takes)))
@@ -297,7 +304,8 @@ def create_app(work_root: Path = Path("work"), runner: Runner | None = None,
         if engine != "edge":
             info = next(e for e in videos.engines() if e["id"] == engine)
             if not info["installed"]:
-                raise HTTPException(422, f"{info['name']} is not installed. Install it with: {info['setup']}")
+                raise fail(422, "not_installed", f"{info['name']} is not installed. Install it with: {info['setup']}",
+                           engine=info["name"], cmd=info["setup"])
         job = manager.submit(options)
         return {"id": job.id, **job.summary(), "segments": pending}
 
@@ -306,9 +314,9 @@ def create_app(work_root: Path = Path("work"), runner: Runner | None = None,
         wd = folder(vid)
         job = manager.get(vid)
         if job and job.status in ACTIVE:
-            raise HTTPException(409, "This video is being dubbed; edit it when the job ends")
+            raise fail(409, "dubbing", "This video is being dubbed; edit it when the job ends")
         if not wd.translation.exists():
-            raise HTTPException(404, "Not translated yet")
+            raise fail(404, "not_translated", "Not translated yet")
         ensure_free(wd)
         return wd
 
@@ -320,7 +328,7 @@ def create_app(work_root: Path = Path("work"), runner: Runner | None = None,
     def speaker_sample(vid: str, speaker: str) -> FileResponse:
         path = videos.speaker_sample(folder(vid), speaker)
         if path is None:
-            raise HTTPException(404, "No sample of that speaker")
+            raise fail(404, "no_sample", "No sample of that speaker")
         return FileResponse(path, media_type="audio/wav")
 
     @app.put("/videos/{vid}/speakers/{speaker}")
@@ -329,7 +337,7 @@ def create_app(work_root: Path = Path("work"), runner: Runner | None = None,
         try:
             speakers_mod.rename(wd, speaker, req.name)
         except ValueError as e:
-            raise HTTPException(404, str(e)) from e
+            raise fail(404, "no_speaker", str(e)) from e
         return videos.speakers_info(wd)
 
     @app.post("/videos/{vid}/speakers/{speaker}/merge")
@@ -338,7 +346,7 @@ def create_app(work_root: Path = Path("work"), runner: Runner | None = None,
         try:
             moved = speakers_mod.merge(wd, speaker, req.into)
         except ValueError as e:
-            raise HTTPException(422, str(e)) from e
+            raise fail(422, "invalid_speakers", str(e)) from e
         return {"moved": moved, "speakers": videos.speakers_info(wd), "translation": videos.translation(wd, manager)}
 
     @app.put("/videos/{vid}/segments/speakers")
@@ -347,9 +355,9 @@ def create_app(work_root: Path = Path("work"), runner: Runner | None = None,
         try:
             speakers_mod.reassign(wd, {c.id: c.speaker for c in changes})
         except ValueError as e:
-            raise HTTPException(422, str(e)) from e
+            raise fail(422, "invalid_speakers", str(e)) from e
         except KeyError as e:
-            raise HTTPException(422, f"No segment {e.args[0]}") from e
+            raise fail(422, "no_segment", f"No segment {e.args[0]}", id=e.args[0]) from e
         return {"speakers": videos.speakers_info(wd), "translation": videos.translation(wd, manager)}
 
     # --- storage ------------------------------------------------------------------
@@ -363,10 +371,10 @@ def create_app(work_root: Path = Path("work"), runner: Runner | None = None,
         wd = folder(vid)
         job = manager.get(vid)
         if job and job.status in ACTIVE:
-            raise HTTPException(409, "This video is being dubbed; free its space when the job ends")
+            raise fail(409, "dubbing", "This video is being dubbed; free its space when the job ends")
         ensure_free(wd)
         if group not in storage.GROUPS:
-            raise HTTPException(404, "Unknown group")
+            raise fail(404, "unknown_group", "Unknown group")
         freed = storage.delete(wd, group)
         return {"freed": freed, **storage.usage(wd)}
 
@@ -381,7 +389,7 @@ def create_app(work_root: Path = Path("work"), runner: Runner | None = None,
         try:
             videos.save_style(work_root / videos.style.FILE, data)
         except ValueError as e:
-            raise HTTPException(422, str(e)) from e
+            raise fail(422, "invalid_style", str(e)) from e
         return get_style()
 
     @app.get("/videos/{vid}/style")
@@ -395,7 +403,7 @@ def create_app(work_root: Path = Path("work"), runner: Runner | None = None,
         try:
             videos.save_style(wd.path / videos.style.FILE, data)
         except ValueError as e:
-            raise HTTPException(422, str(e)) from e
+            raise fail(422, "invalid_style", str(e)) from e
         return videos.video_style(wd)
 
     @app.get("/videos/{vid}/issues")
@@ -403,7 +411,7 @@ def create_app(work_root: Path = Path("work"), runner: Runner | None = None,
         try:
             return videos.issues(folder(vid), version)
         except LookupError:
-            raise HTTPException(404, "No such dub")
+            raise fail(404, "no_dub", "No such dub")
 
     @app.get("/videos/{vid}/versions/{version}")
     def get_version(vid: str, version: str) -> dict:
@@ -411,13 +419,13 @@ def create_app(work_root: Path = Path("work"), runner: Runner | None = None,
         try:
             return videos.version_detail(folder(vid), version)
         except LookupError:
-            raise HTTPException(404, "No such dub")
+            raise fail(404, "no_dub", "No such dub")
 
     @app.get("/videos/{vid}/tts/{name}")
     def clip(vid: str, name: str) -> FileResponse:
         wd = folder(vid)
         if not re.fullmatch(r"\d{4}\.wav", name) or not (wd.tts_dir / name).exists():
-            raise HTTPException(404, "No such clip")
+            raise fail(404, "no_clip", "No such clip")
         return FileResponse(wd.tts_dir / name, media_type="audio/wav")
 
     # --- page --------------------------------------------------------------
