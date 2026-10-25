@@ -128,6 +128,11 @@ Separator = Annotated[
 MusicVolume = Annotated[
     float, typer.Option("--music-volume", help="Separated background volume in dB")
 ]
+Loudness = Annotated[
+    float,
+    typer.Option("--loudness", help="Integrated loudness of the final track in LUFS (EBU R128), with a -1.5 dBTP "
+                 "true-peak ceiling; 0 leaves it as mixed"),
+]
 Output = Annotated[
     Path | None, typer.Option("--output", "-o", help="Copy the final MP4 to this path")
 ]
@@ -291,13 +296,14 @@ def mix(
     mute_original: MuteOriginal = False,
     separate: Separate = False,
     music_volume: MusicVolume = 0.0,
+    loudness: Loudness = -16.0,
     output: Output = None,
     force: Force = False,
 ) -> None:
     """Compose the dubbed track and produce the MP4. Requires `tts` (and `separate` with --separate)."""
     settings = Settings(
         work_root=work, bg_volume_db=bg_volume, mute_original=mute_original,
-        separate=separate, music_volume_db=music_volume,
+        separate=separate, music_volume_db=music_volume, loudness_lufs=loudness or None,
     )
     wd = _setup(url, settings)
     _require(wd, "tts")
@@ -328,6 +334,7 @@ def retouch(
     mute_original: MuteOriginal = False,
     separate: Separate = False,
     music_volume: MusicVolume = 0.0,
+    loudness: Loudness = -16.0,
     output: Output = None,
 ) -> None:
     """Speak again the sentences edited since the latest dub (and any --take), then mix a new version.
@@ -338,7 +345,7 @@ def retouch(
         work_root=work, clone_ref=clone_ref, min_factor=min_factor, whisper_model=whisper_model, voice=voice,
         rate=rate, max_tempo=max_tempo, shorten=shorten, backend=backend, claude_model=model,
         bg_volume_db=bg_volume, mute_original=mute_original, separate=separate, music_volume_db=music_volume,
-        retouch=tuple(take or ()),
+        loudness_lufs=loudness or None, retouch=tuple(take or ()),
     )
     pipeline.retouch(url, settings, output=output)
 
@@ -463,6 +470,7 @@ def dub(
     separate: Separate = False,
     separator: Separator = "auto",
     music_volume: MusicVolume = 0.0,
+    loudness: Loudness = -16.0,
     output: Output = None,
     force: Force = False,
 ) -> None:
@@ -478,7 +486,7 @@ def dub(
         keep_translation=keep_translation, multi_speaker=multi_speaker, style_file=style, batch_size=batch_size, chars_per_second=chars_per_second, rate=rate,
         min_tempo=min_tempo, shorten=shorten, max_tempo=max_tempo,
         bg_volume_db=bg_volume, mute_original=mute_original,
-        separate=separate, separator=separator, music_volume_db=music_volume,
+        separate=separate, separator=separator, music_volume_db=music_volume, loudness_lufs=loudness or None,
     )
     pipeline.dub(url, settings, output=output, force=force)
 

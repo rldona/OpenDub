@@ -28,6 +28,8 @@ from .tts import SAMPLE_RATE, Clip, load_clips
 from .workdir import WorkDir
 
 MIN_GAP = 0.08  # minimum silence between two pushed clips (s)
+TRUE_PEAK_DB = -2.0  # ceiling before encoding: AAC adds up to ~0.3 dB, so the MP4 stays under -1.5 dBTP
+LRA = 11.0  # loudnorm's loudness-range target (only used if it can't stay linear)
 
 
 @dataclass
@@ -104,6 +106,34 @@ def filter_graph(settings: Settings, background: Path) -> tuple[list[str], str]:
     )
 
 
+def _measure(cmd_inputs: list[str], graph: str, target: float) -> dict[str, str]:
+    """First loudnorm pass over the mixed track: its loudness, range, true peak and threshold."""
+    import json as _json
+
+    from .media import run
+
+    result = run(
+        ["ffmpeg", "-hide_banner", "-nostats", "-loglevel", "info", *cmd_inputs,
+         "-filter_complex", f"{graph};[a]loudnorm=I={target}:TP={TRUE_PEAK_DB}:LRA={LRA}:print_format=json[m]",
+         "-map", "[m]", "-f", "null", "-"],
+        capture_output=True, text=True,
+    )
+    text = result.stderr
+    start = text.rfind("{")
+    if result.returncode != 0 or start < 0:
+        raise RuntimeError(f"Could not measure the loudness: {text[-500:]}")
+    return _json.loads(text[start : text.index("}", start) + 1])
+
+
+def loudnorm_filter(measured: dict[str, str], target: float) -> str:
+    """Second pass: a linear gain to `target` LUFS that keeps the true peak under TRUE_PEAK_DB, back at 48 kHz
+    (loudnorm works at 192 kHz)."""
+    return (f"loudnorm=I={target}:TP={TRUE_PEAK_DB}:LRA={LRA}:measured_I={measured['input_i']}:"
+            f"measured_TP={measured['input_tp']}:measured_LRA={measured['input_lra']}:"
+            f"measured_thresh={measured['input_thresh']}:offset={measured['target_offset']}:linear=true,"
+            f"aresample=48000")
+
+
 def archive(wd: WorkDir) -> Path | None:
     """Keep this dub as outputs/<date>-<engine>.mp4 (with its tts.json and overflow.log).
 
@@ -140,6 +170,7 @@ def run(wd: WorkDir, settings: Settings, force: bool = False, output: Path | Non
         "bg_volume_db": settings.bg_volume_db,
         "mute": settings.mute_original,
         "separate": settings.music_volume_db if settings.separate else None,
+        "loudness": settings.loudness_lufs,
     }
     if settings.separate and not settings.mute_original and not wd.background.exists():
         raise SystemExit("--separate needs the separated background: run `separate` first (or use `dub --separate`)")
@@ -165,11 +196,19 @@ def run(wd: WorkDir, settings: Settings, force: bool = False, output: Path | Non
         _write_wav(wd.dub, track)
 
         inputs, graph = filter_graph(settings, wd.background)
+        cmd_inputs = ["-i", str(wd.video), "-i", str(wd.dub), *inputs]
+        out_label = "[a]"
+        if settings.loudness_lufs is not None:
+            measured = _measure(cmd_inputs, graph, settings.loudness_lufs)
+            log.info(f"Loudness: {measured['input_i']} LUFS, true peak {measured['input_tp']} dBTP → "
+                     f"{settings.loudness_lufs:g} LUFS, ceiling {TRUE_PEAK_DB} dBTP")
+            graph = f"{graph};[a]{loudnorm_filter(measured, settings.loudness_lufs)}[n]"
+            out_label = "[n]"
         log.info("Mixing and muxing (video not re-encoded)…")
         ffmpeg(
-            "-i", str(wd.video), "-i", str(wd.dub), *inputs,
+            *cmd_inputs,
             "-filter_complex", graph,
-            "-map", "0:v:0", "-map", "[a]",
+            "-map", "0:v:0", "-map", out_label,
             "-c:v", "copy", "-c:a", "aac", "-b:a", "192k",
             "-t", f"{total:.3f}", "-movflags", "+faststart",
             str(tmp := wd.path / "output.part.mp4"),

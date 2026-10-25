@@ -60,6 +60,8 @@ class Settings:
     separator: str = "auto"  # auto | mlx (Apple Silicon) | torch (CUDA or CPU)
     music_volume_db: float = 0.0  # volume of the separated background
     mute_original: bool = False
+    # Integrated loudness of the final track (EBU R128), with a -1.5 dBTP true-peak ceiling; None: as mixed
+    loudness_lufs: float | None = -16.0
     max_height: int = 1080
     anthropic_api_key: str | None = field(
         default_factory=lambda: os.environ.get("ANTHROPIC_API_KEY") or None
