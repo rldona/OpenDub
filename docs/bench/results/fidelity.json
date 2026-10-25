@@ -1,0 +1,2337 @@
+{
+ "claude-sonnet-5-5": {
+  "judge": "claude-opus-5-5",
+  "file": "translation.json",
+  "sample": 60,
+  "seed": 1,
+  "summary": {
+   "judged": 281,
+   "kept": 266,
+   "nuanced": 15,
+   "lost": 0,
+   "lost_share": 0.0,
+   "nuanced_share": 0.053,
+   "with_terms": 116,
+   "terms_wrong": 1,
+   "terms_wrong_share": 0.009
+  },
+  "videos": {
+   "17kBVfGjI8c": {
+    "judged": 24,
+    "kept": 24,
+    "nuanced": 0,
+    "lost": 0,
+    "lost_share": 0.0,
+    "nuanced_share": 0.0,
+    "with_terms": 13,
+    "terms_wrong": 0,
+    "terms_wrong_share": 0.0
+   },
+   "7mCTaTJ0kDo": {
+    "judged": 60,
+    "kept": 57,
+    "nuanced": 3,
+    "lost": 0,
+    "lost_share": 0.0,
+    "nuanced_share": 0.05,
+    "with_terms": 28,
+    "terms_wrong": 0,
+    "terms_wrong_share": 0.0
+   },
+   "KS837a-TFRc": {
+    "judged": 60,
+    "kept": 58,
+    "nuanced": 2,
+    "lost": 0,
+    "lost_share": 0.0,
+    "nuanced_share": 0.033,
+    "with_terms": 24,
+    "terms_wrong": 1,
+    "terms_wrong_share": 0.042
+   },
+   "R4zlpwwEpnY": {
+    "judged": 60,
+    "kept": 57,
+    "nuanced": 3,
+    "lost": 0,
+    "lost_share": 0.0,
+    "nuanced_share": 0.05,
+    "with_terms": 15,
+    "terms_wrong": 0,
+    "terms_wrong_share": 0.0
+   },
+   "VD6xJq8NguY": {
+    "judged": 60,
+    "kept": 53,
+    "nuanced": 7,
+    "lost": 0,
+    "lost_share": 0.0,
+    "nuanced_share": 0.117,
+    "with_terms": 24,
+    "terms_wrong": 0,
+    "terms_wrong_share": 0.0
+   },
+   "rwF-X5STYks": {
+    "judged": 17,
+    "kept": 17,
+    "nuanced": 0,
+    "lost": 0,
+    "lost_share": 0.0,
+    "nuanced_share": 0.0,
+    "with_terms": 12,
+    "terms_wrong": 0,
+    "terms_wrong_share": 0.0
+   }
+  },
+  "items": [
+   {
+    "id": "17kBVfGjI8c#1",
+    "meaning": "kept",
+    "terms": "ok",
+    "reason": "Faithful translation.",
+    "original_chars": 69,
+    "spoken_chars": 73
+   },
+   {
+    "id": "17kBVfGjI8c#2",
+    "meaning": "kept",
+    "terms": "none",
+    "reason": "Faithful translation.",
+    "original_chars": 92,
+    "spoken_chars": 86
+   },
+   {
+    "id": "17kBVfGjI8c#3",
+    "meaning": "kept",
+    "terms": "none",
+    "reason": "Faithful translation.",
+    "original_chars": 39,
+    "spoken_chars": 47
+   },
+   {
+    "id": "17kBVfGjI8c#4",
+    "meaning": "kept",
+    "terms": "none",
+    "reason": "Natural equivalent of 'rewind'.",
+    "original_chars": 13,
+    "spoken_chars": 15
+   },
+   {
+    "id": "17kBVfGjI8c#5",
+    "meaning": "kept",
+    "terms": "ok",
+    "reason": "Redundant 'of the Earth' dropped; terms correct.",
+    "original_chars": 130,
+    "spoken_chars": 127
+   },
+   {
+    "id": "17kBVfGjI8c#6",
+    "meaning": "kept",
+    "terms": "ok",
+    "reason": "Faithful; 'manto' correct.",
+    "original_chars": 51,
+    "spoken_chars": 48
+   },
+   {
+    "id": "17kBVfGjI8c#7",
+    "meaning": "kept",
+    "terms": "ok",
+    "reason": "Convection currents correctly rendered.",
+    "original_chars": 124,
+    "spoken_chars": 121
+   },
+   {
+    "id": "17kBVfGjI8c#8",
+    "meaning": "kept",
+    "terms": "none",
+    "reason": "Inches localized to centimeters; all movements kept.",
+    "original_chars": 112,
+    "spoken_chars": 104
+   },
+   {
+    "id": "17kBVfGjI8c#9",
+    "meaning": "kept",
+    "terms": "ok",
+    "reason": "Faithful translation.",
+    "original_chars": 49,
+    "spoken_chars": 49
+   },
+   {
+    "id": "17kBVfGjI8c#10",
+    "meaning": "kept",
+    "terms": "none",
+    "reason": "Faithful translation.",
+    "original_chars": 94,
+    "spoken_chars": 98
+   },
+   {
+    "id": "17kBVfGjI8c#11",
+    "meaning": "kept",
+    "terms": "ok",
+    "reason": "'Tectonic' omitted but clear from context.",
+    "original_chars": 113,
+    "spoken_chars": 106
+   },
+   {
+    "id": "17kBVfGjI8c#12",
+    "meaning": "kept",
+    "terms": "ok",
+    "reason": "'Hipocentro' and 'ondas' correct.",
+    "original_chars": 96,
+    "spoken_chars": 96
+   },
+   {
+    "id": "17kBVfGjI8c#13",
+    "meaning": "kept",
+    "terms": "ok",
+    "reason": "'Epicentro' correct.",
+    "original_chars": 54,
+    "spoken_chars": 50
+   },
+   {
+    "id": "17kBVfGjI8c#14",
+    "meaning": "kept",
+    "terms": "none",
+    "reason": "Faithful translation.",
+    "original_chars": 46,
+    "spoken_chars": 50
+   },
+   {
+    "id": "17kBVfGjI8c#15",
+    "meaning": "kept",
+    "terms": "ok",
+    "reason": "'Sismógrafo' correct.",
+    "original_chars": 61,
+    "spoken_chars": 52
+   },
+   {
+    "id": "17kBVfGjI8c#16",
+    "meaning": "kept",
+    "terms": "ok",
+    "reason": "'Escala de Richter' correct.",
+    "original_chars": 66,
+    "spoken_chars": 71
+   },
+   {
+    "id": "17kBVfGjI8c#17",
+    "meaning": "kept",
+    "terms": "none",
+    "reason": "Faithful translation.",
+    "original_chars": 47,
+    "spoken_chars": 56
+   },
+   {
+    "id": "17kBVfGjI8c#18",
+    "meaning": "kept",
+    "terms": "none",
+    "reason": "Faithful translation.",
+    "original_chars": 70,
+    "spoken_chars": 77
+   },
+   {
+    "id": "17kBVfGjI8c#19",
+    "meaning": "kept",
+    "terms": "ok",
+    "reason": "'Terremotos tectónicos' correct.",
+    "original_chars": 54,
+    "spoken_chars": 51
+   },
+   {
+    "id": "17kBVfGjI8c#20",
+    "meaning": "kept",
+    "terms": "ok",
+    "reason": "All earthquake types preserved correctly.",
+    "original_chars": 166,
+    "spoken_chars": 159
+   },
+   {
+    "id": "17kBVfGjI8c#21",
+    "meaning": "kept",
+    "terms": "none",
+    "reason": "Faithful rendering of 'induced by humans'.",
+    "original_chars": 18,
+    "spoken_chars": 23
+   },
+   {
+    "id": "17kBVfGjI8c#22",
+    "meaning": "kept",
+    "terms": "none",
+    "reason": "Same meaning, natural reordering.",
+    "original_chars": 67,
+    "spoken_chars": 66
+   },
+   {
+    "id": "17kBVfGjI8c#23",
+    "meaning": "kept",
+    "terms": "none",
+    "reason": "'Tremors' implied by context; meaning intact.",
+    "original_chars": 32,
+    "spoken_chars": 30
+   },
+   {
+    "id": "17kBVfGjI8c#24",
+    "meaning": "kept",
+    "terms": "ok",
+    "reason": "Accurate; 'sismógrafo' correct.",
+    "original_chars": 65,
+    "spoken_chars": 59
+   },
+   {
+    "id": "rwF-X5STYks#1",
+    "meaning": "kept",
+    "terms": "ok",
+    "reason": "Exact translation; 'IA generativa' standard.",
+    "original_chars": 30,
+    "spoken_chars": 37
+   },
+   {
+    "id": "rwF-X5STYks#2",
+    "meaning": "kept",
+    "terms": "ok",
+    "reason": "Same definition, active voice.",
+    "original_chars": 82,
+    "spoken_chars": 83
+   },
+   {
+    "id": "rwF-X5STYks#3",
+    "meaning": "kept",
+    "terms": "none",
+    "reason": "All content types preserved.",
+    "original_chars": 84,
+    "spoken_chars": 69
+   },
+   {
+    "id": "rwF-X5STYks#4",
+    "meaning": "kept",
+    "terms": "ok",
+    "reason": "'Cuadro de chat' conveys chat dialogue box.",
+    "original_chars": 79,
+    "spoken_chars": 72
+   },
+   {
+    "id": "rwF-X5STYks#5",
+    "meaning": "kept",
+    "terms": "ok",
+    "reason": "'Prompt' correctly kept in English.",
+    "original_chars": 38,
+    "spoken_chars": 34
+   },
+   {
+    "id": "rwF-X5STYks#6",
+    "meaning": "kept",
+    "terms": "ok",
+    "reason": "Complete and accurate.",
+    "original_chars": 133,
+    "spoken_chars": 136
+   },
+   {
+    "id": "rwF-X5STYks#7",
+    "meaning": "kept",
+    "terms": "ok",
+    "reason": "All examples preserved; 'código' correct.",
+    "original_chars": 118,
+    "spoken_chars": 114
+   },
+   {
+    "id": "rwF-X5STYks#8",
+    "meaning": "kept",
+    "terms": "ok",
+    "reason": "Accurate; 'patrones' correct.",
+    "original_chars": 129,
+    "spoken_chars": 120
+   },
+   {
+    "id": "rwF-X5STYks#9",
+    "meaning": "kept",
+    "terms": "none",
+    "reason": "Exact translation.",
+    "original_chars": 38,
+    "spoken_chars": 40
+   },
+   {
+    "id": "rwF-X5STYks#10",
+    "meaning": "kept",
+    "terms": "none",
+    "reason": "Same meaning, natural phrasing.",
+    "original_chars": 82,
+    "spoken_chars": 77
+   },
+   {
+    "id": "rwF-X5STYks#11",
+    "meaning": "kept",
+    "terms": "ok",
+    "reason": "'Deepfakes' kept in English, accurate.",
+    "original_chars": 118,
+    "spoken_chars": 132
+   },
+   {
+    "id": "rwF-X5STYks#12",
+    "meaning": "kept",
+    "terms": "none",
+    "reason": "AI-generated implied by machine authorship.",
+    "original_chars": 63,
+    "spoken_chars": 64
+   },
+   {
+    "id": "rwF-X5STYks#13",
+    "meaning": "kept",
+    "terms": "ok",
+    "reason": "'Alucinar' is the standard Spanish term.",
+    "original_chars": 116,
+    "spoken_chars": 102
+   },
+   {
+    "id": "rwF-X5STYks#14",
+    "meaning": "kept",
+    "terms": "ok",
+    "reason": "Both quality factors preserved.",
+    "original_chars": 112,
+    "spoken_chars": 101
+   },
+   {
+    "id": "rwF-X5STYks#15",
+    "meaning": "kept",
+    "terms": "ok",
+    "reason": "Same advice, concise wording.",
+    "original_chars": 128,
+    "spoken_chars": 107
+   },
+   {
+    "id": "rwF-X5STYks#16",
+    "meaning": "kept",
+    "terms": "none",
+    "reason": "Accurate, example preserved.",
+    "original_chars": 118,
+    "spoken_chars": 122
+   },
+   {
+    "id": "rwF-X5STYks#17",
+    "meaning": "kept",
+    "terms": "ok",
+    "reason": "Faithful translation; IA correct.",
+    "original_chars": 88,
+    "spoken_chars": 89
+   },
+   {
+    "id": "VD6xJq8NguY#1",
+    "meaning": "nuanced",
+    "terms": "none",
+    "reason": "'Octillones' means a much larger number in Spanish long scale.",
+    "original_chars": 119,
+    "spoken_chars": 119
+   },
+   {
+    "id": "VD6xJq8NguY#2",
+    "meaning": "kept",
+    "terms": "none",
+    "reason": "Complete and faithful list.",
+    "original_chars": 125,
+    "spoken_chars": 121
+   },
+   {
+    "id": "VD6xJq8NguY#3",
+    "meaning": "kept",
+    "terms": "none",
+    "reason": "Faithful.",
+    "original_chars": 60,
+    "spoken_chars": 48
+   },
+   {
+    "id": "VD6xJq8NguY#4",
+    "meaning": "kept",
+    "terms": "ok",
+    "reason": "Faithful; corteza correct.",
+    "original_chars": 78,
+    "spoken_chars": 88
+   },
+   {
+    "id": "VD6xJq8NguY#7",
+    "meaning": "kept",
+    "terms": "none",
+    "reason": "Faithful comparison.",
+    "original_chars": 78,
+    "spoken_chars": 88
+   },
+   {
+    "id": "VD6xJq8NguY#8",
+    "meaning": "kept",
+    "terms": "none",
+    "reason": "Faithful.",
+    "original_chars": 106,
+    "spoken_chars": 109
+   },
+   {
+    "id": "VD6xJq8NguY#9",
+    "meaning": "kept",
+    "terms": "none",
+    "reason": "'Wherever we look' slightly condensed; point intact.",
+    "original_chars": 99,
+    "spoken_chars": 106
+   },
+   {
+    "id": "VD6xJq8NguY#12",
+    "meaning": "kept",
+    "terms": "none",
+    "reason": "Faithful onion analogy.",
+    "original_chars": 67,
+    "spoken_chars": 95
+   },
+   {
+    "id": "VD6xJq8NguY#13",
+    "meaning": "nuanced",
+    "terms": "ok",
+    "reason": "Omits 'four-way' partnership detail.",
+    "original_chars": 107,
+    "spoken_chars": 102
+   },
+   {
+    "id": "VD6xJq8NguY#14",
+    "meaning": "kept",
+    "terms": "none",
+    "reason": "Natural idiomatic equivalent.",
+    "original_chars": 26,
+    "spoken_chars": 30
+   },
+   {
+    "id": "VD6xJq8NguY#16",
+    "meaning": "kept",
+    "terms": "ok",
+    "reason": "Correct, though 'medio millar de millones' is awkward.",
+    "original_chars": 126,
+    "spoken_chars": 136
+   },
+   {
+    "id": "VD6xJq8NguY#18",
+    "meaning": "kept",
+    "terms": "none",
+    "reason": "Faithful.",
+    "original_chars": 118,
+    "spoken_chars": 129
+   },
+   {
+    "id": "VD6xJq8NguY#19",
+    "meaning": "kept",
+    "terms": "ok",
+    "reason": "Faithful; glaciación correct.",
+    "original_chars": 97,
+    "spoken_chars": 106
+   },
+   {
+    "id": "VD6xJq8NguY#27",
+    "meaning": "kept",
+    "terms": "none",
+    "reason": "Faithful comparison.",
+    "original_chars": 79,
+    "spoken_chars": 77
+   },
+   {
+    "id": "VD6xJq8NguY#28",
+    "meaning": "kept",
+    "terms": "ok",
+    "reason": "Faithful; oxígeno libre correct.",
+    "original_chars": 59,
+    "spoken_chars": 45
+   },
+   {
+    "id": "VD6xJq8NguY#29",
+    "meaning": "kept",
+    "terms": "none",
+    "reason": "'Down' implied; faithful.",
+    "original_chars": 54,
+    "spoken_chars": 47
+   },
+   {
+    "id": "VD6xJq8NguY#30",
+    "meaning": "kept",
+    "terms": "ok",
+    "reason": "Faithful; fosa de las Marianas correct.",
+    "original_chars": 129,
+    "spoken_chars": 130
+   },
+   {
+    "id": "VD6xJq8NguY#33",
+    "meaning": "kept",
+    "terms": "none",
+    "reason": "Faithful.",
+    "original_chars": 71,
+    "spoken_chars": 86
+   },
+   {
+    "id": "VD6xJq8NguY#35",
+    "meaning": "kept",
+    "terms": "none",
+    "reason": "Faithful, continuing previous 'Y aun así'.",
+    "original_chars": 17,
+    "spoken_chars": 17
+   },
+   {
+    "id": "VD6xJq8NguY#36",
+    "meaning": "nuanced",
+    "terms": "none",
+    "reason": "'No es tan sólida' softens 'not actually solid'.",
+    "original_chars": 73,
+    "spoken_chars": 79
+   },
+   {
+    "id": "VD6xJq8NguY#38",
+    "meaning": "kept",
+    "terms": "ok",
+    "reason": "Faithful; rock names correct.",
+    "original_chars": 107,
+    "spoken_chars": 110
+   },
+   {
+    "id": "VD6xJq8NguY#41",
+    "meaning": "kept",
+    "terms": "none",
+    "reason": "Exact rendering.",
+    "original_chars": 27,
+    "spoken_chars": 25
+   },
+   {
+    "id": "VD6xJq8NguY#42",
+    "meaning": "kept",
+    "terms": "none",
+    "reason": "Faithful, wordplay preserved.",
+    "original_chars": 119,
+    "spoken_chars": 125
+   },
+   {
+    "id": "VD6xJq8NguY#45",
+    "meaning": "kept",
+    "terms": "none",
+    "reason": "Only 'tiny' before fissures dropped; point intact.",
+    "original_chars": 147,
+    "spoken_chars": 141
+   },
+   {
+    "id": "VD6xJq8NguY#47",
+    "meaning": "kept",
+    "terms": "none",
+    "reason": "Faithful and concise.",
+    "original_chars": 67,
+    "spoken_chars": 62
+   },
+   {
+    "id": "VD6xJq8NguY#48",
+    "meaning": "kept",
+    "terms": "none",
+    "reason": "Faithful.",
+    "original_chars": 67,
+    "spoken_chars": 70
+   },
+   {
+    "id": "VD6xJq8NguY#49",
+    "meaning": "kept",
+    "terms": "ok",
+    "reason": "Faithful; title and content preserved.",
+    "original_chars": 123,
+    "spoken_chars": 112
+   },
+   {
+    "id": "VD6xJq8NguY#50",
+    "meaning": "kept",
+    "terms": "none",
+    "reason": "'Survivalistas' fits doomsday preppers.",
+    "original_chars": 40,
+    "spoken_chars": 33
+   },
+   {
+    "id": "VD6xJq8NguY#54",
+    "meaning": "kept",
+    "terms": "ok",
+    "reason": "Faithful; endospora correct.",
+    "original_chars": 117,
+    "spoken_chars": 106
+   },
+   {
+    "id": "VD6xJq8NguY#55",
+    "meaning": "kept",
+    "terms": "ok",
+    "reason": "Faithful description of cell within cell.",
+    "original_chars": 105,
+    "spoken_chars": 114
+   },
+   {
+    "id": "VD6xJq8NguY#56",
+    "meaning": "kept",
+    "terms": "ok",
+    "reason": "Faithful; 'muere' acceptable for 'kills itself'.",
+    "original_chars": 170,
+    "spoken_chars": 139
+   },
+   {
+    "id": "VD6xJq8NguY#57",
+    "meaning": "kept",
+    "terms": "ok",
+    "reason": "Faithful; arqueas and membrana correct.",
+    "original_chars": 189,
+    "spoken_chars": 188
+   },
+   {
+    "id": "VD6xJq8NguY#58",
+    "meaning": "kept",
+    "terms": "ok",
+    "reason": "Faithful; ganchos nanométricos correct.",
+    "original_chars": 149,
+    "spoken_chars": 114
+   },
+   {
+    "id": "VD6xJq8NguY#59",
+    "meaning": "kept",
+    "terms": "ok",
+    "reason": "Faithful; hedging kept with 'quizá'.",
+    "original_chars": 71,
+    "spoken_chars": 79
+   },
+   {
+    "id": "VD6xJq8NguY#61",
+    "meaning": "kept",
+    "terms": "ok",
+    "reason": "Faithful; biofilm is commonly kept in Spanish.",
+    "original_chars": 108,
+    "spoken_chars": 89
+   },
+   {
+    "id": "VD6xJq8NguY#63",
+    "meaning": "kept",
+    "terms": "ok",
+    "reason": "Faithful.",
+    "original_chars": 60,
+    "spoken_chars": 57
+   },
+   {
+    "id": "VD6xJq8NguY#64",
+    "meaning": "kept",
+    "terms": "ok",
+    "reason": "Faithful; sulfato/sulfito correct.",
+    "original_chars": 118,
+    "spoken_chars": 130
+   },
+   {
+    "id": "VD6xJq8NguY#66",
+    "meaning": "kept",
+    "terms": "none",
+    "reason": "Faithful.",
+    "original_chars": 97,
+    "spoken_chars": 110
+   },
+   {
+    "id": "VD6xJq8NguY#68",
+    "meaning": "kept",
+    "terms": "none",
+    "reason": "Faithful.",
+    "original_chars": 71,
+    "spoken_chars": 84
+   },
+   {
+    "id": "VD6xJq8NguY#70",
+    "meaning": "kept",
+    "terms": "ok",
+    "reason": "Accurate; metabolism translated correctly.",
+    "original_chars": 78,
+    "spoken_chars": 94
+   },
+   {
+    "id": "VD6xJq8NguY#73",
+    "meaning": "kept",
+    "terms": "none",
+    "reason": "Faithful translation.",
+    "original_chars": 107,
+    "spoken_chars": 102
+   },
+   {
+    "id": "VD6xJq8NguY#76",
+    "meaning": "nuanced",
+    "terms": "ok",
+    "reason": "Drops 'big enough' qualifier for the spaces.",
+    "original_chars": 110,
+    "spoken_chars": 114
+   },
+   {
+    "id": "VD6xJq8NguY#78",
+    "meaning": "nuanced",
+    "terms": "none",
+    "reason": "Omits 'into the deep' destination.",
+    "original_chars": 125,
+    "spoken_chars": 115
+   },
+   {
+    "id": "VD6xJq8NguY#80",
+    "meaning": "kept",
+    "terms": "ok",
+    "reason": "Faithful; biosfera profunda correct.",
+    "original_chars": 101,
+    "spoken_chars": 80
+   },
+   {
+    "id": "VD6xJq8NguY#81",
+    "meaning": "kept",
+    "terms": "none",
+    "reason": "Same meaning, concise.",
+    "original_chars": 28,
+    "spoken_chars": 17
+   },
+   {
+    "id": "VD6xJq8NguY#82",
+    "meaning": "kept",
+    "terms": "none",
+    "reason": "Faithful translation.",
+    "original_chars": 68,
+    "spoken_chars": 58
+   },
+   {
+    "id": "VD6xJq8NguY#83",
+    "meaning": "kept",
+    "terms": "none",
+    "reason": "Faithful; 'down' redundant.",
+    "original_chars": 75,
+    "spoken_chars": 71
+   },
+   {
+    "id": "VD6xJq8NguY#84",
+    "meaning": "kept",
+    "terms": "none",
+    "reason": "Meaning kept, slightly elliptical phrasing.",
+    "original_chars": 65,
+    "spoken_chars": 67
+   },
+   {
+    "id": "VD6xJq8NguY#87",
+    "meaning": "kept",
+    "terms": "ok",
+    "reason": "Slurry as papilla works; genes correct.",
+    "original_chars": 113,
+    "spoken_chars": 111
+   },
+   {
+    "id": "VD6xJq8NguY#94",
+    "meaning": "kept",
+    "terms": "ok",
+    "reason": "Faithful translation.",
+    "original_chars": 53,
+    "spoken_chars": 55
+   },
+   {
+    "id": "VD6xJq8NguY#97",
+    "meaning": "kept",
+    "terms": "none",
+    "reason": "Faithful translation.",
+    "original_chars": 128,
+    "spoken_chars": 127
+   },
+   {
+    "id": "VD6xJq8NguY#98",
+    "meaning": "kept",
+    "terms": "none",
+    "reason": "Faithful translation.",
+    "original_chars": 113,
+    "spoken_chars": 126
+   },
+   {
+    "id": "VD6xJq8NguY#99",
+    "meaning": "kept",
+    "terms": "none",
+    "reason": "Faithful; 'solid' omitted is minor.",
+    "original_chars": 111,
+    "spoken_chars": 101
+   },
+   {
+    "id": "VD6xJq8NguY#101",
+    "meaning": "kept",
+    "terms": "ok",
+    "reason": "Faithful; brand name preserved.",
+    "original_chars": 95,
+    "spoken_chars": 103
+   },
+   {
+    "id": "VD6xJq8NguY#102",
+    "meaning": "kept",
+    "terms": "none",
+    "reason": "Faithful translation.",
+    "original_chars": 42,
+    "spoken_chars": 41
+   },
+   {
+    "id": "VD6xJq8NguY#103",
+    "meaning": "kept",
+    "terms": "none",
+    "reason": "Faithful translation.",
+    "original_chars": 23,
+    "spoken_chars": 21
+   },
+   {
+    "id": "VD6xJq8NguY#107",
+    "meaning": "nuanced",
+    "terms": "none",
+    "reason": "Omits 'over time' and 'skills' detail.",
+    "original_chars": 138,
+    "spoken_chars": 128
+   },
+   {
+    "id": "VD6xJq8NguY#108",
+    "meaning": "kept",
+    "terms": "ok",
+    "reason": "Faithful; 'online' kept as used in Spanish.",
+    "original_chars": 171,
+    "spoken_chars": 155
+   },
+   {
+    "id": "VD6xJq8NguY#109",
+    "meaning": "kept",
+    "terms": "none",
+    "reason": "Niece/nephew merged into sobrino; fine.",
+    "original_chars": 206,
+    "spoken_chars": 191
+   },
+   {
+    "id": "VD6xJq8NguY#110",
+    "meaning": "nuanced",
+    "terms": "none",
+    "reason": "'Learning club' reduced to 'programa de clubes', losing 'learning'.",
+    "original_chars": 171,
+    "spoken_chars": 156
+   },
+   {
+    "id": "7mCTaTJ0kDo#1",
+    "meaning": "kept",
+    "terms": "ok",
+    "reason": "Faithful; gama media/alta are standard terms.",
+    "original_chars": 175,
+    "spoken_chars": 152
+   },
+   {
+    "id": "7mCTaTJ0kDo#3",
+    "meaning": "kept",
+    "terms": "ok",
+    "reason": "Prices, models and megapixels all preserved.",
+    "original_chars": 118,
+    "spoken_chars": 127
+   },
+   {
+    "id": "7mCTaTJ0kDo#6",
+    "meaning": "kept",
+    "terms": "ok",
+    "reason": "Faithful; IA is the correct term.",
+    "original_chars": 54,
+    "spoken_chars": 46
+   },
+   {
+    "id": "7mCTaTJ0kDo#7",
+    "meaning": "kept",
+    "terms": "ok",
+    "reason": "Concise but complete contrast.",
+    "original_chars": 47,
+    "spoken_chars": 41
+   },
+   {
+    "id": "7mCTaTJ0kDo#8",
+    "meaning": "kept",
+    "terms": "none",
+    "reason": "Natural equivalent.",
+    "original_chars": 15,
+    "spoken_chars": 17
+   },
+   {
+    "id": "7mCTaTJ0kDo#17",
+    "meaning": "kept",
+    "terms": "none",
+    "reason": "Same meaning, filler removed.",
+    "original_chars": 65,
+    "spoken_chars": 70
+   },
+   {
+    "id": "7mCTaTJ0kDo#25",
+    "meaning": "kept",
+    "terms": "ok",
+    "reason": "Faithful; USB-C/USB-A kept correctly.",
+    "original_chars": 138,
+    "spoken_chars": 120
+   },
+   {
+    "id": "7mCTaTJ0kDo#27",
+    "meaning": "kept",
+    "terms": "none",
+    "reason": "Same point: the budget phone is leading.",
+    "original_chars": 34,
+    "spoken_chars": 30
+   },
+   {
+    "id": "7mCTaTJ0kDo#31",
+    "meaning": "kept",
+    "terms": "none",
+    "reason": "Faithful elliptical rendering.",
+    "original_chars": 33,
+    "spoken_chars": 35
+   },
+   {
+    "id": "7mCTaTJ0kDo#35",
+    "meaning": "kept",
+    "terms": "none",
+    "reason": "Faithful.",
+    "original_chars": 58,
+    "spoken_chars": 52
+   },
+   {
+    "id": "7mCTaTJ0kDo#54",
+    "meaning": "kept",
+    "terms": "none",
+    "reason": "Same meaning, concise.",
+    "original_chars": 36,
+    "spoken_chars": 23
+   },
+   {
+    "id": "7mCTaTJ0kDo#56",
+    "meaning": "kept",
+    "terms": "ok",
+    "reason": "All scores and totals preserved.",
+    "original_chars": 156,
+    "spoken_chars": 140
+   },
+   {
+    "id": "7mCTaTJ0kDo#57",
+    "meaning": "kept",
+    "terms": "ok",
+    "reason": "Faithful; 'premium' commonly kept.",
+    "original_chars": 73,
+    "spoken_chars": 85
+   },
+   {
+    "id": "7mCTaTJ0kDo#59",
+    "meaning": "nuanced",
+    "terms": "none",
+    "reason": "'Raro' to 'extraño' weakens the strange-to-bizarre escalation.",
+    "original_chars": 144,
+    "spoken_chars": 135
+   },
+   {
+    "id": "7mCTaTJ0kDo#60",
+    "meaning": "kept",
+    "terms": "ok",
+    "reason": "All scores preserved.",
+    "original_chars": 164,
+    "spoken_chars": 132
+   },
+   {
+    "id": "7mCTaTJ0kDo#66",
+    "meaning": "kept",
+    "terms": "ok",
+    "reason": "Faithful.",
+    "original_chars": 54,
+    "spoken_chars": 43
+   },
+   {
+    "id": "7mCTaTJ0kDo#69",
+    "meaning": "kept",
+    "terms": "ok",
+    "reason": "Figures and nits preserved.",
+    "original_chars": 80,
+    "spoken_chars": 82
+   },
+   {
+    "id": "7mCTaTJ0kDo#75",
+    "meaning": "kept",
+    "terms": "ok",
+    "reason": "Faithful.",
+    "original_chars": 37,
+    "spoken_chars": 46
+   },
+   {
+    "id": "7mCTaTJ0kDo#82",
+    "meaning": "kept",
+    "terms": "none",
+    "reason": "Complete and faithful.",
+    "original_chars": 176,
+    "spoken_chars": 144
+   },
+   {
+    "id": "7mCTaTJ0kDo#89",
+    "meaning": "kept",
+    "terms": "none",
+    "reason": "Faithful translation.",
+    "original_chars": 53,
+    "spoken_chars": 66
+   },
+   {
+    "id": "7mCTaTJ0kDo#98",
+    "meaning": "kept",
+    "terms": "none",
+    "reason": "Faithful translation.",
+    "original_chars": 32,
+    "spoken_chars": 30
+   },
+   {
+    "id": "7mCTaTJ0kDo#100",
+    "meaning": "kept",
+    "terms": "none",
+    "reason": "Faithful; 'of that' implied.",
+    "original_chars": 42,
+    "spoken_chars": 36
+   },
+   {
+    "id": "7mCTaTJ0kDo#107",
+    "meaning": "kept",
+    "terms": "ok",
+    "reason": "Faithful; Android kept.",
+    "original_chars": 64,
+    "spoken_chars": 59
+   },
+   {
+    "id": "7mCTaTJ0kDo#109",
+    "meaning": "kept",
+    "terms": "ok",
+    "reason": "Faithful; software kept in English as usual.",
+    "original_chars": 54,
+    "spoken_chars": 48
+   },
+   {
+    "id": "7mCTaTJ0kDo#111",
+    "meaning": "kept",
+    "terms": "none",
+    "reason": "Faithful translation.",
+    "original_chars": 148,
+    "spoken_chars": 152
+   },
+   {
+    "id": "7mCTaTJ0kDo#113",
+    "meaning": "kept",
+    "terms": "ok",
+    "reason": "Faithful; IA correct.",
+    "original_chars": 103,
+    "spoken_chars": 98
+   },
+   {
+    "id": "7mCTaTJ0kDo#115",
+    "meaning": "kept",
+    "terms": "ok",
+    "reason": "Faithful; Asistente de Google and Gemini correct.",
+    "original_chars": 78,
+    "spoken_chars": 78
+   },
+   {
+    "id": "7mCTaTJ0kDo#116",
+    "meaning": "kept",
+    "terms": "none",
+    "reason": "Faithful translation.",
+    "original_chars": 115,
+    "spoken_chars": 105
+   },
+   {
+    "id": "7mCTaTJ0kDo#118",
+    "meaning": "kept",
+    "terms": "none",
+    "reason": "Faithful translation.",
+    "original_chars": 98,
+    "spoken_chars": 93
+   },
+   {
+    "id": "7mCTaTJ0kDo#121",
+    "meaning": "kept",
+    "terms": "none",
+    "reason": "Natural colloquial equivalent.",
+    "original_chars": 42,
+    "spoken_chars": 29
+   },
+   {
+    "id": "7mCTaTJ0kDo#125",
+    "meaning": "kept",
+    "terms": "ok",
+    "reason": "Same meaning, slightly condensed.",
+    "original_chars": 86,
+    "spoken_chars": 58
+   },
+   {
+    "id": "7mCTaTJ0kDo#127",
+    "meaning": "kept",
+    "terms": "none",
+    "reason": "Faithful translation.",
+    "original_chars": 135,
+    "spoken_chars": 123
+   },
+   {
+    "id": "7mCTaTJ0kDo#136",
+    "meaning": "kept",
+    "terms": "ok",
+    "reason": "Faithful; 'prueba' fine for test.",
+    "original_chars": 113,
+    "spoken_chars": 94
+   },
+   {
+    "id": "7mCTaTJ0kDo#139",
+    "meaning": "kept",
+    "terms": "none",
+    "reason": "Faithful; idiom rendered naturally.",
+    "original_chars": 116,
+    "spoken_chars": 101
+   },
+   {
+    "id": "7mCTaTJ0kDo#142",
+    "meaning": "kept",
+    "terms": "none",
+    "reason": "Faithful translation.",
+    "original_chars": 128,
+    "spoken_chars": 91
+   },
+   {
+    "id": "7mCTaTJ0kDo#143",
+    "meaning": "nuanced",
+    "terms": "none",
+    "reason": "Drops 'in the past', relevant to later contrast.",
+    "original_chars": 115,
+    "spoken_chars": 90
+   },
+   {
+    "id": "7mCTaTJ0kDo#146",
+    "meaning": "kept",
+    "terms": "none",
+    "reason": "Faithful translation.",
+    "original_chars": 72,
+    "spoken_chars": 80
+   },
+   {
+    "id": "7mCTaTJ0kDo#152",
+    "meaning": "kept",
+    "terms": "ok",
+    "reason": "Faithful; megapíxeles correct.",
+    "original_chars": 80,
+    "spoken_chars": 95
+   },
+   {
+    "id": "7mCTaTJ0kDo#156",
+    "meaning": "kept",
+    "terms": "ok",
+    "reason": "Faithful; sensor correct.",
+    "original_chars": 45,
+    "spoken_chars": 54
+   },
+   {
+    "id": "7mCTaTJ0kDo#165",
+    "meaning": "kept",
+    "terms": "none",
+    "reason": "Same idea, natural colloquial rendering.",
+    "original_chars": 88,
+    "spoken_chars": 79
+   },
+   {
+    "id": "7mCTaTJ0kDo#167",
+    "meaning": "kept",
+    "terms": "ok",
+    "reason": "All camera specs preserved; units implied concisely.",
+    "original_chars": 96,
+    "spoken_chars": 85
+   },
+   {
+    "id": "7mCTaTJ0kDo#174",
+    "meaning": "kept",
+    "terms": "none",
+    "reason": "Same point; 'happily' dropped is minor.",
+    "original_chars": 141,
+    "spoken_chars": 105
+   },
+   {
+    "id": "7mCTaTJ0kDo#176",
+    "meaning": "kept",
+    "terms": "ok",
+    "reason": "Faithful; 'buque insignia' acceptable for flagship.",
+    "original_chars": 170,
+    "spoken_chars": 147
+   },
+   {
+    "id": "7mCTaTJ0kDo#179",
+    "meaning": "kept",
+    "terms": "none",
+    "reason": "Faithful and concise.",
+    "original_chars": 147,
+    "spoken_chars": 124
+   },
+   {
+    "id": "7mCTaTJ0kDo#183",
+    "meaning": "kept",
+    "terms": "none",
+    "reason": "Faithful.",
+    "original_chars": 69,
+    "spoken_chars": 57
+   },
+   {
+    "id": "7mCTaTJ0kDo#185",
+    "meaning": "kept",
+    "terms": "ok",
+    "reason": "All qualities and score preserved.",
+    "original_chars": 108,
+    "spoken_chars": 98
+   },
+   {
+    "id": "7mCTaTJ0kDo#194",
+    "meaning": "nuanced",
+    "terms": "none",
+    "reason": "Adds 'mucho', exaggerating 'using less'.",
+    "original_chars": 68,
+    "spoken_chars": 58
+   },
+   {
+    "id": "7mCTaTJ0kDo#195",
+    "meaning": "kept",
+    "terms": "none",
+    "reason": "Faithful.",
+    "original_chars": 80,
+    "spoken_chars": 77
+   },
+   {
+    "id": "7mCTaTJ0kDo#196",
+    "meaning": "kept",
+    "terms": "none",
+    "reason": "Faithful; 'juice' rendered as consumption.",
+    "original_chars": 100,
+    "spoken_chars": 94
+   },
+   {
+    "id": "7mCTaTJ0kDo#197",
+    "meaning": "kept",
+    "terms": "ok",
+    "reason": "Faithful; 'tasa de refresco' correct.",
+    "original_chars": 94,
+    "spoken_chars": 78
+   },
+   {
+    "id": "7mCTaTJ0kDo#202",
+    "meaning": "kept",
+    "terms": "none",
+    "reason": "Same figures; 'about' dropped is minor.",
+    "original_chars": 120,
+    "spoken_chars": 110
+   },
+   {
+    "id": "7mCTaTJ0kDo#203",
+    "meaning": "kept",
+    "terms": "ok",
+    "reason": "Figures preserved; 'tope de gama' correct.",
+    "original_chars": 62,
+    "spoken_chars": 62
+   },
+   {
+    "id": "7mCTaTJ0kDo#206",
+    "meaning": "kept",
+    "terms": "none",
+    "reason": "Faithful.",
+    "original_chars": 66,
+    "spoken_chars": 55
+   },
+   {
+    "id": "7mCTaTJ0kDo#210",
+    "meaning": "kept",
+    "terms": "none",
+    "reason": "Faithful.",
+    "original_chars": 26,
+    "spoken_chars": 36
+   },
+   {
+    "id": "7mCTaTJ0kDo#215",
+    "meaning": "kept",
+    "terms": "ok",
+    "reason": "Faithful; 'gama alta' fine for flagships.",
+    "original_chars": 49,
+    "spoken_chars": 45
+   },
+   {
+    "id": "7mCTaTJ0kDo#216",
+    "meaning": "kept",
+    "terms": "none",
+    "reason": "Faithful.",
+    "original_chars": 59,
+    "spoken_chars": 48
+   },
+   {
+    "id": "7mCTaTJ0kDo#217",
+    "meaning": "kept",
+    "terms": "ok",
+    "reason": "Faithful; 'gama media' correct.",
+    "original_chars": 132,
+    "spoken_chars": 90
+   },
+   {
+    "id": "7mCTaTJ0kDo#219",
+    "meaning": "kept",
+    "terms": "ok",
+    "reason": "All details kept; 'roaming' kept as in Spanish.",
+    "original_chars": 112,
+    "spoken_chars": 105
+   },
+   {
+    "id": "7mCTaTJ0kDo#220",
+    "meaning": "kept",
+    "terms": "ok",
+    "reason": "Faithful; operador and megabyte correct.",
+    "original_chars": 78,
+    "spoken_chars": 69
+   },
+   {
+    "id": "7mCTaTJ0kDo#224",
+    "meaning": "kept",
+    "terms": "none",
+    "reason": "Same meaning.",
+    "original_chars": 34,
+    "spoken_chars": 31
+   },
+   {
+    "id": "KS837a-TFRc#1",
+    "meaning": "kept",
+    "terms": "ok",
+    "reason": "Faithful; pixel art kept as usual.",
+    "original_chars": 160,
+    "spoken_chars": 152
+   },
+   {
+    "id": "KS837a-TFRc#4",
+    "meaning": "kept",
+    "terms": "none",
+    "reason": "Same meaning, natural phrasing.",
+    "original_chars": 62,
+    "spoken_chars": 47
+   },
+   {
+    "id": "KS837a-TFRc#7",
+    "meaning": "kept",
+    "terms": "none",
+    "reason": "Same meaning; 'about' dropped harmlessly.",
+    "original_chars": 58,
+    "spoken_chars": 46
+   },
+   {
+    "id": "KS837a-TFRc#8",
+    "meaning": "kept",
+    "terms": "none",
+    "reason": "Faithful translation.",
+    "original_chars": 99,
+    "spoken_chars": 97
+   },
+   {
+    "id": "KS837a-TFRc#9",
+    "meaning": "nuanced",
+    "terms": "none",
+    "reason": "Fragment; adds 'want', likely anticipating next sentence.",
+    "original_chars": 1,
+    "spoken_chars": 6
+   },
+   {
+    "id": "KS837a-TFRc#19",
+    "meaning": "kept",
+    "terms": "none",
+    "reason": "Same intent to improve stance.",
+    "original_chars": 72,
+    "spoken_chars": 49
+   },
+   {
+    "id": "KS837a-TFRc#27",
+    "meaning": "kept",
+    "terms": "ok",
+    "reason": "Cel properties rendered as celda, acceptable.",
+    "original_chars": 72,
+    "spoken_chars": 82
+   },
+   {
+    "id": "KS837a-TFRc#28",
+    "meaning": "kept",
+    "terms": "none",
+    "reason": "Same meaning, slightly toned.",
+    "original_chars": 40,
+    "spoken_chars": 26
+   },
+   {
+    "id": "KS837a-TFRc#29",
+    "meaning": "kept",
+    "terms": "none",
+    "reason": "Same meaning.",
+    "original_chars": 41,
+    "spoken_chars": 37
+   },
+   {
+    "id": "KS837a-TFRc#33",
+    "meaning": "kept",
+    "terms": "ok",
+    "reason": "Key animation correctly rendered.",
+    "original_chars": 31,
+    "spoken_chars": 30
+   },
+   {
+    "id": "KS837a-TFRc#37",
+    "meaning": "kept",
+    "terms": "ok",
+    "reason": "Same meaning, redundancy trimmed.",
+    "original_chars": 73,
+    "spoken_chars": 54
+   },
+   {
+    "id": "KS837a-TFRc#50",
+    "meaning": "kept",
+    "terms": "ok",
+    "reason": "Move tool correctly explained.",
+    "original_chars": 86,
+    "spoken_chars": 70
+   },
+   {
+    "id": "KS837a-TFRc#51",
+    "meaning": "kept",
+    "terms": "ok",
+    "reason": "Onion skin kept as commonly used.",
+    "original_chars": 60,
+    "spoken_chars": 49
+   },
+   {
+    "id": "KS837a-TFRc#56",
+    "meaning": "kept",
+    "terms": "none",
+    "reason": "Mirrors garbled original faithfully.",
+    "original_chars": 68,
+    "spoken_chars": 49
+   },
+   {
+    "id": "KS837a-TFRc#58",
+    "meaning": "kept",
+    "terms": "none",
+    "reason": "Same meaning.",
+    "original_chars": 59,
+    "spoken_chars": 59
+   },
+   {
+    "id": "KS837a-TFRc#59",
+    "meaning": "kept",
+    "terms": "ok",
+    "reason": "Keyframe and frames correctly translated.",
+    "original_chars": 137,
+    "spoken_chars": 124
+   },
+   {
+    "id": "KS837a-TFRc#61",
+    "meaning": "kept",
+    "terms": "none",
+    "reason": "Faithful, counting simplified.",
+    "original_chars": 87,
+    "spoken_chars": 69
+   },
+   {
+    "id": "KS837a-TFRc#62",
+    "meaning": "kept",
+    "terms": "none",
+    "reason": "Same meaning.",
+    "original_chars": 30,
+    "spoken_chars": 20
+   },
+   {
+    "id": "KS837a-TFRc#68",
+    "meaning": "kept",
+    "terms": "ok",
+    "reason": "Faithful; sprite kept in English.",
+    "original_chars": 91,
+    "spoken_chars": 85
+   },
+   {
+    "id": "KS837a-TFRc#71",
+    "meaning": "kept",
+    "terms": "none",
+    "reason": "Faithful rendering of both sentences.",
+    "original_chars": 82,
+    "spoken_chars": 73
+   },
+   {
+    "id": "KS837a-TFRc#75",
+    "meaning": "kept",
+    "terms": "none",
+    "reason": "Direct, accurate translation.",
+    "original_chars": 45,
+    "spoken_chars": 38
+   },
+   {
+    "id": "KS837a-TFRc#77",
+    "meaning": "kept",
+    "terms": "ok",
+    "reason": "Same meaning; volume preserved correctly.",
+    "original_chars": 76,
+    "spoken_chars": 65
+   },
+   {
+    "id": "KS837a-TFRc#78",
+    "meaning": "kept",
+    "terms": "ok",
+    "reason": "Idle pose, battle stance, swing all conveyed.",
+    "original_chars": 65,
+    "spoken_chars": 69
+   },
+   {
+    "id": "KS837a-TFRc#80",
+    "meaning": "kept",
+    "terms": "none",
+    "reason": "Creepy and cool rendered naturally.",
+    "original_chars": 35,
+    "spoken_chars": 28
+   },
+   {
+    "id": "KS837a-TFRc#84",
+    "meaning": "kept",
+    "terms": "ok",
+    "reason": "Key pose, slam and effects correctly conveyed.",
+    "original_chars": 143,
+    "spoken_chars": 122
+   },
+   {
+    "id": "KS837a-TFRc#88",
+    "meaning": "kept",
+    "terms": "none",
+    "reason": "Cloak and wires rising, easy one: preserved.",
+    "original_chars": 60,
+    "spoken_chars": 50
+   },
+   {
+    "id": "KS837a-TFRc#91",
+    "meaning": "kept",
+    "terms": "ok",
+    "reason": "Garbled source reasonably rendered; keyframe correct.",
+    "original_chars": 106,
+    "spoken_chars": 113
+   },
+   {
+    "id": "KS837a-TFRc#100",
+    "meaning": "kept",
+    "terms": "ok",
+    "reason": "Borders, dragging, second frame all preserved.",
+    "original_chars": 158,
+    "spoken_chars": 122
+   },
+   {
+    "id": "KS837a-TFRc#102",
+    "meaning": "kept",
+    "terms": "none",
+    "reason": "Frames one, three and sword movement conveyed.",
+    "original_chars": 67,
+    "spoken_chars": 47
+   },
+   {
+    "id": "KS837a-TFRc#109",
+    "meaning": "kept",
+    "terms": "none",
+    "reason": "Back and forth movement preserved.",
+    "original_chars": 50,
+    "spoken_chars": 34
+   },
+   {
+    "id": "KS837a-TFRc#111",
+    "meaning": "kept",
+    "terms": "none",
+    "reason": "Same instruction and reasoning.",
+    "original_chars": 76,
+    "spoken_chars": 63
+   },
+   {
+    "id": "KS837a-TFRc#113",
+    "meaning": "kept",
+    "terms": "ok",
+    "reason": "In-between frame for cloak conveyed.",
+    "original_chars": 77,
+    "spoken_chars": 60
+   },
+   {
+    "id": "KS837a-TFRc#115",
+    "meaning": "kept",
+    "terms": "none",
+    "reason": "Exact fragment translation.",
+    "original_chars": 26,
+    "spoken_chars": 23
+   },
+   {
+    "id": "KS837a-TFRc#117",
+    "meaning": "kept",
+    "terms": "none",
+    "reason": "Exact fragment translation.",
+    "original_chars": 16,
+    "spoken_chars": 16
+   },
+   {
+    "id": "KS837a-TFRc#118",
+    "meaning": "kept",
+    "terms": "none",
+    "reason": "Slight cloak visibility and length remark kept.",
+    "original_chars": 77,
+    "spoken_chars": 60
+   },
+   {
+    "id": "KS837a-TFRc#120",
+    "meaning": "kept",
+    "terms": "none",
+    "reason": "Move right, touch, look at sword preserved.",
+    "original_chars": 81,
+    "spoken_chars": 55
+   },
+   {
+    "id": "KS837a-TFRc#123",
+    "meaning": "kept",
+    "terms": "ok",
+    "reason": "Frame prep and big slash conveyed.",
+    "original_chars": 113,
+    "spoken_chars": 102
+   },
+   {
+    "id": "KS837a-TFRc#127",
+    "meaning": "kept",
+    "terms": "none",
+    "reason": "Garbled source rendered plausibly.",
+    "original_chars": 71,
+    "spoken_chars": 51
+   },
+   {
+    "id": "KS837a-TFRc#129",
+    "meaning": "kept",
+    "terms": "none",
+    "reason": "Samurai quick assassin idea preserved; source incomplete.",
+    "original_chars": 90,
+    "spoken_chars": 70
+   },
+   {
+    "id": "KS837a-TFRc#131",
+    "meaning": "kept",
+    "terms": "ok",
+    "reason": "Slash kept as term; faithful.",
+    "original_chars": 13,
+    "spoken_chars": 12
+   },
+   {
+    "id": "KS837a-TFRc#132",
+    "meaning": "kept",
+    "terms": "ok",
+    "reason": "Hard slash and layer rendered correctly.",
+    "original_chars": 100,
+    "spoken_chars": 80
+   },
+   {
+    "id": "KS837a-TFRc#138",
+    "meaning": "kept",
+    "terms": "wrong",
+    "reason": "Aftermath animation phase rendered as 'secuelas', unidiomatic term.",
+    "original_chars": 138,
+    "spoken_chars": 130
+   },
+   {
+    "id": "KS837a-TFRc#141",
+    "meaning": "kept",
+    "terms": "none",
+    "reason": "Faithful rendering.",
+    "original_chars": 47,
+    "spoken_chars": 37
+   },
+   {
+    "id": "KS837a-TFRc#144",
+    "meaning": "kept",
+    "terms": "none",
+    "reason": "Faithful.",
+    "original_chars": 25,
+    "spoken_chars": 22
+   },
+   {
+    "id": "KS837a-TFRc#145",
+    "meaning": "kept",
+    "terms": "ok",
+    "reason": "In-between and frame correctly translated.",
+    "original_chars": 185,
+    "spoken_chars": 153
+   },
+   {
+    "id": "KS837a-TFRc#148",
+    "meaning": "kept",
+    "terms": "none",
+    "reason": "Faithful.",
+    "original_chars": 18,
+    "spoken_chars": 14
+   },
+   {
+    "id": "KS837a-TFRc#154",
+    "meaning": "kept",
+    "terms": "none",
+    "reason": "Faithful to fragmented original.",
+    "original_chars": 35,
+    "spoken_chars": 40
+   },
+   {
+    "id": "KS837a-TFRc#158",
+    "meaning": "kept",
+    "terms": "none",
+    "reason": "Faithful.",
+    "original_chars": 58,
+    "spoken_chars": 47
+   },
+   {
+    "id": "KS837a-TFRc#159",
+    "meaning": "nuanced",
+    "terms": "ok",
+    "reason": "Garbled aftermath part loosely interpreted; rest faithful.",
+    "original_chars": 174,
+    "spoken_chars": 146
+   },
+   {
+    "id": "KS837a-TFRc#163",
+    "meaning": "kept",
+    "terms": "ok",
+    "reason": "Unlink and cloak rendered correctly.",
+    "original_chars": 149,
+    "spoken_chars": 115
+   },
+   {
+    "id": "KS837a-TFRc#166",
+    "meaning": "kept",
+    "terms": "none",
+    "reason": "Faithful.",
+    "original_chars": 36,
+    "spoken_chars": 26
+   },
+   {
+    "id": "KS837a-TFRc#169",
+    "meaning": "kept",
+    "terms": "none",
+    "reason": "Faithful.",
+    "original_chars": 34,
+    "spoken_chars": 36
+   },
+   {
+    "id": "KS837a-TFRc#173",
+    "meaning": "kept",
+    "terms": "none",
+    "reason": "Faithful.",
+    "original_chars": 46,
+    "spoken_chars": 53
+   },
+   {
+    "id": "KS837a-TFRc#174",
+    "meaning": "kept",
+    "terms": "none",
+    "reason": "Faithful.",
+    "original_chars": 32,
+    "spoken_chars": 37
+   },
+   {
+    "id": "KS837a-TFRc#181",
+    "meaning": "kept",
+    "terms": "none",
+    "reason": "Main point preserved; 'telling point' as most striking.",
+    "original_chars": 200,
+    "spoken_chars": 156
+   },
+   {
+    "id": "KS837a-TFRc#186",
+    "meaning": "kept",
+    "terms": "none",
+    "reason": "Faithful.",
+    "original_chars": 25,
+    "spoken_chars": 28
+   },
+   {
+    "id": "KS837a-TFRc#190",
+    "meaning": "kept",
+    "terms": "ok",
+    "reason": "Faithful; effects correctly rendered.",
+    "original_chars": 216,
+    "spoken_chars": 178
+   },
+   {
+    "id": "KS837a-TFRc#191",
+    "meaning": "kept",
+    "terms": "ok",
+    "reason": "Faithful, frame term correct.",
+    "original_chars": 196,
+    "spoken_chars": 187
+   },
+   {
+    "id": "KS837a-TFRc#194",
+    "meaning": "kept",
+    "terms": "none",
+    "reason": "Faithful.",
+    "original_chars": 31,
+    "spoken_chars": 36
+   },
+   {
+    "id": "KS837a-TFRc#195",
+    "meaning": "kept",
+    "terms": "ok",
+    "reason": "Fragment rendered faithfully; slash kept in English.",
+    "original_chars": 30,
+    "spoken_chars": 27
+   },
+   {
+    "id": "R4zlpwwEpnY#1",
+    "meaning": "kept",
+    "terms": "none",
+    "reason": "Natural, equivalent greeting.",
+    "original_chars": 47,
+    "spoken_chars": 46
+   },
+   {
+    "id": "R4zlpwwEpnY#3",
+    "meaning": "kept",
+    "terms": "none",
+    "reason": "Complete and accurate.",
+    "original_chars": 143,
+    "spoken_chars": 149
+   },
+   {
+    "id": "R4zlpwwEpnY#6",
+    "meaning": "kept",
+    "terms": "none",
+    "reason": "Same meaning, slightly condensed.",
+    "original_chars": 120,
+    "spoken_chars": 116
+   },
+   {
+    "id": "R4zlpwwEpnY#7",
+    "meaning": "kept",
+    "terms": "none",
+    "reason": "Only 'fundamentally' dropped; point intact.",
+    "original_chars": 143,
+    "spoken_chars": 140
+   },
+   {
+    "id": "R4zlpwwEpnY#8",
+    "meaning": "kept",
+    "terms": "none",
+    "reason": "List and communities rendered correctly.",
+    "original_chars": 82,
+    "spoken_chars": 85
+   },
+   {
+    "id": "R4zlpwwEpnY#17",
+    "meaning": "kept",
+    "terms": "none",
+    "reason": "Accurate; UCF Coastal kept.",
+    "original_chars": 72,
+    "spoken_chars": 54
+   },
+   {
+    "id": "R4zlpwwEpnY#25",
+    "meaning": "kept",
+    "terms": "none",
+    "reason": "Same meaning, repetition trimmed.",
+    "original_chars": 105,
+    "spoken_chars": 96
+   },
+   {
+    "id": "R4zlpwwEpnY#26",
+    "meaning": "kept",
+    "terms": "none",
+    "reason": "'Podcast' omitted from studio; meaning intact.",
+    "original_chars": 161,
+    "spoken_chars": 147
+   },
+   {
+    "id": "R4zlpwwEpnY#27",
+    "meaning": "kept",
+    "terms": "none",
+    "reason": "Accurate and concise.",
+    "original_chars": 88,
+    "spoken_chars": 69
+   },
+   {
+    "id": "R4zlpwwEpnY#31",
+    "meaning": "kept",
+    "terms": "none",
+    "reason": "Idiomatic equivalent.",
+    "original_chars": 31,
+    "spoken_chars": 38
+   },
+   {
+    "id": "R4zlpwwEpnY#35",
+    "meaning": "kept",
+    "terms": "none",
+    "reason": "Full meaning preserved.",
+    "original_chars": 211,
+    "spoken_chars": 193
+   },
+   {
+    "id": "R4zlpwwEpnY#48",
+    "meaning": "kept",
+    "terms": "none",
+    "reason": "Accurate.",
+    "original_chars": 63,
+    "spoken_chars": 54
+   },
+   {
+    "id": "R4zlpwwEpnY#49",
+    "meaning": "kept",
+    "terms": "none",
+    "reason": "'Meant to be' well rendered.",
+    "original_chars": 58,
+    "spoken_chars": 48
+   },
+   {
+    "id": "R4zlpwwEpnY#54",
+    "meaning": "kept",
+    "terms": "ok",
+    "reason": "Accurate; oceanógrafa correct.",
+    "original_chars": 62,
+    "spoken_chars": 45
+   },
+   {
+    "id": "R4zlpwwEpnY#56",
+    "meaning": "kept",
+    "terms": "ok",
+    "reason": "Morfodinámica and nivel del mar correct.",
+    "original_chars": 150,
+    "spoken_chars": 139
+   },
+   {
+    "id": "R4zlpwwEpnY#57",
+    "meaning": "kept",
+    "terms": "none",
+    "reason": "Equivalent.",
+    "original_chars": 21,
+    "spoken_chars": 11
+   },
+   {
+    "id": "R4zlpwwEpnY#59",
+    "meaning": "kept",
+    "terms": "none",
+    "reason": "Faithful, natural rendering.",
+    "original_chars": 205,
+    "spoken_chars": 146
+   },
+   {
+    "id": "R4zlpwwEpnY#60",
+    "meaning": "kept",
+    "terms": "ok",
+    "reason": "Erosión costera correct; continues prior clause.",
+    "original_chars": 37,
+    "spoken_chars": 49
+   },
+   {
+    "id": "R4zlpwwEpnY#66",
+    "meaning": "kept",
+    "terms": "none",
+    "reason": "Accurate; 'Dr.' rendered as doctora.",
+    "original_chars": 54,
+    "spoken_chars": 64
+   },
+   {
+    "id": "R4zlpwwEpnY#69",
+    "meaning": "kept",
+    "terms": "ok",
+    "reason": "Faithful; doctorado and máster correct.",
+    "original_chars": 183,
+    "spoken_chars": 167
+   },
+   {
+    "id": "R4zlpwwEpnY#73",
+    "meaning": "kept",
+    "terms": "ok",
+    "reason": "Faithful; coastal hazards and sea level terms correct.",
+    "original_chars": 161,
+    "spoken_chars": 198
+   },
+   {
+    "id": "R4zlpwwEpnY#75",
+    "meaning": "kept",
+    "terms": "none",
+    "reason": "Direct equivalent.",
+    "original_chars": 31,
+    "spoken_chars": 26
+   },
+   {
+    "id": "R4zlpwwEpnY#76",
+    "meaning": "kept",
+    "terms": "none",
+    "reason": "Same meaning, minor connector added.",
+    "original_chars": 158,
+    "spoken_chars": 120
+   },
+   {
+    "id": "R4zlpwwEpnY#78",
+    "meaning": "kept",
+    "terms": "ok",
+    "reason": "Dune fields correct; garbled number rendered plausibly.",
+    "original_chars": 182,
+    "spoken_chars": 152
+   },
+   {
+    "id": "R4zlpwwEpnY#82",
+    "meaning": "kept",
+    "terms": "none",
+    "reason": "Faithful rendering.",
+    "original_chars": 167,
+    "spoken_chars": 151
+   },
+   {
+    "id": "R4zlpwwEpnY#86",
+    "meaning": "nuanced",
+    "terms": "ok",
+    "reason": "Drops 'hotspot' noun; referent left implicit.",
+    "original_chars": 188,
+    "spoken_chars": 146
+   },
+   {
+    "id": "R4zlpwwEpnY#89",
+    "meaning": "kept",
+    "terms": "none",
+    "reason": "Faithful rendering.",
+    "original_chars": 160,
+    "spoken_chars": 163
+   },
+   {
+    "id": "R4zlpwwEpnY#98",
+    "meaning": "kept",
+    "terms": "none",
+    "reason": "Direct equivalent.",
+    "original_chars": 10,
+    "spoken_chars": 8
+   },
+   {
+    "id": "R4zlpwwEpnY#100",
+    "meaning": "kept",
+    "terms": "ok",
+    "reason": "Book title kept, author name corrected.",
+    "original_chars": 74,
+    "spoken_chars": 67
+   },
+   {
+    "id": "R4zlpwwEpnY#107",
+    "meaning": "kept",
+    "terms": "none",
+    "reason": "Faithful, natural phrasing.",
+    "original_chars": 150,
+    "spoken_chars": 129
+   },
+   {
+    "id": "R4zlpwwEpnY#109",
+    "meaning": "kept",
+    "terms": "none",
+    "reason": "Direct equivalent.",
+    "original_chars": 37,
+    "spoken_chars": 32
+   },
+   {
+    "id": "R4zlpwwEpnY#111",
+    "meaning": "kept",
+    "terms": "none",
+    "reason": "Faithful, filler removed.",
+    "original_chars": 159,
+    "spoken_chars": 145
+   },
+   {
+    "id": "R4zlpwwEpnY#113",
+    "meaning": "kept",
+    "terms": "none",
+    "reason": "Direct equivalent.",
+    "original_chars": 10,
+    "spoken_chars": 8
+   },
+   {
+    "id": "R4zlpwwEpnY#115",
+    "meaning": "kept",
+    "terms": "none",
+    "reason": "Fragment of 'All right' rendered as 'Muy bien'.",
+    "original_chars": 3,
+    "spoken_chars": 3
+   },
+   {
+    "id": "R4zlpwwEpnY#116",
+    "meaning": "kept",
+    "terms": "none",
+    "reason": "Faithful; co-host as copresentadora fine.",
+    "original_chars": 136,
+    "spoken_chars": 128
+   },
+   {
+    "id": "R4zlpwwEpnY#118",
+    "meaning": "kept",
+    "terms": "none",
+    "reason": "Faithful, question made clearer.",
+    "original_chars": 152,
+    "spoken_chars": 139
+   },
+   {
+    "id": "R4zlpwwEpnY#121",
+    "meaning": "kept",
+    "terms": "none",
+    "reason": "Faithful rendering.",
+    "original_chars": 220,
+    "spoken_chars": 184
+   },
+   {
+    "id": "R4zlpwwEpnY#125",
+    "meaning": "kept",
+    "terms": "ok",
+    "reason": "Faithful; degree names correct.",
+    "original_chars": 229,
+    "spoken_chars": 188
+   },
+   {
+    "id": "R4zlpwwEpnY#127",
+    "meaning": "kept",
+    "terms": "none",
+    "reason": "Faithful rendering.",
+    "original_chars": 206,
+    "spoken_chars": 177
+   },
+   {
+    "id": "R4zlpwwEpnY#128",
+    "meaning": "kept",
+    "terms": "ok",
+    "reason": "Faithful; tide and sea level rendered correctly.",
+    "original_chars": 195,
+    "spoken_chars": 168
+   },
+   {
+    "id": "R4zlpwwEpnY#129",
+    "meaning": "kept",
+    "terms": "none",
+    "reason": "Only a false start was dropped.",
+    "original_chars": 190,
+    "spoken_chars": 169
+   },
+   {
+    "id": "R4zlpwwEpnY#130",
+    "meaning": "kept",
+    "terms": "ok",
+    "reason": "All the coastal work areas and the PhD are kept.",
+    "original_chars": 200,
+    "spoken_chars": 182
+   },
+   {
+    "id": "R4zlpwwEpnY#133",
+    "meaning": "kept",
+    "terms": "none",
+    "reason": "Direct equivalent.",
+    "original_chars": 4,
+    "spoken_chars": 2
+   },
+   {
+    "id": "R4zlpwwEpnY#136",
+    "meaning": "kept",
+    "terms": "none",
+    "reason": "The split phrase is awkward, but the content is intact.",
+    "original_chars": 167,
+    "spoken_chars": 101
+   },
+   {
+    "id": "R4zlpwwEpnY#139",
+    "meaning": "kept",
+    "terms": "none",
+    "reason": "Correctly recovers Rottnest from the mistranscription.",
+    "original_chars": 179,
+    "spoken_chars": 189
+   },
+   {
+    "id": "R4zlpwwEpnY#142",
+    "meaning": "kept",
+    "terms": "none",
+    "reason": "Correct reading of the garbled original.",
+    "original_chars": 80,
+    "spoken_chars": 86
+   },
+   {
+    "id": "R4zlpwwEpnY#146",
+    "meaning": "nuanced",
+    "terms": "ok",
+    "reason": "'Creeks' became 'calas' (coves), which is slightly inaccurate.",
+    "original_chars": 184,
+    "spoken_chars": 159
+   },
+   {
+    "id": "R4zlpwwEpnY#147",
+    "meaning": "kept",
+    "terms": "none",
+    "reason": "Waterfall heights, frequency and the remoteness are all kept.",
+    "original_chars": 242,
+    "spoken_chars": 207
+   },
+   {
+    "id": "R4zlpwwEpnY#151",
+    "meaning": "kept",
+    "terms": "none",
+    "reason": "Faithful.",
+    "original_chars": 59,
+    "spoken_chars": 77
+   },
+   {
+    "id": "R4zlpwwEpnY#152",
+    "meaning": "kept",
+    "terms": "none",
+    "reason": "Only the interviewer's interjection was dropped.",
+    "original_chars": 164,
+    "spoken_chars": 128
+   },
+   {
+    "id": "R4zlpwwEpnY#154",
+    "meaning": "kept",
+    "terms": "ok",
+    "reason": "Faithful; NBA kept as is.",
+    "original_chars": 88,
+    "spoken_chars": 79
+   },
+   {
+    "id": "R4zlpwwEpnY#156",
+    "meaning": "kept",
+    "terms": "none",
+    "reason": "Only 'regular' and 'basketball' were dropped, which is fine.",
+    "original_chars": 227,
+    "spoken_chars": 177
+   },
+   {
+    "id": "R4zlpwwEpnY#160",
+    "meaning": "kept",
+    "terms": "ok",
+    "reason": "The career steps are rendered correctly.",
+    "original_chars": 192,
+    "spoken_chars": 148
+   },
+   {
+    "id": "R4zlpwwEpnY#161",
+    "meaning": "kept",
+    "terms": "none",
+    "reason": "Faithful, including the 'pellizcarme' idiom.",
+    "original_chars": 226,
+    "spoken_chars": 164
+   },
+   {
+    "id": "R4zlpwwEpnY#167",
+    "meaning": "kept",
+    "terms": "none",
+    "reason": "Authors and editions are kept.",
+    "original_chars": 210,
+    "spoken_chars": 166
+   },
+   {
+    "id": "R4zlpwwEpnY#172",
+    "meaning": "kept",
+    "terms": "none",
+    "reason": "Faithful.",
+    "original_chars": 102,
+    "spoken_chars": 103
+   },
+   {
+    "id": "R4zlpwwEpnY#176",
+    "meaning": "nuanced",
+    "terms": "none",
+    "reason": "Drops 'place', which completed the previous sentence.",
+    "original_chars": 219,
+    "spoken_chars": 153
+   },
+   {
+    "id": "R4zlpwwEpnY#178",
+    "meaning": "kept",
+    "terms": "none",
+    "reason": "Faithful.",
+    "original_chars": 138,
+    "spoken_chars": 139
+   },
+   {
+    "id": "R4zlpwwEpnY#180",
+    "meaning": "kept",
+    "terms": "ok",
+    "reason": "Gives 'coastal science podcasts' correctly; names and universities kept.",
+    "original_chars": 177,
+    "spoken_chars": 174
+   },
+   {
+    "id": "R4zlpwwEpnY#181",
+    "meaning": "kept",
+    "terms": "none",
+    "reason": "\"Definitely\" rendered as intensifier; meaning preserved.",
+    "original_chars": 26,
+    "spoken_chars": 23
+   }
+  ]
+ }
+}

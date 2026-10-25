@@ -64,7 +64,7 @@ código; los que siguen abiertos dicen qué falta y dónde.
 | G-002 Cancelar trabajos | Cerrado | T-06 |
 | G-003 Borrar intermedios | Cerrado | T-08 |
 | G-004 Fallo sin red | Cerrado | T-03 |
-| G-005 Pérdida de sentido y fidelidad | **Parcial** | El acortado está medido (T-13); la fidelidad de la traducción completa no |
+| G-005 Pérdida de sentido y fidelidad | Cerrado | Acortado medido (T-13); fidelidad de la traducción completa medida (T-27): 0 de 281 frases pierden el sentido |
 | G-006 Reserva del sexo | Cerrado | T-01 |
 | G-007 Deriva voz-imagen | Cerrado | T-12 (voz con más de 0,5 s de retraso, por versión) |
 | G-008 Sonoridad | Cerrado | T-07 |

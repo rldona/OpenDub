@@ -133,6 +133,41 @@ fragment cut down to "and". 2 losses in 58 (3%), none on the single-speaker vide
 no reason to change the shortening prompt for now; worth measuring again if the
 losses grow with several voices, where a changed subject also changes who speaks.
 
+## Translation fidelity
+
+`fidelity.py` has a model other than the translator (Opus judges Sonnet) rate each
+sentence of the dub's translation against its original, the sentence before it given as
+context:
+- **meaning:** kept, nuanced or lost;
+- **technical terms:** ok, wrong or none.
+
+The translation is the one the dub speaks, made to fit each slot, so what it drops to fit
+counts against it. Short videos are judged whole, longer ones on 60 sentences drawn with a
+fixed seed; hand edits are skipped. Results per translator and video are in
+`results/fidelity.json`, without the sentences. T-28 sets a local model against Sonnet
+with it (`--file`, `--translator`).
+
+```bash
+uv run python docs/bench/fidelity.py 17kBVfGjI8c rwF-X5STYks VD6xJq8NguY 7mCTaTJ0kDo KS837a-TFRc R4zlpwwEpnY
+```
+
+Sonnet 5.5's translations on six videos (26 Oct 2026), 281 sentences:
+
+| Video | Judged | Kept | Nuanced | Lost | Terms wrong |
+|---|---|---|---|---|---|
+| 17kBVfGjI8c (2 min) | 24 | 24 | 0 | 0 | 0 of 13 |
+| rwF-X5STYks (2 min) | 17 | 17 | 0 | 0 | 0 of 12 |
+| VD6xJq8NguY (11 min, music) | 60 | 53 | 7 | 0 | 0 of 24 |
+| 7mCTaTJ0kDo (20 min, fast) | 60 | 57 | 3 | 0 | 0 of 28 |
+| KS837a-TFRc (19 min) | 60 | 58 | 2 | 0 | 1 of 24 |
+| R4zlpwwEpnY (23 min, two voices) | 60 | 57 | 3 | 0 | 0 of 15 |
+| **All** | **281** | **266 (95%)** | **15 (5%)** | **0** | **1 of 116** |
+
+No sentence loses its meaning, one in twenty loses a nuance to fit its slot, and the one
+wrong term is animation jargon ("aftermath" as «secuelas»). The judge is another model of
+the same family as the translator, which may share its blind spots; it measures, it
+doesn't certify.
+
 ## Audio
 
 `audio/` holds the reference cuts (from the original videos), the generated
