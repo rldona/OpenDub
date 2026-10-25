@@ -6,9 +6,10 @@
 Reads ELEVENLABS_API_KEY from the environment or .env (never printed). Sends each
 work/<id>/video.mp4 from English to Spanish with the speakers detected automatically,
 waits for it and saves the dub as work/_bench/external/elevenlabs/<id>.mp4 (not
-committed: third-party video). With a stretch (<id>@start-end) only that part is dubbed
-and billed, and it is saved as <id>.m4a on the video's own timeline (silence before
-and after), so a session takes it like a whole dub. Then, for instance:
+committed: third-party video). With a stretch (<id>@start-end) only that part's audio,
+cut exactly, is sent (a few MB instead of a long video's hundreds) and billed, and the
+dub is saved as <id>.m4a on the video's own timeline (silence before and after), so a
+session takes it like a whole dub. Then, for instance:
 
     uv run python docs/bench/listening/session.py make vs-others --videos 17kBVfGjI8c rwF-X5STYks \\
         --source opendub=chatterbox --source elevenlabs=file:work/_bench/external/elevenlabs/{video}.mp4 …
@@ -50,11 +51,18 @@ def dub(client: httpx.Client, vid: str, source: str, target: str, watermark: boo
         span: tuple[int, int] | None = None) -> Path:
     video = WORK / vid / "video.mp4"
     data = {"source_lang": source, "target_lang": target, "num_speakers": "0",
-            "name": f"opendub-bench {vid}", "watermark": str(watermark).lower()}
+            "name": f"opendub-bench {vid}" + (f" {span[0]}-{span[1]}" if span else ""),
+            "watermark": str(watermark).lower()}
+    upload, kind = video, "video/mp4"
+    if span:  # the stretch's audio alone, cut to the sample
+        upload, kind = OUT / f"{vid}.source.m4a", "audio/mp4"
+        upload.parent.mkdir(parents=True, exist_ok=True)
+        subprocess.run(["ffmpeg", "-v", "error", "-y", "-ss", str(span[0]), "-to", str(span[1]), "-i", str(video),
+                        "-vn", "-c:a", "aac", "-b:a", "192k", str(upload)], check=True)
+    with upload.open("rb") as f:
+        r = client.post(API, files={"file": (upload.name, f, kind)}, data=data)
     if span:
-        data |= {"start_time": str(span[0]), "end_time": str(span[1])}
-    with video.open("rb") as f:
-        r = client.post(API, files={"file": (video.name, f, "video/mp4")}, data=data)
+        upload.unlink()
     if r.status_code >= 400:
         sys.exit(f"{vid}: the dub was refused ({r.status_code}): {r.text[:500]}")
     job = r.json()
@@ -70,7 +78,9 @@ def dub(client: httpx.Client, vid: str, source: str, target: str, watermark: boo
     if r.status_code >= 400:
         sys.exit(f"{vid}: the download was refused ({r.status_code}): {r.text[:500]}")
     kind = r.headers.get("content-type", "")
-    out = OUT / f"{vid}.{'mp4' if 'video' in kind else 'mp3' if 'mpeg' in kind else 'bin'}"
+    out = OUT / f"{vid}.dub.{'mp4' if 'video' in kind else 'mp3' if 'mpeg' in kind else 'm4a' if 'audio' in kind else 'bin'}"
+    if not span:
+        out = out.with_name(f"{vid}.{out.suffix.lstrip('.')}")
     out.parent.mkdir(parents=True, exist_ok=True)
     out.write_bytes(r.content)
     print(f"{vid}: saved {out} ({kind}, {len(r.content) / 1e6:.1f} MB)", flush=True)
@@ -100,7 +110,7 @@ def main() -> None:
     parser.add_argument("--watermark", action="store_true",
                         help="the free plan only dubs with one (on the video: session.py can use the audio alone)")
     args = parser.parse_args()
-    with httpx.Client(headers={"xi-api-key": api_key()}, timeout=httpx.Timeout(60.0, write=300.0)) as client:
+    with httpx.Client(headers={"xi-api-key": api_key()}, timeout=httpx.Timeout(300.0)) as client:
         for arg in args.videos:
             vid, _, span = arg.partition("@")
             start, _, end = span.partition("-")
