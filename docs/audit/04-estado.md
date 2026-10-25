@@ -1,5 +1,8 @@
 # Auditoría 4 · Estado tras la ejecución 3
 
+> Lo pendiente de aquí y el backlog de la auditoría 2 se ordenan en la segunda ronda
+> del roadmap: [05-roadmap.md](05-roadmap.md) (T-26 a T-35).
+
 Estado de `main` en `3d59f0b` (25 de octubre de 2026), después de ejecutar el
 [roadmap](03-roadmap.md) completo. Cada gap se ha vuelto a comprobar contra el
 código; los que siguen abiertos dicen qué falta y dónde.
