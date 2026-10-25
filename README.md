@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="docs/assets/cover.png" alt="OpenDub: YouTube, dubbed into Spanish. In a voice like the original." width="860">
+</p>
+
 # OpenDub
 
 A personal tool that dubs YouTube videos into Spanish with a synthetic voice,
