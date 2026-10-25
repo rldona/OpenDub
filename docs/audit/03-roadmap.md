@@ -1,5 +1,8 @@
 # Auditoría 3 · Roadmap
 
+> **Ejecutado.** Los 25 tickets están hechos; su estado, el de cada gap y lo que
+> queda pendiente están en [04-estado.md](04-estado.md).
+
 Plan de trabajo a partir del estado actual de `main` (`cb27106`), no de la
 foto de la ejecución 1.
 

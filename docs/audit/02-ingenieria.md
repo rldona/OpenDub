@@ -271,6 +271,8 @@ Decisiones que la ejecución 3 debe tomar como dadas:
 
 ## Gaps (ingeniería)
 
+> Estado actual de cada gap, tras la ejecución 3: [04-estado.md](04-estado.md#estado-de-los-gaps).
+
 - **G-018** · Las peticiones a un worker no tienen timeout; un worker colgado bloquea el trabajo sin poder cancelarlo · `engines.Worker._read`.
 - **G-019** · Escrituras no atómicas del estado (`manifest.json`, `translation.json`, `tts.json`, `voice_rates.json`) · `WorkDir._write`, `save_segments`, `tts.run`.
 - **G-020** · Sin bloqueo entre la CLI y la web sobre el mismo vídeo ni sobre la GPU · ocurrió en esta sesión; `JobManager` solo serializa la web.

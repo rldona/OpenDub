@@ -318,6 +318,8 @@ ese retoque.
 
 ## Gaps (producto)
 
+> Estado actual de cada gap, tras la ejecución 3: [04-estado.md](04-estado.md#estado-de-los-gaps).
+
 - **G-001** · YouTube puede bloquear la descarga y no hay alternativa ni mensaje accionable · observado el 2026-10-25 en `download.run` ("Sign in to confirm you're not a bot").
 - **G-002** · No se puede cancelar un trabajo ni quitarlo de la cola · ausente en `web/jobs.py`, `app.py` y el frontend.
 - **G-003** · No se pueden borrar desde la web los intermedios pesados de un vídeo (P9: `video.mp4`, `audio.wav`, `stems`, clips wav, por vídeo, avisando qué se pierde y qué fases habría que repetir; sin borrado automático) · solo `DELETE /videos/{id}/outputs/{version}`.
