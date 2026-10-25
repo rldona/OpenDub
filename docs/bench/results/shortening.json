@@ -1,0 +1,547 @@
+{
+ "model": "claude-sonnet-5-5",
+ "summary": {
+  "chatterbox": {
+   "nuanced": 15,
+   "kept": 25,
+   "lost": 2,
+   "total": 42,
+   "lost_share": 0.048
+  },
+  "chatterbox-es": {
+   "kept": 8,
+   "nuanced": 7,
+   "total": 15,
+   "lost_share": 0.0
+  },
+  "cosyvoice": {
+   "kept": 1,
+   "total": 1,
+   "lost_share": 0.0
+  }
+ },
+ "items": [
+  {
+   "id": "KS837a-TFRc#6#0",
+   "video": "KS837a-TFRc",
+   "engine": "chatterbox",
+   "verdict": "nuanced",
+   "reason": "Drops the conditional 'if you're interested'; still a recommendation.",
+   "full_chars": 36,
+   "short_chars": 20
+  },
+  {
+   "id": "KS837a-TFRc#8#1",
+   "video": "KS837a-TFRc",
+   "engine": "chatterbox",
+   "verdict": "kept",
+   "reason": "Same content, just compressed wording.",
+   "full_chars": 97,
+   "short_chars": 79
+  },
+  {
+   "id": "KS837a-TFRc#22#2",
+   "video": "KS837a-TFRc",
+   "engine": "chatterbox",
+   "verdict": "nuanced",
+   "reason": "Loses the 'messing around' playful nuance.",
+   "full_chars": 43,
+   "short_chars": 32
+  },
+  {
+   "id": "KS837a-TFRc#32#3",
+   "video": "KS837a-TFRc",
+   "engine": "chatterbox",
+   "verdict": "kept",
+   "reason": "Same meaning; 'genial' replaces 'gran diseño' with design implied.",
+   "full_chars": 41,
+   "short_chars": 33
+  },
+  {
+   "id": "KS837a-TFRc#45#4",
+   "video": "KS837a-TFRc",
+   "engine": "chatterbox",
+   "verdict": "kept",
+   "reason": "Same information, condensed.",
+   "full_chars": 53,
+   "short_chars": 38
+  },
+  {
+   "id": "KS837a-TFRc#48#5",
+   "video": "KS837a-TFRc",
+   "engine": "chatterbox",
+   "verdict": "kept",
+   "reason": "Same meaning: slight differences.",
+   "full_chars": 25,
+   "short_chars": 17
+  },
+  {
+   "id": "KS837a-TFRc#50#6",
+   "video": "KS837a-TFRc",
+   "engine": "chatterbox",
+   "verdict": "kept",
+   "reason": "Same content; 'herramienta' dropped but understood.",
+   "full_chars": 70,
+   "short_chars": 47
+  },
+  {
+   "id": "KS837a-TFRc#51#7",
+   "video": "KS837a-TFRc",
+   "engine": "chatterbox",
+   "verdict": "kept",
+   "reason": "Same meaning, shortened.",
+   "full_chars": 49,
+   "short_chars": 32
+  },
+  {
+   "id": "KS837a-TFRc#70#8",
+   "video": "KS837a-TFRc",
+   "engine": "chatterbox",
+   "verdict": "kept",
+   "reason": "Same meaning; 'postura' omitted but implied.",
+   "full_chars": 38,
+   "short_chars": 23
+  },
+  {
+   "id": "KS837a-TFRc#71#9",
+   "video": "KS837a-TFRc",
+   "engine": "chatterbox",
+   "verdict": "kept",
+   "reason": "Same meaning with shorter wording.",
+   "full_chars": 73,
+   "short_chars": 49
+  },
+  {
+   "id": "KS837a-TFRc#78#10",
+   "video": "KS837a-TFRc",
+   "engine": "chatterbox",
+   "verdict": "nuanced",
+   "reason": "'Y el golpe' loses 'lista para'; reads as list of poses.",
+   "full_chars": 69,
+   "short_chars": 48
+  },
+  {
+   "id": "KS837a-TFRc#81#11",
+   "video": "KS837a-TFRc",
+   "engine": "chatterbox",
+   "verdict": "kept",
+   "reason": "Same meaning.",
+   "full_chars": 33,
+   "short_chars": 33
+  },
+  {
+   "id": "KS837a-TFRc#91#12",
+   "video": "KS837a-TFRc",
+   "engine": "chatterbox",
+   "verdict": "kept",
+   "reason": "Same content, only slightly compressed.",
+   "full_chars": 113,
+   "short_chars": 89
+  },
+  {
+   "id": "KS837a-TFRc#199#13",
+   "video": "KS837a-TFRc",
+   "engine": "chatterbox",
+   "verdict": "kept",
+   "reason": "Synonym for cool.",
+   "full_chars": 5,
+   "short_chars": 4
+  },
+  {
+   "id": "h7PA4mXE_GA#5#0",
+   "video": "h7PA4mXE_GA",
+   "engine": "chatterbox",
+   "verdict": "kept",
+   "reason": "Only a redundant 'gracias' removed.",
+   "full_chars": 38,
+   "short_chars": 29
+  },
+  {
+   "id": "h7PA4mXE_GA#38#1",
+   "video": "h7PA4mXE_GA",
+   "engine": "chatterbox",
+   "verdict": "lost",
+   "reason": "Changes speaker: 'he says' versus 'I thought'; also weaker.",
+   "full_chars": 22,
+   "short_chars": 19
+  },
+  {
+   "id": "h7PA4mXE_GA#183#2",
+   "video": "h7PA4mXE_GA",
+   "engine": "chatterbox",
+   "verdict": "kept",
+   "reason": "Same meaning.",
+   "full_chars": 30,
+   "short_chars": 23
+  },
+  {
+   "id": "h7PA4mXE_GA#188#3",
+   "video": "h7PA4mXE_GA",
+   "engine": "chatterbox",
+   "verdict": "nuanced",
+   "reason": "Loses 'out there'; the sense of seeing it around.",
+   "full_chars": 19,
+   "short_chars": 11
+  },
+  {
+   "id": "h7PA4mXE_GA#226#4",
+   "video": "h7PA4mXE_GA",
+   "engine": "chatterbox",
+   "verdict": "kept",
+   "reason": "Same meaning.",
+   "full_chars": 26,
+   "short_chars": 24
+  },
+  {
+   "id": "h7PA4mXE_GA#237#5",
+   "video": "h7PA4mXE_GA",
+   "engine": "chatterbox",
+   "verdict": "nuanced",
+   "reason": "Loses 'to play again' and the obligation framing.",
+   "full_chars": 44,
+   "short_chars": 31
+  },
+  {
+   "id": "h7PA4mXE_GA#422#6",
+   "video": "h7PA4mXE_GA",
+   "engine": "chatterbox",
+   "verdict": "kept",
+   "reason": "Only 'también' dropped; same meaning.",
+   "full_chars": 76,
+   "short_chars": 61
+  },
+  {
+   "id": "h7PA4mXE_GA#513#7",
+   "video": "h7PA4mXE_GA",
+   "engine": "chatterbox",
+   "verdict": "kept",
+   "reason": "One repetition removed; meaning intact.",
+   "full_chars": 106,
+   "short_chars": 82
+  },
+  {
+   "id": "h7PA4mXE_GA#565#8",
+   "video": "h7PA4mXE_GA",
+   "engine": "chatterbox",
+   "verdict": "kept",
+   "reason": "Same idea, more concise wording.",
+   "full_chars": 80,
+   "short_chars": 53
+  },
+  {
+   "id": "h7PA4mXE_GA#570#9",
+   "video": "h7PA4mXE_GA",
+   "engine": "chatterbox",
+   "verdict": "nuanced",
+   "reason": "'In the next few minutes' timing detail omitted.",
+   "full_chars": 49,
+   "short_chars": 31
+  },
+  {
+   "id": "h7PA4mXE_GA#632#10",
+   "video": "h7PA4mXE_GA",
+   "engine": "chatterbox",
+   "verdict": "nuanced",
+   "reason": "Purpose 'to make things easier' reduced to 'useful'.",
+   "full_chars": 38,
+   "short_chars": 20
+  },
+  {
+   "id": "h7PA4mXE_GA#648#11",
+   "video": "h7PA4mXE_GA",
+   "engine": "chatterbox",
+   "verdict": "lost",
+   "reason": "Only 'Y' remains; the sentence content is gone.",
+   "full_chars": 9,
+   "short_chars": 1
+  },
+  {
+   "id": "h7PA4mXE_GA#717#12",
+   "video": "h7PA4mXE_GA",
+   "engine": "chatterbox",
+   "verdict": "kept",
+   "reason": "Greeting and thanks preserved; 'tuning in' simplified.",
+   "full_chars": 73,
+   "short_chars": 50
+  },
+  {
+   "id": "rwF-X5STYks#11#0",
+   "video": "rwF-X5STYks",
+   "engine": "cosyvoice",
+   "verdict": "kept",
+   "reason": "Same meaning, only wording tightened.",
+   "full_chars": 132,
+   "short_chars": 98
+  },
+  {
+   "id": "rwF-X5STYks#12#1",
+   "video": "rwF-X5STYks",
+   "engine": "chatterbox",
+   "verdict": "kept",
+   "reason": "Same meaning with slightly different phrasing.",
+   "full_chars": 82,
+   "short_chars": 66
+  },
+  {
+   "id": "rwF-X5STYks#6#2",
+   "video": "rwF-X5STYks",
+   "engine": "chatterbox-es",
+   "verdict": "kept",
+   "reason": "Only 'variadas' (diverse) dropped; point unchanged.",
+   "full_chars": 136,
+   "short_chars": 127
+  },
+  {
+   "id": "rwF-X5STYks#8#3",
+   "video": "rwF-X5STYks",
+   "engine": "chatterbox-es",
+   "verdict": "nuanced",
+   "reason": "'De esta creación' reference dropped; 'la base' loses its antecedent.",
+   "full_chars": 125,
+   "short_chars": 108
+  },
+  {
+   "id": "rwF-X5STYks#12#4",
+   "video": "rwF-X5STYks",
+   "engine": "chatterbox-es",
+   "verdict": "kept",
+   "reason": "Same meaning, reworded.",
+   "full_chars": 82,
+   "short_chars": 72
+  },
+  {
+   "id": "VD6xJq8NguY#15#0",
+   "video": "VD6xJq8NguY",
+   "engine": "chatterbox",
+   "verdict": "nuanced",
+   "reason": "'All Earth's animals' and 'more than' lost; 'constant' dropped.",
+   "full_chars": 158,
+   "short_chars": 139
+  },
+  {
+   "id": "VD6xJq8NguY#34#1",
+   "video": "VD6xJq8NguY",
+   "engine": "chatterbox",
+   "verdict": "nuanced",
+   "reason": "'And yet' contrast dropped, removing the turn.",
+   "full_chars": 23,
+   "short_chars": 12
+  },
+  {
+   "id": "VD6xJq8NguY#39#2",
+   "video": "VD6xJq8NguY",
+   "engine": "chatterbox",
+   "verdict": "kept",
+   "reason": "Same meaning, concise wording.",
+   "full_chars": 93,
+   "short_chars": 79
+  },
+  {
+   "id": "VD6xJq8NguY#46#3",
+   "video": "VD6xJq8NguY",
+   "engine": "chatterbox",
+   "verdict": "nuanced",
+   "reason": "'Hot, moving' and 'baked' details omitted.",
+   "full_chars": 121,
+   "short_chars": 86
+  },
+  {
+   "id": "VD6xJq8NguY#66#4",
+   "video": "VD6xJq8NguY",
+   "engine": "chatterbox",
+   "verdict": "nuanced",
+   "reason": "Tense changed; 'found ways' discovery nuance weakened.",
+   "full_chars": 110,
+   "short_chars": 95
+  },
+  {
+   "id": "VD6xJq8NguY#70#5",
+   "video": "VD6xJq8NguY",
+   "engine": "chatterbox",
+   "verdict": "kept",
+   "reason": "Identical meaning; trivial wording change.",
+   "full_chars": 94,
+   "short_chars": 91
+  },
+  {
+   "id": "VD6xJq8NguY#77#6",
+   "video": "VD6xJq8NguY",
+   "engine": "chatterbox",
+   "verdict": "nuanced",
+   "reason": "'Hunting' omitted; only devouring remains.",
+   "full_chars": 99,
+   "short_chars": 89
+  },
+  {
+   "id": "VD6xJq8NguY#15#7",
+   "video": "VD6xJq8NguY",
+   "engine": "chatterbox-es",
+   "verdict": "nuanced",
+   "reason": "'All Earth's animals' became 'animal biomass'; 'growth and decay' cycle lost.",
+   "full_chars": 158,
+   "short_chars": 113
+  },
+  {
+   "id": "VD6xJq8NguY#18#8",
+   "video": "VD6xJq8NguY",
+   "engine": "chatterbox-es",
+   "verdict": "kept",
+   "reason": "Same meaning; 'abundan' replaces 'most common inhabitants' fine.",
+   "full_chars": 129,
+   "short_chars": 110
+  },
+  {
+   "id": "VD6xJq8NguY#20#9",
+   "video": "VD6xJq8NguY",
+   "engine": "chatterbox-es",
+   "verdict": "nuanced",
+   "reason": "'Roca' loses 'bedrock' specificity (lecho rocoso).",
+   "full_chars": 32,
+   "short_chars": 23
+  },
+  {
+   "id": "VD6xJq8NguY#37#10",
+   "video": "VD6xJq8NguY",
+   "engine": "chatterbox-es",
+   "verdict": "kept",
+   "reason": "Only 'diminutos' dropped; meaning intact.",
+   "full_chars": 48,
+   "short_chars": 34
+  },
+  {
+   "id": "VD6xJq8NguY#38#11",
+   "video": "VD6xJq8NguY",
+   "engine": "chatterbox-es",
+   "verdict": "kept",
+   "reason": "Same claim; 'de su volumen' omitted but implied.",
+   "full_chars": 110,
+   "short_chars": 87
+  },
+  {
+   "id": "VD6xJq8NguY#43#12",
+   "video": "VD6xJq8NguY",
+   "engine": "chatterbox-es",
+   "verdict": "nuanced",
+   "reason": "Drops the ripping/tearing action; rest preserved.",
+   "full_chars": 70,
+   "short_chars": 58
+  },
+  {
+   "id": "VD6xJq8NguY#60#13",
+   "video": "VD6xJq8NguY",
+   "engine": "chatterbox-es",
+   "verdict": "nuanced",
+   "reason": "Loses 'otros' and the sharing of hard work; consortia remain.",
+   "full_chars": 117,
+   "short_chars": 84
+  },
+  {
+   "id": "VD6xJq8NguY#62#14",
+   "video": "VD6xJq8NguY",
+   "engine": "chatterbox-es",
+   "verdict": "kept",
+   "reason": "Only 'a menudo' removed; essentially same.",
+   "full_chars": 92,
+   "short_chars": 80
+  },
+  {
+   "id": "VD6xJq8NguY#77#15",
+   "video": "VD6xJq8NguY",
+   "engine": "chatterbox-es",
+   "verdict": "nuanced",
+   "reason": "Drops 'hunting' (cazando); 'mayores' slightly less precise than longer.",
+   "full_chars": 99,
+   "short_chars": 86
+  },
+  {
+   "id": "7mCTaTJ0kDo#12#0",
+   "video": "7mCTaTJ0kDo",
+   "engine": "chatterbox",
+   "verdict": "kept",
+   "reason": "Same content, condensed wording.",
+   "full_chars": 122,
+   "short_chars": 101
+  },
+  {
+   "id": "7mCTaTJ0kDo#17#1",
+   "video": "7mCTaTJ0kDo",
+   "engine": "chatterbox",
+   "verdict": "kept",
+   "reason": "Same point; 'experiencia' implied.",
+   "full_chars": 70,
+   "short_chars": 54
+  },
+  {
+   "id": "7mCTaTJ0kDo#30#2",
+   "video": "7mCTaTJ0kDo",
+   "engine": "chatterbox",
+   "verdict": "kept",
+   "reason": "Same statement, telegraphic form.",
+   "full_chars": 36,
+   "short_chars": 29
+  },
+  {
+   "id": "7mCTaTJ0kDo#68#3",
+   "video": "7mCTaTJ0kDo",
+   "engine": "chatterbox",
+   "verdict": "nuanced",
+   "reason": "Omits 'in the same area', needed for the comparison.",
+   "full_chars": 52,
+   "short_chars": 35
+  },
+  {
+   "id": "7mCTaTJ0kDo#89#4",
+   "video": "7mCTaTJ0kDo",
+   "engine": "chatterbox",
+   "verdict": "kept",
+   "reason": "'Entre estos niveles' dropped; still clear.",
+   "full_chars": 66,
+   "short_chars": 46
+  },
+  {
+   "id": "7mCTaTJ0kDo#91#5",
+   "video": "7mCTaTJ0kDo",
+   "engine": "chatterbox",
+   "verdict": "nuanced",
+   "reason": "'Es mucho' is stronger than 'bastante'; slight shift.",
+   "full_chars": 38,
+   "short_chars": 29
+  },
+  {
+   "id": "7mCTaTJ0kDo#128#6",
+   "video": "7mCTaTJ0kDo",
+   "engine": "chatterbox",
+   "verdict": "nuanced",
+   "reason": "'Edición de fotos' drops 'herramientas'; minor.",
+   "full_chars": 35,
+   "short_chars": 19
+  },
+  {
+   "id": "7mCTaTJ0kDo#22#7",
+   "video": "7mCTaTJ0kDo",
+   "engine": "chatterbox-es",
+   "verdict": "kept",
+   "reason": "Drops 'Samsung'; model name still identifies phone.",
+   "full_chars": 60,
+   "short_chars": 49
+  },
+  {
+   "id": "7mCTaTJ0kDo#89#8",
+   "video": "7mCTaTJ0kDo",
+   "engine": "chatterbox-es",
+   "verdict": "kept",
+   "reason": "Only 'estos' dropped; same meaning.",
+   "full_chars": 66,
+   "short_chars": 60
+  },
+  {
+   "id": "7mCTaTJ0kDo#115#9",
+   "video": "7mCTaTJ0kDo",
+   "engine": "chatterbox-es",
+   "verdict": "nuanced",
+   "reason": "'Con Gemini' becomes apposition, implying Gemini is the Assistant.",
+   "full_chars": 78,
+   "short_chars": 64
+  }
+ ]
+}

@@ -104,6 +104,35 @@ finetune is a little longer-winded: more clips sped up or not fitting and more
 voice heard late on the fast videos; intelligibility is the same within noise.
 Which one sounds better is for the blind listening (`listening/`).
 
+## Shortening
+
+`shortening.py` asks Claude (Sonnet, fixed rubric) whether each sentence the voice
+phase shortened to fit its slot still says what its full translation said:
+**kept** (only wording or filler went), **nuanced** (a detail went, the point
+stays) or **lost** (the meaning changed or something needed went). Only versions
+that record the translation they were made from count. The verdicts and their
+reasons are in `results/shortening.json`; the sentences themselves stay in
+`work/_bench/`, as they are third-party content.
+
+```bash
+uv run python docs/bench/shortening.py KS837a-TFRc h7PA4mXE_GA 17kBVfGjI8c rwF-X5STYks VD6xJq8NguY 7mCTaTJ0kDo
+```
+
+On the six videos (25 Oct 2026), 58 shortened sentences, 70 → 55 characters on average:
+
+| Engine | Shortened | Kept | Nuanced | Lost |
+|---|---|---|---|---|
+| Chatterbox V3 | 42 | 25 (60%) | 15 (36%) | 2 (5%) |
+| Chatterbox es-ES | 15 | 8 (53%) | 7 (47%) | 0 |
+| CosyVoice | 1 | 1 | 0 | 0 |
+
+Typical nuances: a conditional dropped ("if you're interested"), a colourful verb
+made plain, an obligation turned into a statement. The two losses are both on the
+three-speaker interview: a "I thought" that became "he said", and a two-word
+fragment cut down to "and". 2 losses in 58 (3%), none on the single-speaker videos:
+no reason to change the shortening prompt for now; worth measuring again if the
+losses grow with several voices, where a changed subject also changes who speaks.
+
 ## Audio
 
 `audio/` holds the reference cuts (from the original videos), the generated
