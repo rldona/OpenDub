@@ -151,3 +151,26 @@ def test_each_version_has_its_own_issues_and_numbers(tmp_path):
     assert all(i["wav"] is None for i in older["issues"])  # its clips are gone: heard by seeking its video
     assert [i["kind"] for i in c.get(f"/videos/17kBVfGjI8c/issues?version={old.stem}").json()] == ["fallback", "repaired"]
     assert c.get("/videos/17kBVfGjI8c/versions/nope").status_code == 404
+
+
+def test_two_dubs_in_the_same_second_keep_both_versions(tmp_path, monkeypatch):
+    from datetime import datetime
+
+    from opendub import mix
+
+    class Frozen(datetime):
+        @classmethod
+        def now(cls, tz=None):
+            return datetime(2026, 10, 25, 12, 0, 0)
+
+    monkeypatch.setattr(mix, "datetime", Frozen)
+    wd = WorkDir(tmp_path, "vid")
+    for content in (b"first", b"second"):
+        tmp = wd.path / "output.part.mp4"
+        tmp.write_bytes(content)
+        tmp.replace(wd.output)
+        wd.tts_index.write_text(json.dumps({"engine": "edge", "clips": []}))
+        mix.archive(wd)
+    kept = sorted(p.name for p in wd.outputs_dir.glob("*.mp4"))
+    assert kept == ["20261025-120000-edge.mp4", "20261025-120001-edge.mp4"]
+    assert (wd.outputs_dir / kept[0]).read_bytes() == b"first"

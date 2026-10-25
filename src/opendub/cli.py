@@ -138,7 +138,13 @@ Output = Annotated[
 ]
 
 
-_held = contextlib.ExitStack()  # a phase command holds its video until the process ends
+_held = contextlib.ExitStack()  # a phase command holds its video until the command ends
+
+
+@app.callback()
+def _release_on_exit(ctx: typer.Context) -> None:
+    """Dub YouTube videos into Spanish."""
+    ctx.call_on_close(_held.close)  # each command releases the video it held when it ends, even on an error
 
 
 def _setup(url: str, settings: Settings) -> WorkDir:

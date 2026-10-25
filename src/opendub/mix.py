@@ -15,7 +15,7 @@ import re
 import shutil
 import wave
 from dataclasses import dataclass
-from datetime import datetime
+from datetime import datetime, timedelta
 from pathlib import Path
 
 import numpy as np
@@ -149,7 +149,12 @@ def archive(wd: WorkDir) -> Path | None:
             return kept
     index = json.loads(wd.tts_index.read_text(encoding="utf-8"))
     engine = (index.get("engine") if isinstance(index, dict) else None) or "edge"
-    stem = f"{datetime.now():%Y%m%d-%H%M%S}-{engine}"
+    # named to the second: two dubs in the same second (a dub and a quick retouch) take the next free one,
+    # or the second would be copied over the first and the first lost
+    when = datetime.now()
+    while (wd.outputs_dir / f"{when:%Y%m%d-%H%M%S}-{engine}.mp4").exists():
+        when += timedelta(seconds=1)
+    stem = f"{when:%Y%m%d-%H%M%S}-{engine}"
     video = wd.outputs_dir / f"{stem}.mp4"
     try:
         os.link(wd.output, video)
