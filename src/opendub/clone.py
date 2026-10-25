@@ -114,9 +114,14 @@ def synthesize_batch(jobs: list[tuple[str, Path, int, Path]], log_path: Path, do
 
     Each process takes the next job as soon as it is free; `done` is called after
     each clip (from the pool's threads). With one process, this one speaks them.
+    A single job also goes to the pool when there is one: its processes are likely
+    loaded already (a quality-check retry, a retouch), and loading Chatterbox here
+    too would cost ~10 s and another 3.6 GB of VRAM.
     """
+    if not jobs:
+        return
     size = min(pool_size(), len(jobs))
-    if size <= 1:
+    if pool_size() <= 1:
         for text, ref, seed, out in jobs:
             synthesize(text, ref, seed, out)
             done()
