@@ -23,3 +23,11 @@ def no_real_style(monkeypatch, tmp_path_factory):
     real = style.load
     empty = tmp_path_factory.mktemp("no-style")
     monkeypatch.setattr(style, "load", lambda root, *a, **k: real(empty if root == style.Path("work") else root, *a, **k))
+
+
+@pytest.fixture(autouse=True)
+def no_network_probe(monkeypatch):
+    """The Claude reachability check opens a socket: tests never do (test_network_errors checks it)."""
+    from opendub import translate
+
+    monkeypatch.setattr(translate, "_reachable", True)

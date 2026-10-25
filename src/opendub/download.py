@@ -22,6 +22,24 @@ _YT_ID = re.compile(r"(?:v=|youtu\.be/|shorts/|embed/|live/)([\w-]{11})")
 _BASE_OPTS: dict[str, Any] = {"quiet": True, "no_warnings": True, "noprogress": True}
 
 
+BOT_CHECK = "Sign in to confirm"
+
+
+def explain(e: Exception) -> SystemExit:
+    """A clear message for a failed YouTube request: a bot check, no connection, or the rest."""
+    text = str(e)
+    first = next((line for line in text.splitlines() if line.strip()), text)
+    if BOT_CHECK in text:
+        return SystemExit("YouTube asked to confirm this isn't a bot and refused the download. It is a temporary "
+                          "block of this connection (often after many downloads in a short time): wait a while "
+                          "and try again.")
+    network = ("Unable to download", "getaddrinfo", "Name or service not known", "timed out",
+               "Connection", "Network is unreachable", "Temporary failure in name resolution")
+    if any(n in text for n in network):
+        return SystemExit(f"Can't reach YouTube: is there an internet connection? ({first.strip()[:160]})")
+    return SystemExit(f"YouTube download failed: {first.strip()[:200]}")
+
+
 def video_id(url_or_id: str) -> str:
     """Extract the id from a YouTube URL (or return it as is if it already is an id)."""
     if re.fullmatch(r"[\w-]{11}", url_or_id):
@@ -109,8 +127,11 @@ def run(url: str, wd: WorkDir, settings: Settings, force: bool = False) -> dict[
         old.unlink()
 
     log.info("Fetching video info…")
-    with yt_dlp.YoutubeDL(_BASE_OPTS) as ydl:
-        raw = ydl.sanitize_info(ydl.extract_info(url, download=False, process=False))
+    try:
+        with yt_dlp.YoutubeDL(_BASE_OPTS) as ydl:
+            raw = ydl.sanitize_info(ydl.extract_info(url, download=False, process=False))
+    except yt_dlp.utils.DownloadError as e:
+        raise explain(e) from None
     lang = settings.source_lang or raw.get("language")  # None: whisper will detect it
     log.info(f"[bold]{raw['title']}[/] · {raw.get('duration', 0)}s · language {lang or '?'}")
 
@@ -130,8 +151,11 @@ def run(url: str, wd: WorkDir, settings: Settings, force: bool = False) -> dict[
         TransferSpeedColumn(), console=console, transient=True,
     ) as progress:
         opts["progress_hooks"] = [_ProgressHook(progress)]
-        with yt_dlp.YoutubeDL(opts) as ydl:
-            ydl.process_ie_result(copy.deepcopy(raw), download=True)
+        try:
+            with yt_dlp.YoutubeDL(opts) as ydl:
+                ydl.process_ie_result(copy.deepcopy(raw), download=True)
+        except yt_dlp.utils.DownloadError as e:
+            raise explain(e) from None
     v = next(s for s in probe(wd.video)["streams"] if s["codec_type"] == "video")
     log.info(f"Video: {v['codec_name']} {v['width']}x{v['height']}")
 

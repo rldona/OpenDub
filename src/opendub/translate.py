@@ -200,13 +200,8 @@ def _call_cli(system: str, prompt: str, model: str) -> tuple[dict[str, Any], flo
     return data["structured_output"], float(data.get("total_cost_usd") or 0)
 
 
-def _call_api(system: str, prompt: str, model: str, api_key: str | None) -> tuple[dict[str, Any], float]:
-    import anthropic
-
-    if not api_key:
-        raise SystemExit("--backend api needs ANTHROPIC_API_KEY in .env")
-    client = anthropic.Anthropic(api_key=api_key)
-    response = client.beta.messages.create(
+def _create(client, model: str, system: str, prompt: str):
+    return client.beta.messages.create(
         model=model,
         max_tokens=16000,
         system=system,
@@ -216,6 +211,18 @@ def _call_api(system: str, prompt: str, model: str, api_key: str | None) -> tupl
         betas=["server-side-fallback-2026-07-01"],
         fallbacks="default",
     )
+
+
+def _call_api(system: str, prompt: str, model: str, api_key: str | None) -> tuple[dict[str, Any], float]:
+    import anthropic
+
+    if not api_key:
+        raise SystemExit("--backend api needs ANTHROPIC_API_KEY in .env")
+    client = anthropic.Anthropic(api_key=api_key)
+    try:
+        response = _create(client, model, system, prompt)
+    except (anthropic.APIConnectionError, anthropic.APITimeoutError) as e:
+        raise RuntimeError(f"can't reach the Claude API ({type(e).__name__}). Is there an internet connection?")
     if response.stop_reason == "refusal":
         raise RuntimeError(f"Claude refused the block: {response.stop_details}")
     if response.stop_reason == "max_tokens":
@@ -224,9 +231,33 @@ def _call_api(system: str, prompt: str, model: str, api_key: str | None) -> tupl
     return json.loads(text), 0.0
 
 
+CLAUDE_HOST = ("api.anthropic.com", 443)
+_reachable: bool | None = None  # checked once per process
+
+
+def check_claude_reachable() -> None:
+    """Fail at once, clearly, when Claude can't be reached: without a connection the claude CLI
+    doesn't fail, it waits (measured: no answer in 90 s), so each attempt would take its whole
+    timeout. Skipped behind a proxy, where a direct connection says nothing."""
+    import os
+    import socket
+
+    global _reachable
+    if _reachable or any(os.environ.get(v) for v in ("HTTPS_PROXY", "https_proxy", "ALL_PROXY", "all_proxy")):
+        return
+    try:
+        socket.create_connection(CLAUDE_HOST, timeout=5).close()
+    except OSError as e:
+        raise SystemExit(f"Can't reach Claude ({CLAUDE_HOST[0]}) to translate: {e}. "
+                         "Is there an internet connection?") from None
+    _reachable = True
+
+
 def _ask(system: str, prompt: str, expected: list[int], settings: Settings) -> tuple[dict[int, str], float]:
     """Call the backend and check that exactly the requested ids come back, with retries."""
+    check_claude_reachable()
     cost = 0.0
+    last: Exception | None = None
     for attempt in range(1, MAX_ATTEMPTS + 1):
         try:
             if settings.backend == "cli":
@@ -239,8 +270,11 @@ def _ask(system: str, prompt: str, expected: list[int], settings: Settings) -> t
                 return got, cost
             log.warning(f"Ids do not match (expected {expected[0]}–{expected[-1]}), retry {attempt}")
         except (RuntimeError, subprocess.TimeoutExpired) as e:
+            last = e
             log.warning(f"Attempt {attempt} failed: {e}")
-    raise SystemExit(f"Claude did not return a valid response for ids {expected[0]}–{expected[-1]}")
+    why = f": {last}" if last else " (the ids it returned never matched)"
+    raise SystemExit(f"Claude did not return a valid response for ids {expected[0]}–{expected[-1]} "
+                     f"after {MAX_ATTEMPTS} attempts{why}")
 
 
 def shorten(

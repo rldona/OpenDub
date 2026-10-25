@@ -244,7 +244,10 @@ def _synthesize_jobs(jobs: list[tuple[str, Path, Voice]], settings: Settings) ->
         else:
             cloned.append((text, path, voice))
     for (name, rate), group in edge.items():
-        asyncio.run(_synthesize_all(group, name, rate))
+        try:
+            asyncio.run(_synthesize_all(group, name, rate))
+        except RuntimeError as e:  # after its retries: say why it may have failed
+            raise SystemExit(f"{e}. {NETWORK_HINT}")
     if not cloned:
         return
     from . import clone, cosyvoice, indextts
@@ -300,10 +303,19 @@ async def _synthesize_all(jobs: list[tuple[str, Path]], voice: str, rate: str) -
         await asyncio.gather(*(one(t, p) for t, p in jobs))
 
 
+NETWORK_HINT = "Is there an internet connection?"
+CHECK_VOICE_TIMEOUT_S = 20
+
+
 async def _check_voice(voice: str) -> None:
     import edge_tts
 
-    voices = {v["ShortName"] for v in await edge_tts.list_voices()}
+    try:
+        listed = await asyncio.wait_for(edge_tts.list_voices(), CHECK_VOICE_TIMEOUT_S)
+    except Exception as e:  # aiohttp's network errors, a timeout: one clear message, no endless retries
+        raise SystemExit(f"Can't reach edge-tts (Microsoft's voices) to check the voice {voice}: "
+                         f"{type(e).__name__}. {NETWORK_HINT} It is also the cloned voice's last resort.")
+    voices = {v["ShortName"] for v in listed}
     if voice not in voices:
         spanish = ", ".join(sorted(v for v in voices if v.startswith("es-")))
         raise SystemExit(f"Voice {voice!r} does not exist. Spanish voices: {spanish}")
