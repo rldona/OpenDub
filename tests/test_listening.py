@@ -112,3 +112,13 @@ def test_a_dub_not_on_the_video_timeline_is_refused(work, tmp_path, monkeypatch)
         session.make("bad", {"opendub": "chatterbox", "other": f"file:{tmp_path}/short.m4a"}, ["abcdefghijk"], 2, 1)
     with pytest.raises(SystemExit, match="does not exist"):
         session.make("bad", {"opendub": "chatterbox", "other": "file:nowhere/{video}.mp4"}, ["abcdefghijk"], 2, 1)
+
+
+def test_fragments_can_be_drawn_from_one_stretch_only(work):
+    whole = session.pick("abcdefghijk", 4, random.Random(3))
+    assert session.pick("abcdefghijk", 4, random.Random(3), None) == whole  # sessions without a stretch: as before
+    inside = session.pick("abcdefghijk", 3, random.Random(3), (60.0, 140.0))
+    assert len(inside) == 3 and all(60 <= a and b <= 140 for a, b in inside)
+    assert all(a[1] <= b[0] for a, b in zip(inside, inside[1:]))
+    with pytest.raises(SystemExit, match="in"):
+        session.pick("abcdefghijk", 2, random.Random(3), (400.0, 410.0))

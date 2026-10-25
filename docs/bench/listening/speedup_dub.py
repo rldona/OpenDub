@@ -1,6 +1,7 @@
 """A dub made the way Subtitle Edit and pyVideoTrans make theirs, to set against OpenDub.
 
     uv run python docs/bench/listening/speedup_dub.py 17kBVfGjI8c rwF-X5STYks
+    uv run python docs/bench/listening/speedup_dub.py R4zlpwwEpnY@484-634   # only that stretch (seconds)
 
 Both tools (docs/audit/03-competencia.md) translate the subtitles without a length budget
 and then speed each line's voice up until it fits its subtitle. This rebuilds that
@@ -10,7 +11,10 @@ not the voice models:
 - the text: work/_bench/external/input/<id>.es.srt, the plain translation that
   translate_srt.py makes (same Claude model, no slot budget);
 - the voice: Chatterbox Multilingual V3 cloned from the same reference OpenDub uses
-  (Subtitle Edit and pyVideoTrans both offer it), seed 0, the text as written;
+  (Subtitle Edit and pyVideoTrans both offer it), seed 0, the text as written; in a
+  video with several voices, each line with its speaker's own reference, as Subtitle
+  Edit's "Find voices in video and clone" does (the speaker of the sentence the line
+  falls in, from OpenDub's diarization);
 - the fit: silence trimmed, then sped up (atempo, no ceiling) to the subtitle's own
   duration when it is longer, as Subtitle Edit's text-to-speech documents; never
   slowed down; no shortening, no quality check, no fallback;
@@ -19,11 +23,13 @@ not the voice models:
 
 It is a reproduction of their approach, not their programs (their own pipelines may
 differ in details: trimming, the speed ceiling, the mix). Writes
-work/_bench/external/speedup/<id>.mp4, not committed.
+work/_bench/external/speedup/<id>.mp4, not committed. With a stretch (<id>@start-end)
+only its lines are spoken; the rest of the video keeps the background alone.
 """
 
 from __future__ import annotations
 
+import json
 import re
 import sys
 import wave
@@ -59,13 +65,28 @@ def _read(path: Path) -> np.ndarray:
         return np.frombuffer(w.readframes(w.getnframes()), dtype=np.int16).astype(np.float32) / 32768
 
 
-def dub(vid: str) -> Path:
+def references(wd: WorkDir, subs: list[tuple[int, float, float, str]]) -> dict[int, Path]:
+    """Each line's reference: its speaker's with several voices, else the video's."""
+    main = reference.reference(wd)
+    segments = json.loads(wd.segments.read_text(encoding="utf-8"))
+    if not any(s.get("speaker") for s in segments):
+        return {i: main for i, *_ in subs}
+    own = {spk: reference.speaker_reference(wd, spk) or main for spk in {s["speaker"] for s in segments if s.get("speaker")}}
+
+    def speaker_at(t: float) -> str | None:
+        return next((s.get("speaker") for s in segments if s["start"] <= t <= s["end"]),
+                    min(segments, key=lambda s: min(abs(s["start"] - t), abs(s["end"] - t))).get("speaker"))
+
+    return {i: own.get(speaker_at((start + end) / 2), main) for i, start, end, _ in subs}
+
+
+def dub(vid: str, span: tuple[float, float] | None = None) -> Path:
     wd = WorkDir(WORK, vid)
-    subs = lines(INPUT / f"{vid}.es.srt")
-    ref = reference.reference(wd)
+    subs = [line for line in lines(INPUT / f"{vid}.es.srt") if not span or span[0] <= line[1] and line[2] <= span[1]]
+    refs = references(wd, subs)
     tmp = OUT / f"{vid}.clips"
     tmp.mkdir(parents=True, exist_ok=True)
-    jobs = [(text, ref, SEED, tmp / f"{i:04d}.raw.wav")
+    jobs = [(text, refs[i], SEED, tmp / f"{i:04d}.raw.wav")
             for i, _, _, text in subs if not (tmp / f"{i:04d}.raw.wav").exists()]
     if jobs:
         print(f"{vid}: speaking {len(jobs)} lines with Chatterbox V3…", flush=True)
@@ -111,5 +132,6 @@ def dub(vid: str) -> Path:
 
 
 if __name__ == "__main__":
-    for vid in sys.argv[1:]:
-        dub(vid)
+    for arg in sys.argv[1:]:
+        vid, _, stretch = arg.partition("@")
+        dub(vid, tuple(float(x) for x in stretch.split("-")) if stretch else None)

@@ -14,7 +14,9 @@ Each source is a label and where its dub of each video is:
 - `file:` and a path with `{video}` for the video id: a dub made with another tool. It
   must cover the whole video on the original's timeline; audio alone gets the original's
   picture.
-`--a`/`--b` are the two-source shorthand for engines or versions.
+`--a`/`--b` are the two-source shorthand for engines or versions. A video given as
+<id>@start-end (seconds) only gets fragments from that stretch, for sources that dubbed
+only it (elevenlabs_dub.py <id>@start-end).
 
 `make` picks 10–15 s fragments spread over the videos. For each one it cuts the original
 (audio only, to judge the meaning) and every dub (with the picture, to judge the sync),
@@ -79,16 +81,20 @@ def windows(vid: str) -> list[tuple[float, float]]:
     return out
 
 
-def pick(vid: str, n: int, rng: random.Random) -> list[tuple[float, float]]:
-    """n windows spread over the video: one in each of n equal parts, chosen at random within it."""
+def pick(vid: str, n: int, rng: random.Random,
+         span: tuple[float, float] | None = None) -> list[tuple[float, float]]:
+    """n windows spread over the video, or over `span` of it: one in each of n equal parts, at random within it."""
     found = windows(vid)
+    if span:  # only a stretch was dubbed by some source: fragments from inside it
+        found = [w for w in found if w[0] >= span[0] and w[1] <= span[1]]
     if not found:
-        raise SystemExit(f"{vid} has no {MIN_S:.0f}–{MAX_S:.0f} s run of sentences")
-    end = found[-1][1]
+        raise SystemExit(f"{vid} has no {MIN_S:.0f}–{MAX_S:.0f} s run of sentences" + (f" in {span}" if span else ""))
+    begin, end = (span or (0.0, found[-1][1]))
     chosen = []
     for k in range(n):
         after = chosen[-1][1] if chosen else 0.0  # a window may run into the next part: never hear a stretch twice
-        part = [w for w in found if k * end / n <= w[0] < (k + 1) * end / n and w[0] >= after]
+        lo, hi = begin + k * (end - begin) / n, begin + (k + 1) * (end - begin) / n
+        part = [w for w in found if lo <= w[0] < hi and w[0] >= after]
         if part:
             chosen.append(rng.choice(part))
     return chosen
@@ -140,7 +146,9 @@ def make(name: str, sources: dict[str, str], videos: list[str], clips: int, seed
     (folder / "media").mkdir(parents=True, exist_ok=True)
     per = [clips // len(videos) + (1 if i < clips % len(videos) else 0) for i in range(len(videos))]
     fragments = []
-    for vid, n in zip(videos, per):
+    for arg, n in zip(videos, per):
+        vid, _, stretch = arg.partition("@")  # <id>@start-end: fragments only from that stretch
+        span = tuple(float(x) for x in stretch.split("-")) if stretch else None
         picture = WORK / vid / "video.mp4"
         length = _probe(picture)[0] if picture.exists() else None
         where = {}
@@ -154,7 +162,7 @@ def make(name: str, sources: dict[str, str], videos: list[str], clips: int, seed
                 if not has_picture and not picture.exists():
                     raise SystemExit(f"{path} is audio only and {vid} has no video.mp4 to give it a picture")
             where[key] = path
-        for start, end in pick(vid, n, rng):
+        for start, end in pick(vid, n, rng, span):
             fid = f"f{len(fragments) + 1:02d}"
             if len(keys) == 2:  # as two-dub sessions always drew it: the same seed makes them again
                 first = rng.choice(("a", "b"))
