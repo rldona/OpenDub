@@ -149,6 +149,22 @@ video never says changes nothing. Shortened sentences keep the glossary too. A
 sentence whose spoken text doesn't use a term its original says is listed as a
 `glossary` issue on the web page, except hand edits.
 
+### Several voices
+
+```bash
+uv run opendub setup-engine nemotron        # once: NVIDIA Nemotron 3 Diarization in its own venv
+uv run opendub dub <url> --tts clone --separate --multi-speaker
+```
+
+`--multi-speaker` (the web's *Several voices*) tells who speaks each sentence and
+gives each person their own voice: the vocals are diarized (speakers with under
+30 s of speech are ignored), sentences are cut where the speaker changes, each
+speaker is cloned from their own turns (one with under 6 s of clean speech gets
+the stock voice of their gender), and each sentence is translated to fit its
+speaker's pace, with their gender for the agreement. On the web page, each
+speaker can be named, heard and merged into another, and any sentence given to
+someone else: a retouch then speaks it with the right voice. Off by default.
+
 ### Exporting
 
 ```bash

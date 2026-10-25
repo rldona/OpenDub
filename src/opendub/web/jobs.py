@@ -41,11 +41,12 @@ class JobOptions:
     bg_volume: float = 0.0  # dB of the background: the separated one, or the original audio
     keep_translation: bool = False  # another engine on the same translation: only TTS and mix are redone
     retouch: list[int] | None = None  # a retouch: edited sentences and these new takes (see pipeline.retouch)
+    multi_speaker: bool = False  # several voices: diarize and give each speaker their own voice
 
     def settings(self, work_root: Path) -> Settings:
         volume = {"music_volume_db": self.bg_volume} if self.separate else {"bg_volume_db": self.bg_volume}
         return Settings(work_root=work_root, separate=self.separate, tts=self.tts, engine=self.engine,
-                        voice=self.voice, keep_translation=self.keep_translation,
+                        voice=self.voice, keep_translation=self.keep_translation, multi_speaker=self.multi_speaker,
                         retouch=tuple(self.retouch) if self.retouch is not None else None, **volume)
 
 

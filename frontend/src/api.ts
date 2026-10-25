@@ -12,6 +12,7 @@ export interface JobOptions {
   voice: string;
   bg_volume: number;
   keep_translation: boolean;
+  multi_speaker?: boolean; // several voices: diarize and give each speaker their own voice
 }
 
 export interface JobSummary {
@@ -56,6 +57,7 @@ export interface Segment {
   slot: number;
   max_chars: number | null;
   edited: boolean;
+  speaker: string | null; // several voices: A, B, C…
 }
 
 export interface Translation {
@@ -139,11 +141,31 @@ export interface EngineStatus {
   setup: string | null;
 }
 
+export interface SpeakerVoice {
+  engine: string; // a cloning engine, or "edge" for a stock voice
+  voice: string | null; // the stock voice
+  reference: string | null;
+  gender: string | null;
+  stock: string | null; // a cloned speaker's last resort
+}
+
+export interface Speaker {
+  id: string;
+  name: string | null;
+  seconds: number | null;
+  f0_hz: number | null;
+  gender: "female" | "male" | null;
+  sentences: number;
+  voice: SpeakerVoice | null; // how the latest dub spoke them
+  sample: string | null;
+}
+
 export interface ServerStatus {
   version: string;
   work_root: string;
   running: number;
   queued: number;
+  diarizer: { installed: boolean; setup: string | null };
 }
 
 export class ApiError extends Error {
@@ -183,6 +205,15 @@ export const api = {
   translation: (id: string) => call<Translation>(`/videos/${id}/translation`),
   saveTranslation: (id: string, edits: { id: number; text: string }[]) =>
     call<Translation>(`/videos/${id}/translation`, { method: "PUT", body: JSON.stringify(edits) }),
+  speakers: (id: string) => call<Speaker[]>(`/videos/${id}/speakers`),
+  renameSpeaker: (id: string, speaker: string, name: string) =>
+    call<Speaker[]>(`/videos/${id}/speakers/${speaker}`, { method: "PUT", body: JSON.stringify({ name }) }),
+  mergeSpeaker: (id: string, speaker: string, into: string) =>
+    call<{ moved: number; speakers: Speaker[]; translation: Translation }>(
+      `/videos/${id}/speakers/${speaker}/merge`, { method: "POST", body: JSON.stringify({ into }) }),
+  changeSpeakers: (id: string, changes: { id: number; speaker: string }[]) =>
+    call<{ speakers: Speaker[]; translation: Translation }>(
+      `/videos/${id}/segments/speakers`, { method: "PUT", body: JSON.stringify(changes) }),
   style: () => call<Style>("/style"),
   saveStyle: (style: Style) => call<Style>("/style", { method: "PUT", body: JSON.stringify(style) }),
   videoStyle: (id: string) => call<VideoStyle>(`/videos/${id}/style`),

@@ -239,3 +239,13 @@ tr:hover .row-action, .row-action:focus-visible, .row-action.on { opacity: 1; }
   box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3); }
 .menu-list a { display: grid; gap: 1px; padding: 8px 10px; border-radius: 7px; color: var(--text); text-decoration: none; }
 .menu-list a:hover, .menu-list a:focus-visible { background: var(--accent-soft); }
+
+/* several voices: one color per speaker */
+.spk { display: inline-block; width: 10px; height: 10px; border-radius: 50%; flex: none; background: var(--faint); }
+.spk-A { background: #8b7cf6; } .spk-B { background: #f59e6b; } .spk-C { background: #4fc3a1; } .spk-D { background: #e879a6; }
+.spk-E { background: #60a5fa; } .spk-F { background: #facc15; } .spk-G { background: #a3a3a3; } .spk-H { background: #f87171; }
+.speaker-tag { display: inline-flex; align-items: center; gap: 6px; }
+.speaker-card { display: grid; gap: 6px; padding: 10px 12px; border: 1px solid var(--border); border-radius: 10px; background: var(--surface-2, transparent); }
+.speaker-pick { display: flex; align-items: center; gap: 4px; margin-top: 6px; }
+.speaker-pick select { font: inherit; font-size: 12px; color: var(--text); background: transparent; border: 1px solid var(--border);
+  border-radius: 6px; padding: 1px 4px; max-width: 92px; }

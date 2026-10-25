@@ -19,6 +19,7 @@ from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 
 from .. import download, mix
+from .. import speakers as speakers_mod
 from ..workdir import WorkDir
 from . import videos
 from .jobs import ACTIVE, VIDEO_ID, JobManager, JobOptions, Runner
@@ -36,10 +37,24 @@ class JobRequest(BaseModel):
     bg_volume: float = Field(0.0, ge=-40.0, le=12.0)
     # reuse the translation made for another engine: only TTS and the mix are redone
     keep_translation: bool = False
+    multi_speaker: bool = False  # several voices (needs `setup-engine nemotron`)
 
 
 class RetouchRequest(BaseModel):
     takes: list[int] = []  # sentences to speak again with another take; edited ones always are
+
+
+class SpeakerChange(BaseModel):
+    id: int
+    speaker: str = Field(min_length=1, max_length=2)
+
+
+class SpeakerName(BaseModel):
+    name: str = Field(max_length=60)
+
+
+class SpeakerMerge(BaseModel):
+    into: str = Field(min_length=1, max_length=2)
 
 
 class SegmentEdit(BaseModel):
@@ -81,7 +96,8 @@ def create_app(work_root: Path = Path("work"), runner: Runner | None = None,
         active = manager.active()
         return {"version": version("opendub"), "work_root": work_root.name,
                 "running": sum(j.status == "running" for j in active),
-                "queued": sum(j.status == "queued" for j in active)}
+                "queued": sum(j.status == "queued" for j in active),
+                "diarizer": videos.diarizer()}
 
     @app.get("/engines")
     def list_engines() -> list[dict]:
@@ -94,6 +110,9 @@ def create_app(work_root: Path = Path("work"), runner: Runner | None = None,
             engine = next(e for e in videos.engines() if e["id"] == req.engine)
             if not engine["installed"]:
                 raise HTTPException(422, f"{engine['name']} is not installed. Install it with: {engine['setup']}")
+        if req.multi_speaker and not videos.diarizer()["installed"]:
+            raise HTTPException(422, f"Several voices need Nemotron 3 Diarization. Install it with: "
+                                     f"{videos.diarizer()['setup']}")
         try:
             job = manager.submit(JobOptions(**req.model_dump()))
         except Exception as e:  # not a YouTube URL or id
@@ -261,6 +280,56 @@ def create_app(work_root: Path = Path("work"), runner: Runner | None = None,
                 raise HTTPException(422, f"{info['name']} is not installed. Install it with: {info['setup']}")
         job = manager.submit(options)
         return {"id": job.id, **job.summary(), "segments": pending}
+
+    # --- speakers (several voices) ---------------------------------------------
+    def editable(vid: str) -> WorkDir:
+        wd = folder(vid)
+        job = manager.get(vid)
+        if job and job.status in ACTIVE:
+            raise HTTPException(409, "This video is being dubbed; edit it when the job ends")
+        if not wd.translation.exists():
+            raise HTTPException(404, "Not translated yet")
+        return wd
+
+    @app.get("/videos/{vid}/speakers")
+    def get_speakers(vid: str) -> list[dict]:
+        return videos.speakers_info(folder(vid))
+
+    @app.get("/videos/{vid}/speakers/{speaker}.wav")
+    def speaker_sample(vid: str, speaker: str) -> FileResponse:
+        path = videos.speaker_sample(folder(vid), speaker)
+        if path is None:
+            raise HTTPException(404, "No sample of that speaker")
+        return FileResponse(path, media_type="audio/wav")
+
+    @app.put("/videos/{vid}/speakers/{speaker}")
+    def rename_speaker(vid: str, speaker: str, req: SpeakerName) -> list[dict]:
+        wd = folder(vid)
+        try:
+            speakers_mod.rename(wd, speaker, req.name)
+        except ValueError as e:
+            raise HTTPException(404, str(e)) from e
+        return videos.speakers_info(wd)
+
+    @app.post("/videos/{vid}/speakers/{speaker}/merge")
+    def merge_speaker(vid: str, speaker: str, req: SpeakerMerge) -> dict:
+        wd = editable(vid)
+        try:
+            moved = speakers_mod.merge(wd, speaker, req.into)
+        except ValueError as e:
+            raise HTTPException(422, str(e)) from e
+        return {"moved": moved, "speakers": videos.speakers_info(wd), "translation": videos.translation(wd, manager)}
+
+    @app.put("/videos/{vid}/segments/speakers")
+    def change_speakers(vid: str, changes: list[SpeakerChange]) -> dict:
+        wd = editable(vid)
+        try:
+            speakers_mod.reassign(wd, {c.id: c.speaker for c in changes})
+        except ValueError as e:
+            raise HTTPException(422, str(e)) from e
+        except KeyError as e:
+            raise HTTPException(422, f"No segment {e.args[0]}") from e
+        return {"speakers": videos.speakers_info(wd), "translation": videos.translation(wd, manager)}
 
     @app.get("/style")
     def get_style() -> dict:

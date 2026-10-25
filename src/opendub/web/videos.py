@@ -232,7 +232,9 @@ def translation(wd: WorkDir, manager: JobManager) -> dict[str, Any] | None:
     if not (wd.translation.exists() and wd.segments.exists()):
         return None
     originals = load_segments(wd.segments)
-    texts = {s.id: s.text for s in load_segments(wd.translation)}
+    translated = load_segments(wd.translation)
+    texts = {s.id: s.text for s in translated}
+    speaker_of = {s.id: s.speaker for s in translated}
     edited = set((_read_json(wd.translation_edits) or {}))
     pace = _speaking_rate(wd, manager)
     segments = []
@@ -243,6 +245,7 @@ def translation(wd: WorkDir, manager: JobManager) -> dict[str, Any] | None:
             "text": texts.get(seg.id, ""), "slot": round(slot, 2),
             "max_chars": pace.max_chars(slot) if pace else None,
             "edited": str(seg.id) in edited,
+            "speaker": speaker_of.get(seg.id),
         })
     return {"segments": segments, "chars_per_second": pace.cps if pace else None,
             "needs_regeneration": not (wd.has("tts") and wd.has("mix")),
@@ -393,3 +396,45 @@ def _glossary_misses(wd: WorkDir, clips: dict[int, dict[str, Any]]) -> list[tupl
             continue
         out += [(clip_id, t) for t in style.misses(terms, sources[clip_id], clip.get("text") or "")]
     return out
+
+
+# --- speakers (several voices) ------------------------------------------------------
+def diarizer(settings: Settings | None = None) -> dict[str, Any]:
+    """Whether several voices can be dubbed: Nemotron 3 Diarization installed, or how to."""
+    from .. import diarize
+
+    ready = diarize.installed((settings or Settings()).nemotron_dir)
+    return {"installed": ready, "setup": None if ready else "uv run opendub setup-engine nemotron"}
+
+
+def speakers_info(wd: WorkDir) -> list[dict[str, Any]]:
+    """Each speaker of a video dubbed with several voices: name, speech, gender, voice and sample."""
+    from .. import speakers as speakers_mod
+
+    diarization = _read_json(wd.diarization)
+    if not diarization:
+        return []
+    names = speakers_mod.load(wd)["names"]
+    source = wd.translation if wd.translation.exists() else wd.segments
+    counts: dict[str | None, int] = {}
+    if source.exists():
+        for seg in load_segments(source):
+            counts[seg.speaker] = counts.get(seg.speaker, 0) + 1
+    voices = (_tts_index(wd) or {}).get("speaker_voices") or {}
+    out = []
+    for spk, info in diarization["speakers"].items():
+        out.append({
+            "id": spk, "name": names.get(spk), "seconds": info.get("seconds"), "f0_hz": info.get("f0_hz"),
+            "gender": tts.gender_of(info.get("f0_hz")), "sentences": counts.get(spk, 0),
+            "voice": voices.get(spk),
+            "sample": f"/videos/{wd.path.name}/speakers/{spk}.wav" if speaker_sample(wd, spk) else None,
+        })
+    return out
+
+
+def speaker_sample(wd: WorkDir, speaker: str) -> Path | None:
+    """The speaker's reference clip, made when the video was dubbed."""
+    if not re.fullmatch(r"[A-H]", speaker):
+        return None
+    path = wd.path / f"clone_ref_{speaker}.wav"
+    return path if path.exists() else None

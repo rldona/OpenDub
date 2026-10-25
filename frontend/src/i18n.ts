@@ -104,6 +104,14 @@ const en = {
   dl_mp4: "MP4", dl_mp4_hint: "the dubbed video", dl_mkv: "MKV", dl_mkv_hint: "dubbed and original audio, both subtitles",
   dl_m4a: "Audio", dl_m4a_hint: "the dubbed audio, M4A", dl_srt: "Spanish subtitles", dl_srt_hint: "SRT, timed to the dubbed voice",
   dl_srt_orig: "Original subtitles", dl_srt_orig_hint: "SRT, the original sentences",
+
+  several_voices: "Several voices", several_voices_hint: "each person keeps their own voice",
+  speakers: "Speakers", speakers_hint: "who speaks; name them, hear them, merge one split in two",
+  speaker_n: "Speaker {s}", speaker_name_n: "Name of speaker {s}", hear_speaker: "Hear {s}",
+  gender_female: "woman", gender_male: "man", sentences_n: "{n} sentences",
+  voice_cloned_n: "Cloned with {e}", voice_stock_n: "Stock voice {v} (too little clean speech to clone)",
+  voice_not_yet: "Not dubbed yet", merge_into: "Merge into", merged_n: "{n} sentences moved: regenerate them to hear it.",
+  merge_confirm: "Give every sentence of {a} to {b}?", speaker_of_n: "Speaker of sentence {n}",
 };
 
 export type Key = keyof typeof en;
@@ -212,6 +220,14 @@ const es: Record<Key, string> = {
   dl_mp4: "MP4", dl_mp4_hint: "el vídeo doblado", dl_mkv: "MKV", dl_mkv_hint: "audio doblado y original, ambos subtítulos",
   dl_m4a: "Audio", dl_m4a_hint: "el audio doblado, M4A", dl_srt: "Subtítulos en español", dl_srt_hint: "SRT, al ritmo de la voz doblada",
   dl_srt_orig: "Subtítulos originales", dl_srt_orig_hint: "SRT, las frases originales",
+
+  several_voices: "Varias voces", several_voices_hint: "cada persona conserva su voz",
+  speakers: "Hablantes", speakers_hint: "quién habla; ponles nombre, escúchalos, fusiona uno partido en dos",
+  speaker_n: "Hablante {s}", speaker_name_n: "Nombre del hablante {s}", hear_speaker: "Escuchar a {s}",
+  gender_female: "mujer", gender_male: "hombre", sentences_n: "{n} frases",
+  voice_cloned_n: "Clonada con {e}", voice_stock_n: "Voz genérica {v} (muy poca voz limpia para clonar)",
+  voice_not_yet: "Aún sin doblar", merge_into: "Fusionar en", merged_n: "{n} frases movidas: regenéralas para oírlo.",
+  merge_confirm: "¿Dar todas las frases de {a} a {b}?", speaker_of_n: "Hablante de la frase {n}",
 };
 
 export type Lang = "en" | "es";

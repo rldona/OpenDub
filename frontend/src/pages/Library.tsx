@@ -49,6 +49,11 @@ function NewDub({ onSubmitted }: { onSubmitted: () => void }) {
   const [engine, setEngine] = useState<EngineChoice>(defaults.engine);
   const [separate, setSeparate] = useState(defaults.separate);
   const [volume, setVolume] = useState(defaults.bg_volume);
+  const [multi, setMulti] = useState(false);
+  const [diarizer, setDiarizer] = useState<{ installed: boolean; setup: string | null } | null>(null);
+  useEffect(() => {
+    api.status().then((s) => setDiarizer(s.diarizer)).catch(() => undefined);
+  }, []);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
@@ -65,7 +70,7 @@ function NewDub({ onSubmitted }: { onSubmitted: () => void }) {
     }
     setBusy(true);
     try {
-      await api.submit({ ...defaults, url: url.trim(), tts, engine, separate, bg_volume: volume });
+      await api.submit({ ...defaults, url: url.trim(), tts, engine, separate, bg_volume: volume, multi_speaker: multi });
       setUrl("");
       setError(null);
       refresh();
@@ -115,8 +120,16 @@ function NewDub({ onSubmitted }: { onSubmitted: () => void }) {
       <details className="small muted">
         <summary style={{ cursor: "pointer" }}>
           {t("more_options")} · {separate ? t("options_music", { db: volume }) : t("options_original", { db: volume })}
+          {multi ? ` · ${t("several_voices").toLowerCase()}` : ""}
         </summary>
         <div className="row" style={{ marginTop: 12, gap: "12px 28px" }}>
+          <label className="row" style={{ gap: 8, cursor: diarizer?.installed ? "pointer" : "default", color: "var(--text)" }}
+            title={diarizer && !diarizer.installed ? t("install_hint", { e: "Nemotron 3 Diarization", cmd: diarizer.setup ?? "" }) : undefined}>
+            <input type="checkbox" checked={multi} disabled={!diarizer?.installed} style={{ accentColor: "var(--accent)" }}
+              onChange={(e) => setMulti(e.target.checked)} />
+            {t("several_voices")}
+            <span className="faint">· {diarizer && !diarizer.installed ? t("not_installed") : t("several_voices_hint")}</span>
+          </label>
           <label className="row" style={{ gap: 8, cursor: "pointer", color: "var(--text)" }}>
             <input type="checkbox" checked={separate} style={{ accentColor: "var(--accent)" }}
               onChange={(e) => { setSeparate(e.target.checked); setVolume(e.target.checked ? 0 : -15); }} />

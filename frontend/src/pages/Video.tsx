@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { api, media, redub, type Engine, type Issue, type Style, type Translation, type Video, type VersionDetail, type VideoStyle } from "../api";
+import { api, media, redub, type Engine, type Issue, type Speaker, type Style, type Translation, type Video, type VersionDetail, type VideoStyle } from "../api";
 import { engineShort } from "../catalog";
 import { PlayIcon, StatusBadge } from "../components";
 import { duration, seconds, when } from "../format";
@@ -8,6 +8,7 @@ import { useJobs } from "../job";
 import { usePrefs } from "../prefs";
 import { useDefaultOptions } from "./Library";
 import { RedubDialog } from "./RedubDialog";
+import { SpeakersCard, speakerName } from "./Speakers";
 import { cleanStyle, sameStyle, StyleEditor } from "./StyleEditor";
 
 type Filter = "all" | "issues" | "edited";
@@ -59,6 +60,7 @@ export function VideoPage({ id }: { id: string }) {
   const [styleNote, setStyleNote] = useState<string | null>(null);
   const [focusTerm, setFocusTerm] = useState(0);
   const [issuesStamp, setIssuesStamp] = useState(0); // bumped when a style change may change the issues
+  const [speakers, setSpeakers] = useState<Speaker[]>([]); // several voices: who speaks
   const [takes, setTakes] = useState<Set<number>>(new Set()); // sentences to speak again with another take
   const [jumpTo, setJumpTo] = useState<number | null>(null); // after a retouch: its first sentence
   const player = useRef<HTMLVideoElement>(null);
@@ -71,6 +73,7 @@ export function VideoPage({ id }: { id: string }) {
     if (v) setTranslation(await api.translation(id).catch(() => null));
     const s = v ? await api.videoStyle(id).catch(() => null) : null;
     setStyleInfo(s);
+    setSpeakers(v ? await api.speakers(id).catch(() => []) : []);
     setStyleDraft(s?.video ?? null);
   }, [id]);
   useEffect(() => {
@@ -157,6 +160,17 @@ export function VideoPage({ id }: { id: string }) {
       setJumpTo(r.segments[0] ?? null);
       setNote(null);
       refresh();
+    } catch (err) {
+      setNote((err as Error).message);
+    }
+  }
+
+  async function changeSpeaker(sid: number, speaker: string) {
+    try {
+      const r = await api.changeSpeakers(id, [{ id: sid, speaker }]);
+      setSpeakers(r.speakers);
+      setTranslation(r.translation);
+      setNote(null);
     } catch (err) {
       setNote((err as Error).message);
     }
@@ -310,6 +324,11 @@ export function VideoPage({ id }: { id: string }) {
         )}
       </div>
 
+      {speakers.length > 0 && (
+        <SpeakersCard id={id} speakers={speakers} busy={busy} onSpeakers={setSpeakers}
+          onTranslation={(tr) => { setTranslation(tr); setNote(null); }} />
+      )}
+
       {styleInfo && styleDraft && (
         <section className="card stack" aria-labelledby="video-style" style={{ padding: 16, gap: 14 }}>
           <div className="spread">
@@ -375,7 +394,17 @@ export function VideoPage({ id }: { id: string }) {
                   const found = issuesById.get(s.id) ?? [];
                   return (
                     <tr key={s.id} className={over ? "over" : undefined}>
-                      <td className="small faint">{s.id}<br />{duration(s.start)}{s.edited && <span title={t("edited")} aria-label={t("edited")} style={{ color: "var(--accent-text)" }}> ✎</span>}</td>
+                      <td className="small faint">{s.id}<br />{duration(s.start)}{s.edited && <span title={t("edited")} aria-label={t("edited")} style={{ color: "var(--accent-text)" }}> ✎</span>}
+                        {speakers.length > 0 && (
+                          <label className="speaker-pick">
+                            <span className={`spk spk-${s.speaker ?? "none"}`} aria-hidden="true" />
+                            <span className="sr-only">{t("speaker_of_n", { n: s.id })}</span>
+                            <select value={s.speaker ?? ""} disabled={busy} onChange={(e) => void changeSpeaker(s.id, e.target.value)}>
+                              {speakers.map((o) => <option key={o.id} value={o.id}>{speakerName(speakers, o.id)}</option>)}
+                            </select>
+                          </label>
+                        )}
+                      </td>
                       <td className="muted">
                         {s.original}
                         {styleDraft && !busy && (
