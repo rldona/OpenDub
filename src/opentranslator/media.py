@@ -7,6 +7,7 @@ import shutil
 import subprocess
 import sys
 import threading
+import weakref
 from pathlib import Path
 from typing import Any
 
@@ -14,7 +15,7 @@ from typing import Any
 # typed in the server's terminal doesn't kill a running dub's ffmpeg or claude
 # call; the server decides what to do with it (web.app.Server) and stops them itself.
 CHILD_SESSION = False
-_children: set[subprocess.Popen] = set()
+_children: weakref.WeakSet[subprocess.Popen] = weakref.WeakSet()  # finished ones drop out on their own
 _lock = threading.Lock()
 
 
@@ -46,6 +47,26 @@ def run(cmd: list[str], *, input: Any = None, timeout: float | None = None, chec
     if check and proc.returncode:
         raise subprocess.CalledProcessError(proc.returncode, cmd, out, err)
     return subprocess.CompletedProcess(cmd, proc.returncode, out, err)
+
+
+def adopt_ytdlp() -> None:
+    """Make yt-dlp's own children (the ffmpeg that merges video and audio, its postprocessors)
+    follow CHILD_SESSION and stop_children() like ours. They all go through yt_dlp.utils.Popen."""
+    from yt_dlp.utils import _utils
+
+    cls = _utils.Popen
+    if getattr(cls, "_opentranslator_adopted", False):
+        return
+    original = cls.__init__
+
+    def __init__(self, *args: Any, **kwargs: Any) -> None:
+        kwargs.setdefault("start_new_session", CHILD_SESSION)  # read when the child starts
+        original(self, *args, **kwargs)
+        with _lock:
+            _children.add(self)
+
+    cls.__init__ = __init__
+    cls._opentranslator_adopted = True
 
 
 def stop_children() -> None:

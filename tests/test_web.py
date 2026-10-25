@@ -330,3 +330,21 @@ def test_media_run_behaves_like_subprocess_run():
     with pytest.raises(subprocess.TimeoutExpired):
         media.run(["sleep", "5"], timeout=0.2)
     assert not media._children  # nothing left registered
+
+
+def test_ytdlp_children_join_the_web_server_session_rules(monkeypatch):
+    import os
+    import subprocess
+
+    from opentranslator import download, media  # noqa: F401  (download adopts yt-dlp's Popen)
+    from yt_dlp.utils import Popen as YtdlpPopen
+
+    monkeypatch.setattr(media, "CHILD_SESSION", True)
+    with YtdlpPopen(["sleep", "2"], stdout=subprocess.DEVNULL) as proc:
+        assert os.getsid(proc.pid) != os.getsid(0)  # out of the terminal's Ctrl+C
+        assert proc in media._children
+        media.stop_children()  # a confirmed Ctrl+C ends it
+        assert proc.wait(timeout=2) != 0
+    monkeypatch.setattr(media, "CHILD_SESSION", False)
+    with YtdlpPopen(["true"]) as proc:
+        assert os.getsid(proc.pid) == os.getsid(0)  # the CLI: unchanged

@@ -12,8 +12,11 @@ from rich.progress import BarColumn, DownloadColumn, TransferSpeedColumn
 
 from .config import Settings
 from .log import Progress, console, log
+from . import media
 from .media import ffmpeg, probe
 from .workdir import WorkDir
+
+media.adopt_ytdlp()  # its ffmpeg children, too, stay out of the web server's Ctrl+C
 
 _YT_ID = re.compile(r"(?:v=|youtu\.be/|shorts/|embed/|live/)([\w-]{11})")
 _BASE_OPTS: dict[str, Any] = {"quiet": True, "no_warnings": True, "noprogress": True}
