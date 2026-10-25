@@ -34,7 +34,7 @@ const STRINGS = {
     not_installed: "not installed", install_hint: "{e} is not installed: {cmd}",
     regen_engine: "Regenerate with another engine",
     regen_engine_hint: "Keeps this translation: only the voice and the mix are redone.",
-    delete_version: "Delete this version", confirm_delete: "Delete the {e} dub of {d}? This can't be undone.",
+    versions_n: "{n} versions", delete_version: "Delete this version", confirm_delete: "Delete the {e} dub of {d}? This can't be undone.",
   },
   es: {
     preferences: "Preferencias", language: "Idioma", dub: "Doblar", voice: "Voz", voice_clone: "Clonada",
@@ -69,7 +69,7 @@ const STRINGS = {
     not_installed: "sin instalar", install_hint: "{e} no está instalado: {cmd}",
     regen_engine: "Regenerar con otro motor",
     regen_engine_hint: "Conserva esta traducción: solo se rehacen la voz y la mezcla.",
-    delete_version: "Borrar esta versión", confirm_delete: "¿Borrar el doblaje con {e} del {d}? No se puede deshacer.",
+    versions_n: "{n} versiones", delete_version: "Borrar esta versión", confirm_delete: "¿Borrar el doblaje con {e} del {d}? No se puede deshacer.",
   },
 };
 
@@ -414,11 +414,26 @@ function statusBadge(status) {
 }
 
 let renderedList = "";
+const listVersion = {}; // video id → version shown in the list's player (none: the latest)
+
+function versionSrc(id, version) {
+  return version ? `/videos/${id}/outputs/${version}.mp4` : `/videos/${id}/output.mp4`;
+}
+
+function versionButtons(versions, active, pick) {
+  // every dub kept, by engine and date; `active` null = the latest (output.mp4)
+  return versions.map((o) => {
+    const on = active ? o.version === active : o.current;
+    return el("button", { type: "button", class: on ? "primary" : "", "aria-pressed": String(on), title: when(o.date),
+      onclick: () => pick(o.current ? null : o.version) },
+      `${o.engine} · ${when(o.date)}` + (o.current ? ` (${t("latest")})` : ""));
+  });
+}
 
 function renderVideos(force = false) {
   // The list refreshes every few seconds: repaint only when something shown changed,
   // and keep the open player element, so a playing video isn't cut
-  const signature = JSON.stringify([lang, openPlayer, videos]);
+  const signature = JSON.stringify([lang, openPlayer, listVersion, videos]);
   if (!force && signature === renderedList) return;
   renderedList = signature;
   const list = $("#videos");
@@ -428,11 +443,16 @@ function renderVideos(force = false) {
     const meta = [duration(v.duration), when(v.date)];
     if (v.engine) meta.push(v.engine);
     if (v.issues) meta.push(t("issues_n", { n: v.issues }));
+    const versions = v.outputs || [];
+    if (versions.length > 1) meta.push(t("versions_n", { n: versions.length }));
+    const version = versions.some((o) => o.version === listVersion[v.id]) ? listVersion[v.id] : null;
+    const src = versionSrc(v.id, version);
     const actions = [];
     if (v.status === "done") {
       actions.push(el("button", { type: "button", class: "icon", "aria-label": t("play"),
         onclick: () => togglePlayer(v.id) }, openPlayer === v.id ? t("hide") : t("play")));
-      actions.push(el("a", { class: "badge", href: `/videos/${v.id}/output.mp4`, download: `${v.id}.es.mp4` }, t("download_file")));
+      actions.push(el("a", { class: "badge", href: src, download: `${v.id}.es${version ? "." + version : ""}.mp4` },
+        t("download_file")));
     }
     if (v.status === "error" || v.status === "pending") {
       actions.push(el("button", { type: "button", onclick: () => redub(v.id) }, v.status === "error" ? t("retry") : t("start_dub")));
@@ -449,8 +469,13 @@ function renderVideos(force = false) {
       el("div", { class: "actions" }, actions));
     const item = el("li", { class: "video" }, row);
     if (openPlayer === v.id) {
-      item.append(player || el("video", { controls: true, preload: "metadata", "data-id": v.id,
-        src: `/videos/${v.id}/output.mp4` }));
+      const keep = player && player.getAttribute("src") === src; // a refresh must not cut what's playing
+      item.append(keep ? player : el("video", { controls: true, preload: "metadata", "data-id": v.id, src }));
+      if (versions.length > 1) {
+        item.append(el("div", { class: "versions", role: "group", "aria-label": t("version") },
+          el("span", { class: "muted small" }, t("version")),
+          versionButtons(versions, version, (picked) => { listVersion[v.id] = picked; renderVideos(); })));
+      }
     }
     return item;
   }));
@@ -506,12 +531,7 @@ function renderDetail() {
   const picker = versions.length > 1
     ? el("div", { class: "versions", role: "group", "aria-label": t("version") },
         el("span", { class: "muted small" }, t("version")),
-        versions.map((o) => {
-          const active = version ? o.version === version : o.current;
-          return el("button", { type: "button", class: active ? "primary" : "", "aria-pressed": String(active),
-            title: when(o.date), onclick: () => { detail.version = o.current ? null : o.version; renderDetail(); } },
-            `${o.engine} · ${when(o.date)}` + (o.current ? ` (${t("latest")})` : ""));
-        }),
+        versionButtons(versions, version, (picked) => { detail.version = picked; renderDetail(); }),
         // an older version can be deleted; the latest is output.mp4 and the issues below are its
         version ? el("button", { type: "button", class: "ghost danger", onclick: () => deleteVersion(version) },
           t("delete_version")) : null)
