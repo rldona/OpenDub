@@ -1,79 +1,14 @@
 <!doctype html>
 <html lang="en">
-<head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>OpenDub</title>
-  <link rel="stylesheet" href="/static/style.css">
-</head>
-<body>
-  <header class="bar">
-    <a class="brand" href="#/">OpenDub</a>
-    <button type="button" class="ghost" id="prefs-toggle" aria-expanded="false" aria-controls="prefs" data-i18n="preferences">Preferences</button>
-  </header>
-
-  <section id="prefs" class="card prefs" hidden>
-    <label><span data-i18n="language">Language</span>
-      <select id="lang">
-        <option value="en">English</option>
-        <option value="es">Español</option>
-      </select>
-    </label>
-  </section>
-
-  <main>
-    <section id="home">
-      <form id="dub-form" class="card" novalidate>
-        <div class="row">
-          <input id="url" type="url" required autocomplete="off" aria-label="YouTube URL"
-                 placeholder="https://www.youtube.com/watch?v=…">
-          <button type="submit" class="primary" data-i18n="dub">Dub</button>
-        </div>
-        <p id="form-error" class="error" role="alert" hidden></p>
-        <div class="options">
-          <label><span data-i18n="voice">Voice</span>
-            <select id="tts">
-              <option value="clone" data-i18n="voice_clone">Cloned</option>
-              <option value="edge" data-i18n="voice_edge">edge-tts</option>
-            </select>
-          </label>
-          <label><span data-i18n="engine">Engine</span>
-            <select id="engine">
-              <option value="auto" data-i18n="engine_auto">Automatic</option>
-            </select>
-          </label>
-          <label class="check"><input id="separate" type="checkbox" checked> <span data-i18n="keep_music">Keep the music</span></label>
-          <label><span data-i18n="bg_volume">Background volume</span>
-            <span class="range"><input id="bg-volume" type="range" min="-30" max="6" step="1" value="0">
-              <output id="bg-volume-out">0 dB</output></span>
-          </label>
-        </div>
-        <p id="engine-hint" class="muted small" hidden></p>
-      </form>
-
-      <section id="job" class="card" hidden aria-live="polite">
-        <div class="job-head">
-          <span id="job-title" class="strong"></span>
-          <span id="job-state" class="muted"></span>
-        </div>
-        <div class="overall">
-          <div class="overall-head"><span id="overall-label" class="strong"></span> <span id="overall-eta" class="muted small"></span></div>
-          <div class="meter overall-meter" role="progressbar" aria-valuemin="0" aria-valuemax="100" id="overall-meter"><div id="overall-fill"></div></div>
-        </div>
-        <ol id="phases" class="phases"></ol>
-        <div id="progress-label" class="muted small"></div>
-        <div class="meter" id="meter"><div id="meter-fill"></div></div>
-        <ul id="log" class="log"></ul>
-      </section>
-
-      <h2 data-i18n="videos">Videos</h2>
-      <ul id="videos" class="videos"></ul>
-      <p id="videos-empty" class="muted" hidden data-i18n="videos_empty">Paste a YouTube link above to dub your first video.</p>
-    </section>
-
-    <section id="detail" hidden></section>
-  </main>
-
-  <script src="/static/app.js"></script>
-</body>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>OpenDub</title>
+    <link rel="icon" type="image/svg+xml" href="/static/favicon.svg" />
+    <script type="module" crossorigin src="/static/assets/index-CD3uSXQE.js"></script>
+    <link rel="stylesheet" crossorigin href="/static/assets/index-DQk7dhkV.css">
+  </head>
+  <body>
+    <div id="root"></div>
+  </body>
 </html>

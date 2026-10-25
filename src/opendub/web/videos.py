@@ -122,7 +122,10 @@ def summary(wd: WorkDir, manager: JobManager) -> dict[str, Any]:
 
 
 def outputs(wd: WorkDir) -> list[dict[str, Any]]:
-    """Every dub kept (mix.archive), newest first: version id, engine, date, and which one output.mp4 is."""
+    """Every dub kept (mix.archive), newest first: version id, engine, date, and which one output.mp4 is.
+
+    Each also counts its issues (from its own overflow.log and tts.json).
+    """
     from ..mix import VERSION
 
     if not wd.outputs_dir.exists():
@@ -138,7 +141,42 @@ def outputs(wd: WorkDir) -> list[dict[str, Any]]:
             "date": made.isoformat(timespec="seconds"),
             "current": wd.output.exists() and video.samefile(wd.output),
         })
-    return sorted(found, key=lambda o: o["date"], reverse=True)
+    found.sort(key=lambda o: o["date"], reverse=True)
+    for o in found:
+        o["issues"] = len(issues(wd, None if o["current"] else o["version"]))
+    return found
+
+
+def version_detail(wd: WorkDir, version: str) -> dict[str, Any]:
+    """One kept dub: its numbers, its issues and its clips (for the version panel and Compare)."""
+    index, _, current = _version_sources(wd, version)
+    kept = next((o for o in outputs(wd) if o["current"] == current and (current or o["version"] == version)), None)
+    clips = index.get("clips") or []
+    engine = index.get("engine")
+    found = issues(wd, None if current else version)
+    stats = index.get("stats") or {}
+    shortened = stats.get("shortened")
+    if shortened is None and current and wd.translation.exists():  # dubs made before tts.json kept it
+        texts = {s.id: s.text for s in load_segments(wd.translation)}
+        shortened = sum(1 for c in clips if c["id"] in texts and c.get("text") != texts[c["id"]])
+    return {
+        "version": kept["version"] if kept else version,
+        "engine": engine,
+        "date": kept["date"] if kept else None,
+        "current": current,
+        "stats": {
+            "clips": len(clips),
+            "voice_seconds": stats.get("seconds"),
+            "sped_up": sum(1 for c in clips if c.get("tempo", 1.0) > 1.0),
+            "shortened": shortened,
+            "below_floor": sum(1 for i in found if i["kind"] == "floor"),
+            "redone": sum(1 for i in found if i["kind"] == "repaired"),
+            "edge": sum(1 for c in clips if c.get("voice") == "edge") if engine != "edge" else 0,
+        },
+        "issues": found,
+        "clips": [{k: c.get(k) for k in ("id", "start", "slot", "raw_duration", "tempo", "factor", "voice", "text")}
+                  for c in clips],
+    }
 
 
 def delete_output(wd: WorkDir, version: str) -> None:
@@ -222,9 +260,31 @@ def save_translation(wd: WorkDir, edits: list[dict[str, Any]]) -> None:
 
 
 # --- clips with problems --------------------------------------------------------
-def issues(wd: WorkDir) -> list[dict[str, Any]]:
-    """Clips listed in overflow.log, plus those the quality check had to redo, with their wav."""
-    index = _tts_index(wd) or {}
+def _version_sources(wd: WorkDir, version: str | None) -> tuple[dict[str, Any], str, bool]:
+    """(tts.json, overflow.log text, whether it is the latest dub) of a kept version; None: the latest."""
+    from ..mix import VERSION
+
+    video = wd.outputs_dir / f"{version}.mp4"
+    if version in (None, "latest") or (VERSION.fullmatch(version) and video.exists() and wd.output.exists()
+                                       and video.samefile(wd.output)):
+        log = wd.overflow_log.read_text(encoding="utf-8") if wd.overflow_log.exists() else ""
+        return _tts_index(wd) or {}, log, True
+    if not VERSION.fullmatch(version) or not video.exists():
+        raise LookupError(version)
+    index = _read_json(wd.outputs_dir / f"{version}.tts.json") or {}
+    if isinstance(index, list):
+        index = {"engine": None, "clips": index}
+    log_path = wd.outputs_dir / f"{version}.overflow.log"
+    return index, log_path.read_text(encoding="utf-8") if log_path.exists() else "", False
+
+
+def issues(wd: WorkDir, version: str | None = None) -> list[dict[str, Any]]:
+    """Clips listed in a dub's overflow.log, plus those the quality check had to redo.
+
+    The latest dub's clips also link their wav (tts/ holds only the latest's clips);
+    an older version's are heard by seeking its video to the clip's start.
+    """
+    index, log_text, current = _version_sources(wd, version)
     clips = {c["id"]: c for c in index.get("clips") or []}
     engine = index.get("engine")
     out: list[dict[str, Any]] = []
@@ -235,7 +295,7 @@ def issues(wd: WorkDir) -> list[dict[str, Any]]:
             return
         seen.add((kind, clip_id))
         clip = clips.get(clip_id, {})
-        wav = Path(clip["file"]).name if clip.get("file") else None
+        wav = Path(clip["file"]).name if clip.get("file") and current else None
         out.append({
             "id": clip_id, "kind": kind, "message": message,
             "start": start if start is not None else clip.get("start"),
@@ -243,15 +303,14 @@ def issues(wd: WorkDir) -> list[dict[str, Any]]:
             "wav": f"/videos/{wd.path.name}/tts/{wav}" if wav and (wd.tts_dir / wav).exists() else None,
         })
 
-    if wd.overflow_log.exists():
-        for line in wd.overflow_log.read_text(encoding="utf-8").splitlines():
-            for kind, pattern in _ISSUE_LINES:
-                if m := pattern.match(line):
-                    add(kind, int(m[1]), m[3], float(m[2]), m[4])
-                    break
-            else:
-                if m := _DELAYED.match(line):
-                    add("delayed", int(m[1]), m[2])
+    for line in log_text.splitlines():
+        for kind, pattern in _ISSUE_LINES:
+            if m := pattern.match(line):
+                add(kind, int(m[1]), m[3], float(m[2]), m[4])
+                break
+        else:
+            if m := _DELAYED.match(line):
+                add("delayed", int(m[1]), m[2])
     for clip in clips.values():
         label = clip.get("voice") or ""
         if engine and engine != "edge" and label not in (engine, "edge"):

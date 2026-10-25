@@ -69,6 +69,16 @@ def create_app(work_root: Path = Path("work"), runner: Runner | None = None,
     app.state.work_root = work_root
 
     # --- jobs --------------------------------------------------------------
+    @app.get("/status")
+    def status() -> dict:
+        """What the footer shows: the app version, the work folder and the jobs."""
+        from importlib.metadata import version
+
+        active = manager.active()
+        return {"version": version("opendub"), "work_root": work_root.name,
+                "running": sum(j.status == "running" for j in active),
+                "queued": sum(j.status == "queued" for j in active)}
+
     @app.get("/engines")
     def list_engines() -> list[dict]:
         """The cloning engines, whether each one is ready to use and how to install it if not."""
@@ -206,8 +216,19 @@ def create_app(work_root: Path = Path("work"), runner: Runner | None = None,
         return videos.translation(wd, manager)
 
     @app.get("/videos/{vid}/issues")
-    def get_issues(vid: str) -> list[dict]:
-        return videos.issues(folder(vid))
+    def get_issues(vid: str, version: str | None = None) -> list[dict]:
+        try:
+            return videos.issues(folder(vid), version)
+        except LookupError:
+            raise HTTPException(404, "No such dub")
+
+    @app.get("/videos/{vid}/versions/{version}")
+    def get_version(vid: str, version: str) -> dict:
+        """A kept dub's numbers, issues and clips; "latest" is output.mp4's."""
+        try:
+            return videos.version_detail(folder(vid), version)
+        except LookupError:
+            raise HTTPException(404, "No such dub")
 
     @app.get("/videos/{vid}/tts/{name}")
     def clip(vid: str, name: str) -> FileResponse:

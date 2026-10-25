@@ -163,8 +163,29 @@ def test_rejects_bad_input_and_foreign_hosts(tmp_path):
 
 
 def test_index_page_is_served(tmp_path):
-    r = client(tmp_path, FakePipeline()).get("/")
-    assert r.status_code == 200 and "<html" in r.text.lower()
+    """The built React app (frontend/, `npm run build`) and every asset it loads."""
+    import re
+
+    c = client(tmp_path, FakePipeline())
+    r = c.get("/")
+    assert r.status_code == 200 and '<div id="root">' in r.text
+    assets = re.findall(r'(?:src|href)="(/static/[^"]+)"', r.text)
+    assert any(a.endswith(".js") for a in assets) and any(a.endswith(".css") for a in assets)
+    for asset in assets:
+        assert c.get(asset).status_code == 200, asset
+
+
+def test_status_reports_version_and_jobs(tmp_path):
+    fake = FakePipeline()
+    fake.hold = True
+    c = client(tmp_path, fake)
+    c.post("/jobs", json={"url": VID})
+    assert fake.started.wait(5)
+    c.post("/jobs", json={"url": VID2})
+    status = c.get("/status").json()
+    assert status["running"] == 1 and status["queued"] == 1 and status["work_root"] == "work" and status["version"]
+    fake.release.set()
+    wait_status(c, VID2)
 
 
 # --- videos, translation, clips with problems ---------------------------------

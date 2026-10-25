@@ -24,6 +24,7 @@ import hashlib
 import json
 import re
 import statistics
+import time
 import wave
 from concurrent.futures import ThreadPoolExecutor
 from dataclasses import asdict, dataclass, replace
@@ -752,6 +753,7 @@ def run(wd: WorkDir, settings: Settings, force: bool = False) -> list[Clip]:
             wd.tts_index.write_text(json.dumps(index, ensure_ascii=False, indent=1), encoding="utf-8")
         return load_clips(wd)
 
+    started = time.monotonic()
     asyncio.run(_check_voice(settings.voice))  # edge-tts is also the cloned voice's last resort
     (wd.tts_dir / "raw").mkdir(parents=True, exist_ok=True)
     for old in wd.tts_dir.glob("*.wav"):
@@ -792,6 +794,8 @@ def run(wd: WorkDir, settings: Settings, force: bool = False) -> list[Clip]:
         "engine_choice": choice,
         "model": engine_model(engine) if cloned else f"edge-tts {settings.voice}",
         "reference_f0_hz": ref_f0,
+        # shown per version in the web: how long the voice took and what it took to fit it
+        "stats": {"seconds": round(time.monotonic() - started, 1), "shortened": n_short},
         "clips": [asdict(c) for c in result],
     }
     wd.tts_index.write_text(json.dumps(index, ensure_ascii=False, indent=1), encoding="utf-8")

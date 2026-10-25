@@ -8,7 +8,7 @@ implements it under `src/opendub/`.
 ```mermaid
 flowchart TD
     cli["CLI<br/>opendub dub"] --> dub
-    web["Web<br/>FastAPI + SSE, one job at a time"] --> dub
+    web["Web<br/>React dashboard on FastAPI + SSE, one job at a time"] --> dub
     dub["pipeline.dub()"] --> download
 
     subgraph work["work/&lt;video id&gt;/ · manifest.json caches each phase"]
@@ -35,7 +35,7 @@ Claude).
 | Piece | Module | Role |
 |---|---|---|
 | CLI | `cli.py` | `dub`, `web`, `setup-indextts` commands and their flags. |
-| Web | `web/app.py`, `web/jobs.py`, `web/videos.py` | Job queue (one at a time), replayable SSE progress, translation editor, versions per engine, Ctrl+C guard. |
+| Web | `web/app.py`, `web/jobs.py`, `web/videos.py`, `frontend/` | Job queue (one at a time), replayable SSE progress, versions with their own numbers and issues, translation editor, Ctrl+C guard. The page is a React 19 + TypeScript app (`frontend/`) built into `web/static/`. |
 | Pipeline | `pipeline.py` | Runs the phases in order; `release_models()` frees GPU memory after each web job. |
 | Child processes | `media.py`, `engines.py` | The single place ffmpeg, yt-dlp's children, the engine workers (IndexTTS, CosyVoice) and the `claude` CLI are started from, so the web server can keep them out of a stray Ctrl+C and stop them on exit. `engines.py` is the shared JSON-lines client of the engines that run in their own venv. |
 | Download | `download.py` | yt-dlp for the video, audio and thumbnail. |

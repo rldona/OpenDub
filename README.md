@@ -114,30 +114,47 @@ Each phase can also run on its own: `download`, `transcribe`, `translate`, `tts`
 
 ## Web frontend
 
-A local page to dub without the command line: paste a YouTube link, pick the
-voice (edge-tts or cloned, with the engine on *Automatic* by default), whether
-to keep the music and the background volume, and follow each phase live. Below,
-the dubbed videos with a player and a download button; each video's page shows
-the translation segment by segment (original, Spanish, slot and characters
-against the limit Claude got), lets you edit it and regenerate only the voice
-and the mix, and lists the clips with problems with a player for each.
-**Regenerate with another engine** dubs the same video with another engine on
-the same translation (only the voice and the mix run). Every dub made is kept
-(`outputs/<date>-<engine>.mp4`, with its `tts.json` and `overflow.log`), whatever
-the engine and however many times the video is dubbed again: the player switches
-between them, and older ones can be deleted (the latest stays: the issues listed
-are its). Long videos take ~100 MB per version. The engine
-selector shows each engine's license and what it stood out for in the
-benchmark, and marks the ones not installed, with the command that installs them.
+A local dashboard to dub without the command line, in English or Spanish, dark
+or light, with a choice of accent color (Preferences):
+
+- **Library**: paste a YouTube link, pick the voice (cloned or stock), the
+  engine (*Automatic* by default) and whether to keep the music; follow the
+  running dub phase by phase, and find every video with its versions, the
+  latest one, its issues and its status.
+- **Video**: the player, a timeline with each issue where it happens (click to
+  jump), and every dub kept: each one plays, downloads and shows its numbers
+  (voice time, sped up, shortened, below the floor, redone, edge-tts) and its
+  own issues; older ones can be deleted (the latest stays). The translation,
+  segment by segment, shows each issue of the version you watch next to its
+  sentence, filters to those or to hand edits, and saves edits for the next
+  dub. **Re-dub…** picks the engine (with what it did last time on that video)
+  and keeps the translation by default, so only the voice and the mix run.
+- **Compare**: two versions side by side, playing in sync, heard one at a
+  time (A/B keys), with how each one fitted and the segments where they differ.
+- **Engines**: each engine's license, where it runs, its benchmark figures and
+  whether it is installed (with the command that installs it).
+
+Every dub made is kept (`outputs/<date>-<engine>.mp4`, with its `tts.json` and
+`overflow.log`), whatever the engine and however many times the video is dubbed
+again; long videos take ~100 MB per version.
 
 ```bash
 uv sync --extra web          # plus --extra separate --extra clone for cloned voices
-uv run opendub web    # http://127.0.0.1:8000, opens the browser
+uv run opendub web           # http://127.0.0.1:8000, opens the browser
 ```
 
 It only listens on 127.0.0.1 and runs one job at a time (the others wait in
-order); it uses the same `work/` folder and cache as the CLI. The interface is
-in English, with Spanish under Preferences.
+order); it uses the same `work/` folder and cache as the CLI.
+
+The page is a React 19 + TypeScript app in [frontend/](frontend/), built with
+Vite into `src/opendub/web/static/`, which is committed: running it needs no
+Node, only changing it does (Node 22+):
+
+```bash
+cd frontend && npm install
+npm run dev      # http://localhost:5173, against a running `opendub web`
+npm run build    # rebuild src/opendub/web/static/
+```
 
 ## Cache and working folder
 

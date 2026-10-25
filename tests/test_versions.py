@@ -106,3 +106,48 @@ def test_web_deletes_old_versions_but_not_the_latest(tmp_path):
     assert not any(wd.outputs_dir.glob(f"{old.stem}.*")) and wd.output.read_bytes() == b"i" * 64
     assert c.delete(f"/videos/17kBVfGjI8c/outputs/{old.stem}").status_code == 404
     assert c.delete("/videos/17kBVfGjI8c/outputs/..%2Fmeta").status_code == 404
+
+
+def test_each_version_has_its_own_issues_and_numbers(tmp_path):
+    import pytest
+
+    pytest.importorskip("fastapi")
+    from fastapi.testclient import TestClient
+
+    from opendub.web.app import create_app
+
+    work = tmp_path / "work"
+    wd = WorkDir(work, "17kBVfGjI8c")
+    wd.meta.write_text(json.dumps({"title": "t", "duration": 10}))
+    clip = {"start": 1.0, "slot": 2.0, "raw_duration": 1.5, "duration": 1.5, "overflow": 0.0, "file": "tts/0001.wav",
+            "text": "Hola.", "factor": 1.0}
+
+    def dub(engine, content, clips, log, stats=None):
+        tmp = wd.path / "output.part.mp4"
+        tmp.write_bytes(content)
+        tmp.replace(wd.output)
+        wd.tts_index.write_text(json.dumps({"engine": engine, "stats": stats or {}, "clips": clips}))
+        wd.overflow_log.write_text(log)
+        return mix.archive(wd)
+
+    old = dub("cosyvoice", b"c" * 64, [{**clip, "id": 1, "tempo": 1.0, "voice": "edge"},
+                                       {**clip, "id": 2, "tempo": 1.0, "voice": "cosyvoice (seed+1)"}],
+              "#1 @1.00s: cloned voice failed the quality check, used edge-tts · Hola.\n")
+    dub("indextts", b"i" * 64, [{**clip, "id": 1, "tempo": 1.2, "voice": "indextts"},
+                                {**clip, "id": 2, "tempo": 1.0, "voice": "indextts"}],
+        "#2 @1.00s: did not fit even shortened, duration factor 0.62 below the 0.70 floor · Hola.\n",
+        stats={"seconds": 42.5, "shortened": 3})
+    c = TestClient(create_app(work, runner=lambda url, s: None, allowed_hosts=("testserver",)))
+    outputs = c.get("/videos/17kBVfGjI8c").json()["outputs"]
+    assert [(o["engine"], o["issues"]) for o in outputs] == [("indextts", 1), ("cosyvoice", 2)]
+
+    latest = c.get("/videos/17kBVfGjI8c/versions/latest").json()
+    assert latest["current"] and latest["engine"] == "indextts"
+    assert latest["stats"] == {"clips": 2, "voice_seconds": 42.5, "sped_up": 1, "shortened": 3, "below_floor": 1,
+                               "redone": 0, "edge": 0}
+    older = c.get(f"/videos/17kBVfGjI8c/versions/{old.stem}").json()
+    assert not older["current"] and older["stats"]["edge"] == 1 and older["stats"]["redone"] == 1
+    assert {i["kind"] for i in older["issues"]} == {"fallback", "repaired"}
+    assert all(i["wav"] is None for i in older["issues"])  # its clips are gone: heard by seeking its video
+    assert [i["kind"] for i in c.get(f"/videos/17kBVfGjI8c/issues?version={old.stem}").json()] == ["fallback", "repaired"]
+    assert c.get("/videos/17kBVfGjI8c/versions/nope").status_code == 404
