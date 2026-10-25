@@ -144,7 +144,7 @@ def test_run_shortens_clips_that_do_not_fit(tmp_path, monkeypatch):
 
     calls = []
 
-    def fake_shorten(items, voice, settings):
+    def fake_shorten(items, voice, settings, style=None):
         calls.append(items)
         return {i: "y" * m for i, _o, _t, m in items}
 

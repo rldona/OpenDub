@@ -91,6 +91,7 @@ Common `dub` options:
 | `--engine` | `chatterbox` | Cloning engine for `--tts clone`: `chatterbox`, `indextts`, `cosyvoice` or `auto` (by the reference's pitch, see below) |
 | `--min-factor` | `0.7` | `indextts`, `cosyvoice`: lowest duration factor before shortening a sentence that doesn't fit |
 | `--keep-translation` | off | Reuses the existing translation even if it was made for another engine: only TTS and the mix are redone |
+| `--style` | none | Extra `style.json` (register, variant, glossary, notes; see below) over `work/style.json` and the video's own |
 | `--clone-ref` | none | Fixed Spanish recording to clone from when a cloned clip fails the quality check |
 | `--bg-volume` | `-15` | Volume of the original audio, in dB |
 | `--mute-original` | off | Drops the original audio |
@@ -111,6 +112,38 @@ Each phase can also run on its own: `download`, `transcribe`, `translate`, `tts`
 `separate` and `mix` (all accept the URL or the video id). `separate` only needs
 `download`, so it can run at any point before `mix --separate`. Run
 `uv run opendub <phase> --help` to see its options.
+
+### Translation style and glossary
+
+A `style.json` sets how a translation reads. `work/style.json` applies to every
+video, and `work/<video id>/style.json` to one video, winning over the global one.
+Both are optional, and the web page edits them too:
+
+```json
+{
+  "register": "tu",
+  "variant": "es-ES",
+  "terms": [
+    {"source": "itch store", "target": "tienda de itch.io"},
+    {"source": "VFX", "target": ""}
+  ],
+  "notes": "Pixel art channel: 'frame' stays as 'frame'."
+}
+```
+
+- `register`: `tu`, `usted` or `auto` (keeps the original's).
+- `variant`: `es-ES`, `latam` or `auto` (follows `--voice`). A variant also
+  switches an edge-tts voice of the other variant to `es-ES-AlvaroNeural` or
+  `es-MX-JorgeNeural`.
+- `terms`: how each term must be rendered; an empty `target` keeps it as in the
+  original. Whole words, any case.
+- `notes`: free instructions for this channel or video.
+
+Each block of 30 sentences only gets the terms it says, and is cached by its own
+inputs. Adding a term only re-translates the blocks that say it, and a term the
+video never says changes nothing. Shortened sentences keep the glossary too. A
+sentence whose spoken text doesn't use a term its original says is listed as a
+`glossary` issue on the web page, except hand edits.
 
 ## Web frontend
 
@@ -168,6 +201,8 @@ but neither the translation nor the separation).
 | `video.mp4`, `audio.wav`, `subs.*` | Download |
 | `segments.json` | Original sentences with timestamps |
 | `translation.json` | Translation (you can edit it by hand and rerun `tts`) |
+| `style.json`, `translation.style.json` | The video's own translation style, and the one its translation was made with |
+| `translate_blocks/` | Each translated block, cached by its own inputs |
 | `tts/`, `tts.json` | One clip per sentence, with its tempo, duration and spoken text (shortened if needed) |
 | `overflow.log` | Sentences that didn't fit their slot, clips with abnormal duration and delayed clips |
 | `stems/vocals.wav`, `stems/background.wav` | Separated original voice and background |

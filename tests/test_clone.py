@@ -49,7 +49,7 @@ def test_repair_chain_keeps_the_cloned_voice_as_long_as_possible(tmp_path, monke
 
     monkeypatch.setattr(tts, "_clone_failures", fake_failures)
     monkeypatch.setattr(tts, "_render_each", fake_render_each)
-    monkeypatch.setattr(translate, "shorten", lambda items, v, s: {i: t[:m] for i, _o, t, m in items})
+    monkeypatch.setattr(translate, "shorten", lambda items, v, s, st=None: {i: t[:m] for i, _o, t, m in items})
 
     fell_back = tts._repair_clones(wd, clips, voices, {}, by_id, settings)
 
@@ -126,7 +126,7 @@ def test_quality_check_never_shortens_a_tiny_text(tmp_path, monkeypatch):
     monkeypatch.setattr(tts, "_clone_failures", lambda wd_, ids, c, s: {i for i in ids if c[i].voice != "edge"})
     monkeypatch.setattr(tts, "_render_each", lambda wd_, jobs, slots, s, regenerate=False: (
         rendered.append(sorted((sg.id, v.label, sg.text) for sg, v in jobs)) or [_clip(sg, v) for sg, v in jobs]))
-    monkeypatch.setattr(translate, "shorten", lambda items, v, s: asked.extend(i for i, *_ in items) or
+    monkeypatch.setattr(translate, "shorten", lambda items, v, s, st=None: asked.extend(i for i, *_ in items) or
                         {i: t[:m] for i, _o, t, m in items})
 
     tts._repair_clones(wd, clips, voices, {}, {s.id: s for s in segs}, settings)

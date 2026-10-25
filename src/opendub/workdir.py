@@ -64,6 +64,7 @@ class WorkDir:
     output = property(lambda self: self.path / "output.mp4")
     thumbnail = property(lambda self: self.path / "thumbnail.jpg")
     outputs_dir = property(lambda self: self.path / "outputs")  # one dubbed video per engine
+    translation_style = property(lambda self: self.path / "translation.style.json")  # style it was made with
     translation_edits = property(lambda self: self.path / "translation_edits.json")  # hand edits from the web
     job = property(lambda self: self.path / "job.json")  # web frontend: last job's options and outcome
 

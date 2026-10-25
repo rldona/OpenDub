@@ -415,3 +415,33 @@ def test_another_engine_keeps_the_translation(tmp_path):
     assert job["options"]["engine"] == "cosyvoice" and job["options"]["keep_translation"] is True
     settings = fake.runs[0][1]
     assert settings.engine == "cosyvoice" and settings.keep_translation and settings.tts == "clone"
+
+
+def test_style_global_and_per_video_and_glossary_issues(tmp_path):
+    c = client(tmp_path, FakePipeline())
+    wd = make_video(tmp_path / "work")
+    assert c.get("/style").json()["register"] == "auto"
+    r = c.put("/style", json={"register": "tu", "terms": [{"source": "earthquakes", "target": "seísmos"}]})
+    assert r.status_code == 200 and r.json()["terms"] == [{"source": "earthquakes", "target": "seísmos"}]
+    assert c.put("/style", json={"register": "vos"}).status_code == 422
+
+    data = c.get(f"/videos/{VID}/style").json()
+    assert data["applied"]["register"] == "tu" and data["used"] == ["earthquakes"]
+    assert data["stale"] is True  # translated before the style existed
+    issues = c.get(f"/videos/{VID}/issues").json()
+    assert ("glossary", 1) in [(i["kind"], i["id"]) for i in issues]
+
+    r = c.put(f"/videos/{VID}/style", json={"register": "usted", "terms": [{"source": "Earthquakes", "target": "terremotos"}]})
+    data = r.json()
+    assert data["applied"]["register"] == "usted"
+    assert data["applied"]["terms"] == [{"source": "Earthquakes", "target": "terremotos"}]  # the video's wins
+    assert "glossary" not in [i["kind"] for i in c.get(f"/videos/{VID}/issues").json()]
+
+    # the translation remembers the style it was made with
+    from opendub import style
+
+    st = style.merge(style.read(wd.path.parent / style.FILE), style.read(wd.path / style.FILE))
+    wd.translation_style.write_text(json.dumps(style.snapshot(st, ["Earthquakes are common.", "But why?", "Let's rewind."])))
+    assert c.get(f"/videos/{VID}/style").json()["stale"] is False
+    c.put(f"/videos/{VID}/style", json={})
+    assert not (wd.path / style.FILE).exists()

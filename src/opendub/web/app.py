@@ -12,7 +12,7 @@ import re
 from pathlib import Path
 from typing import Literal
 
-from fastapi import FastAPI, HTTPException, Request
+from fastapi import Body, FastAPI, HTTPException, Request
 from fastapi.middleware.trustedhost import TrustedHostMiddleware
 from fastapi.responses import FileResponse, StreamingResponse
 from fastapi.staticfiles import StaticFiles
@@ -214,6 +214,33 @@ def create_app(work_root: Path = Path("work"), runner: Runner | None = None,
         except KeyError as e:
             raise HTTPException(422, f"No segment {e.args[0]}") from e
         return videos.translation(wd, manager)
+
+    @app.get("/style")
+    def get_style() -> dict:
+        """The style every video is translated with (work/style.json)."""
+        return videos.style.read(work_root / videos.style.FILE).to_json()
+
+    @app.put("/style")
+    def put_style(data: dict = Body()) -> dict:
+        """Body: style.json's shape (see opendub.style); checked there."""
+        try:
+            videos.save_style(work_root / videos.style.FILE, data)
+        except ValueError as e:
+            raise HTTPException(422, str(e)) from e
+        return get_style()
+
+    @app.get("/videos/{vid}/style")
+    def get_video_style(vid: str) -> dict:
+        return videos.video_style(folder(vid))
+
+    @app.put("/videos/{vid}/style")
+    def put_video_style(vid: str, data: dict = Body()) -> dict:
+        wd = folder(vid)
+        try:
+            videos.save_style(wd.path / videos.style.FILE, data)
+        except ValueError as e:
+            raise HTTPException(422, str(e)) from e
+        return videos.video_style(wd)
 
     @app.get("/videos/{vid}/issues")
     def get_issues(vid: str, version: str | None = None) -> list[dict]:

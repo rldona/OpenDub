@@ -99,7 +99,7 @@ def test_native_shortens_before_going_below_the_floor(tmp_path, monkeypatch, sho
 
     rendered, shortened = [], []
 
-    def fake_shorten(items, voice, settings):
+    def fake_shorten(items, voice, settings, style=None):
         shortened.append((items, [list(r) for r in rendered]))
         return {i: ("z" * (m - 5) if shortening_helps else t) for i, _o, t, m in items}
 

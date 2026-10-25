@@ -32,7 +32,7 @@ from pathlib import Path
 
 from rich.progress import BarColumn, MofNCompleteColumn, TimeElapsedColumn
 
-from . import reference
+from . import reference, style
 from .config import Settings
 from .log import Progress, console, log
 from .media import ffmpeg
@@ -668,7 +668,8 @@ def _shorten_overflows(
                   shorten_target(c.text, c, 1.0 if native_duration(voices[c.id].engine) else settings.max_tempo,
                                  _clip_overhead(c, voices[c.id], settings)))
                  for c in bad]
-        new_texts = translate.shorten(items, settings.voice, settings)
+        new_texts = translate.shorten(items, settings.voice, settings, style.load(settings.work_root, wd.path,
+                                                                                   settings.style_file))
         jobs = [(replace(by_id[i], text=t), voices[i]) for i, t in new_texts.items()]
         for clip in _render_each(wd, jobs, slots, settings):
             clips[clip.id] = clip
@@ -717,7 +718,8 @@ def _repair_clones(
                      if not tiny(texts[i])]
             if not items:
                 continue
-            texts = {**texts, **translate.shorten(items, settings.voice, settings)}
+            st = style.load(settings.work_root, wd.path, settings.style_file)
+            texts = {**texts, **translate.shorten(items, settings.voice, settings, st)}
             new_voices = {i: replace(voices[i], label=f"{voices[i].engine} (shortened)") for i, *_ in items}
         elif step == "the fixed reference":
             new_voices = {i: replace(voices[i], ref=settings.clone_ref, seed=SEED,

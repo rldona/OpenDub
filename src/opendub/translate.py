@@ -17,6 +17,7 @@ from typing import Any
 from rich.progress import BarColumn, MofNCompleteColumn, TimeElapsedColumn
 
 from . import media
+from . import style as style_mod
 from .config import Settings
 from .log import Progress, console, log
 from .models import Segment, load_segments, save_segments
@@ -63,11 +64,29 @@ is a cap, not a target to cut down to. Prefer natural, spoken phrasing over lite
 translation.
 - A segment may start or end mid-sentence: translate it so it joins up with its \
 neighbours.
-- Keep the original's register (tú or usted, formal or casual tone).
+{register}
 - Leave proper nouns, and technical terms that are used as-is in Spanish, in the \
 original language.
 - Output only text to be read aloud: no markdown, emojis, stage directions or \
 translator's notes.
+"""
+
+
+REGISTER_RULES = {
+    "auto": "- Keep the original's register (tú or usted, formal or casual tone).",
+    "tu": "- Address the viewer as tú (informal), whatever the original's register.",
+    "usted": "- Address the viewer as usted (formal), whatever the original's register.",
+}
+
+GLOSSARY_RULE = """\
+- `glossary` lists terms these segments say and how they must be rendered: use that \
+rendering every time, inflected only if the grammar needs it. An empty translation \
+means leave the term exactly as in the original.
+"""
+
+NOTES = """
+Notes about this video from the person dubbing it (follow them):
+{notes}
 """
 
 
@@ -82,8 +101,20 @@ same id. Only text to be read aloud: no markdown, emojis or notes.
 """
 
 
-def _target_name(voice: str) -> str:
-    return "Castilian Spanish (Spain)" if voice.startswith("es-ES") else "neutral Latin American Spanish"
+def _system(template: str, style: style_mod.Style, terms: list[style_mod.Term], **names: str) -> str:
+    """A prompt with the style's register, the glossary rule when there are terms, and its notes."""
+    system = template.format(register=REGISTER_RULES[style.register], **names)
+    if template is SHORTEN_PROMPT and style.register != "auto":
+        system += REGISTER_RULES[style.register] + "\n"
+    if terms:
+        system += GLOSSARY_RULE
+    if style.notes:
+        system += NOTES.format(notes=style.notes)
+    return system
+
+
+def _glossary(terms: list[style_mod.Term]) -> list[dict[str, str]]:
+    return [{"term": t.source, "translation": t.target} for t in terms]
 
 
 def _slot(segments: list[Segment], i: int) -> float:
@@ -94,13 +125,8 @@ def _slot(segments: list[Segment], i: int) -> float:
     return seg.duration + 1.0
 
 
-def _user_prompt(
-    block: list[tuple[Segment, float]], context: list[tuple[str, str]], pace: Pace
-) -> str:
-    payload: dict[str, Any] = {}
-    if context:
-        payload["previous_context"] = [{"original": o, "translation": t} for o, t in context]
-    payload["segments"] = [
+def _block_segments(block: list[tuple[Segment, float]], pace: Pace) -> list[dict[str, Any]]:
+    return [
         {
             "id": s.id,
             "duration_s": round(slot, 1),
@@ -109,6 +135,18 @@ def _user_prompt(
         }
         for s, slot in block
     ]
+
+
+def _user_prompt(
+    block: list[tuple[Segment, float]], context: list[tuple[str, str]], pace: Pace,
+    terms: list[style_mod.Term] | None = None,
+) -> str:
+    payload: dict[str, Any] = {}
+    if context:
+        payload["previous_context"] = [{"original": o, "translation": t} for o, t in context]
+    if terms:
+        payload["glossary"] = _glossary(terms)
+    payload["segments"] = _block_segments(block, pace)
     return json.dumps(payload, ensure_ascii=False, indent=1)
 
 
@@ -185,13 +223,19 @@ def _ask(system: str, prompt: str, expected: list[int], settings: Settings) -> t
     raise SystemExit(f"Claude did not return a valid response for ids {expected[0]}–{expected[-1]}")
 
 
-def shorten(items: list[tuple[int, str, str, int]], voice: str, settings: Settings) -> dict[int, str]:
-    """Ask for shorter versions of sentences that do not fit: (id, original, translation, max_chars)."""
-    system = SHORTEN_PROMPT.format(target=_target_name(voice))
-    prompt = json.dumps(
-        [{"id": i, "original": o, "translation": t, "max_chars": m} for i, o, t, m in items],
-        ensure_ascii=False, indent=1,
-    )
+def shorten(
+    items: list[tuple[int, str, str, int]], voice: str, settings: Settings, style: style_mod.Style | None = None,
+) -> dict[int, str]:
+    """Ask for shorter versions of sentences that do not fit: (id, original, translation, max_chars).
+
+    With a style, the shorter versions keep its register and glossary too.
+    """
+    style = style or style_mod.Style()
+    terms = style_mod.matching(style.terms, [o for _, o, _, _ in items])
+    system = _system(SHORTEN_PROMPT, style, terms, target=style_mod.target_name(voice, style.variant))
+    listed = [{"id": i, "original": o, "translation": t, "max_chars": m} for i, o, t, m in items]
+    payload: Any = {"glossary": _glossary(terms), "items": listed} if terms else listed
+    prompt = json.dumps(payload, ensure_ascii=False, indent=1)
     got, _ = _ask(system, prompt, [i for i, *_ in items], settings)
     # a shorter version that came back empty or garbled (U+FFFD) is worse than none
     bad = [i for i, text in got.items() if not text.strip() or "\ufffd" in text]
@@ -240,7 +284,8 @@ def run(wd: WorkDir, settings: Settings, force: bool = False) -> list[Segment]:
     segments = load_segments(wd.segments)
     meta = json.loads(wd.meta.read_text(encoding="utf-8"))
     source_code = (meta.get("language") or "en").split("-")[0]
-    target = _target_name(settings.voice)
+    style = style_mod.load(settings.work_root, wd.path, settings.style_file)
+    target = style_mod.target_name(settings.voice, style.variant)
     from .tts import Pace, voice_rate  # lazy import: tts also imports this module
 
     if settings.keep_translation and wd.has("translate") and wd.translation.exists():
@@ -256,40 +301,53 @@ def run(wd: WorkDir, settings: Settings, force: bool = False) -> list[Segment]:
         "target": target,
         "source": [(s.id, s.text) for s in segments],
     }
+    used = style_mod.matching(style.terms, [s.text for s in segments])
+    if not style.empty:  # only then: a video without a style keeps its cached translation
+        params["style"] = {"register": style.register, "notes": style.notes,
+                           "terms": [(t.source, t.target) for t in used]}
     if not force and wd.is_done("translate", params) and wd.translation.exists():
         log.info("Translation cached, skipping")
         return load_segments(wd.translation)
 
-    # Each translated block is saved separately so a run can resume if something fails midway
-    block_dir = wd.path / "translate_blocks" / params_hash(params)
-    if force and block_dir.exists():
-        shutil.rmtree(block_dir)
+    # Each translated block is saved under a hash of its own inputs (prompt, segments, glossary),
+    # so a run can resume if something fails midway and a new glossary term only re-translates
+    # the blocks that say it. The previous context is left out of it: it is for reference only.
+    block_dir = wd.path / "translate_blocks" / "blocks"
     block_dir.mkdir(parents=True, exist_ok=True)
 
-    system = SYSTEM_PROMPT.format(source=LANG_NAMES.get(source_code, source_code), target=target)
+    source_name = LANG_NAMES.get(source_code, source_code)
     slots = [_slot(segments, i) for i in range(len(segments))]
     pairs = list(zip(segments, slots))
     blocks = [pairs[i : i + settings.batch_size] for i in range(0, len(pairs), settings.batch_size)]
     log.info(f"{len(segments)} segments in {len(blocks)} blocks · backend {settings.backend} · {settings.claude_model}")
     log.info(f"Speaking rate for max_chars: {cps:.1f} chars/s"
              + (f" after {pace.overhead:.2f} s per clip" if pace.overhead else ""))
+    if not style.empty:
+        log.info(f"Style: register {style.register} · {target} · {len(used)} of {len(style.terms)} glossary "
+                 f"term(s) in this video" + (" · with notes" if style.notes else ""))
 
     translated: dict[int, str] = {}
     total_cost = 0.0
+    asked = 0
     with Progress(
         "[progress.description]{task.description}", BarColumn(), MofNCompleteColumn(),
         TimeElapsedColumn(), console=console, transient=True,
     ) as progress:
         task = progress.add_task("Translating blocks", total=len(blocks))
         for n, block in enumerate(blocks):
-            path = block_dir / f"block_{n:03d}.json"
-            if path.exists():
+            terms = style_mod.matching(used, [s.text for s, _ in block])
+            system = _system(SYSTEM_PROMPT, style, terms, source=source_name, target=target)
+            key = params_hash({"model": settings.claude_model, "system": system,
+                               "segments": _block_segments(block, pace), "glossary": _glossary(terms)})
+            path = block_dir / f"{key}.json"
+            if path.exists() and not force:
                 got = {int(k): v for k, v in json.loads(path.read_text(encoding="utf-8")).items()}
             else:
                 prev = [s for s, _ in pairs[: n * settings.batch_size]][-CONTEXT_SEGMENTS:]
                 context = [(s.text, translated[s.id]) for s in prev]
-                prompt = _user_prompt(block, context, pace)
+                prompt = _user_prompt(block, context, pace, terms)
                 got, cost = _ask(system, prompt, [s.id for s, _ in block], settings)
+                asked += 1
                 total_cost += cost
                 path.write_text(json.dumps(got, ensure_ascii=False, indent=1), encoding="utf-8")
             translated.update(got)
@@ -297,12 +355,22 @@ def run(wd: WorkDir, settings: Settings, force: bool = False) -> list[Segment]:
 
     result = keep_edits(wd, segments, [replace(s, text=translated[s.id]) for s in segments], pace)
     save_segments(wd.translation, result)
+    # so the web can tell when the style changed since (and the video needs translating again)
+    wd.translation_style.write_text(json.dumps(style_mod.snapshot(style, [s.text for s in segments]),
+                                               ensure_ascii=False), encoding="utf-8")
 
     over = [
         (s, slot) for s, slot in zip(result, slots) if len(s.text) > pace.max_chars(slot) * 1.25
     ]
     ratio = sum(len(s.text) for s in result) / sum(len(s.text) for s in segments)
     log.info(f"ES/original length: {ratio:.0%} · probably too long: {len(over)}")
+    if asked < len(blocks):
+        log.info(f"Blocks translated: {asked} · reused: {len(blocks) - asked}")
+    edited = set(json.loads(wd.translation_edits.read_text(encoding="utf-8"))) if wd.translation_edits.exists() else set()
+    missed = [s.id for o, s in zip(segments, result)
+              if str(s.id) not in edited and style_mod.misses(used, o.text, s.text)]
+    if missed:
+        log.warning(f"Glossary not followed in {len(missed)} segment(s): {missed}")
     if settings.backend == "cli" and total_cost:
         log.info(f"Equivalent API cost: ${total_cost:.3f} (not billed separately with a subscription)")
     wd.mark_done("translate", params)

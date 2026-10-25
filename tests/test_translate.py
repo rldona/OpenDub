@@ -133,3 +133,110 @@ def test_run_uses_calibrated_rate_when_not_given(wd, monkeypatch):
     translate.run(wd, Settings(batch_size=10))
     # first segment: 3 s slot (2 s long + 1 s borrowed) at 20 chars/s
     assert prompts[0]["segments"][0]["max_chars"] == 60
+
+
+def _style(wd, data, where="video"):
+    from opendub import style
+
+    path = (wd.path if where == "video" else wd.path.parent) / style.FILE
+    path.write_text(json.dumps(data))
+
+
+def test_style_sends_register_notes_and_only_the_block_terms(wd, monkeypatch):
+    _style(wd, {"terms": [{"source": "itch store", "target": ""}, {"source": "Sentence 1", "target": "Frase uno"},
+                          {"source": "never said", "target": "x"}]}, where="global")
+    _style(wd, {"register": "usted", "notes": "Pixel art channel."})
+    calls = []
+
+    def fake_cli(system, prompt, model):
+        data = json.loads(prompt)
+        calls.append((system, data))
+        return {"segments": [{"id": s["id"], "text": "ok"} for s in data["segments"]]}, 0.0
+
+    monkeypatch.setattr(translate, "_call_cli", fake_cli)
+    translate.run(wd, Settings(work_root=wd.path.parent, batch_size=3, chars_per_second=15))
+    (system1, first), (system2, second), _ = calls
+    assert first["glossary"] == [{"term": "Sentence 1", "translation": "Frase uno"}]
+    assert "glossary" not in second
+    assert "usted (formal)" in system1 and "Pixel art channel." in system1
+    assert "`glossary`" in system1 and "`glossary`" not in system2
+
+
+def test_style_change_retranslates_only_blocks_with_the_new_term(wd, monkeypatch):
+    seen = []
+
+    def fake_cli(system, prompt, model):
+        segs = json.loads(prompt)["segments"]
+        seen.append([s["id"] for s in segs])
+        return {"segments": [{"id": s["id"], "text": "ok"} for s in segs]}, 0.0
+
+    monkeypatch.setattr(translate, "_call_cli", fake_cli)
+    settings = Settings(work_root=wd.path.parent, batch_size=3, chars_per_second=15)
+    translate.run(wd, settings)
+    assert len(seen) == 3
+    _style(wd, {"terms": [{"source": "Sentence 5", "target": "Frase cinco"}]})
+    seen.clear()
+    translate.run(wd, settings)
+    assert seen == [[4, 5, 6]]
+    translate.run(wd, settings)  # cached as a whole now
+    assert seen == [[4, 5, 6]]
+
+
+def test_a_term_the_video_never_says_keeps_the_cache(wd, monkeypatch):
+    monkeypatch.setattr(translate, "_call_cli", lambda system, prompt, model: (
+        {"segments": [{"id": s["id"], "text": "ok"} for s in json.loads(prompt)["segments"]]}, 0.0))
+    settings = Settings(work_root=wd.path.parent, batch_size=3, chars_per_second=15)
+    translate.run(wd, settings)
+    _style(wd, {"terms": [{"source": "elsewhere", "target": "x"}]})
+    monkeypatch.setattr(translate, "_call_cli", lambda *a: pytest.fail("should not be called"))
+    translate.run(wd, settings)
+
+
+def test_style_variant_sets_the_target_and_the_voice(wd, monkeypatch):
+    from opendub import style
+
+    _style(wd, {"variant": "latam"})
+    systems = []
+    monkeypatch.setattr(translate, "_call_cli", lambda system, prompt, model: systems.append(system) or (
+        {"segments": [{"id": s["id"], "text": "ok"} for s in json.loads(prompt)["segments"]]}, 0.0))
+    settings = Settings(work_root=wd.path.parent, batch_size=10, chars_per_second=15)
+    translate.run(wd, settings)
+    assert "neutral Latin American Spanish" in systems[0]
+    st = style.load(wd.path.parent, wd.path)
+    assert style.with_variant_voice(settings, st).voice == "es-MX-JorgeNeural"
+    assert style.with_variant_voice(Settings(voice="es-AR-TomasNeural"), st).voice == "es-AR-TomasNeural"
+
+
+def test_shorten_keeps_the_glossary(monkeypatch):
+    from opendub import style
+
+    seen = {}
+
+    def fake_cli(system, prompt, model):
+        seen["system"], seen["payload"] = system, json.loads(prompt)
+        return {"segments": [{"id": 3, "text": "Corta."}]}, 0.0
+
+    monkeypatch.setattr(translate, "_call_cli", fake_cli)
+    st = style.Style(register="tu", terms=[style.Term("itch store")])
+    translate.shorten([(3, "Buy it on my itch store.", "Cómpralo en mi itch store, que está genial.", 30)],
+                      "es-ES-AlvaroNeural", Settings(), st)
+    assert seen["payload"]["glossary"] == [{"term": "itch store", "translation": ""}]
+    assert seen["payload"]["items"][0]["id"] == 3
+    assert "tú (informal)" in seen["system"]
+
+
+def test_style_files_merge_and_check():
+    from opendub import style
+
+    base = style.parse({"register": "tu", "terms": [{"source": "VFX", "target": ""}, {"source": "slash", "target": "corte"}],
+                        "notes": "a"})
+    over = style.parse({"variant": "es-ES", "terms": [{"source": "Slash", "target": "tajo"}], "notes": "b"})
+    st = style.merge(base, over)
+    assert (st.register, st.variant, st.notes) == ("tu", "es-ES", "a\nb")
+    assert [(t.source, t.target) for t in st.terms] == [("VFX", ""), ("Slash", "tajo")]
+    assert style.matching(st.terms, ["the slash itself"]) == [st.terms[1]]
+    assert style.matching(st.terms, ["slashing"]) == []  # whole words only
+    assert style.misses(st.terms, "Add the VFX slash.", "Añade los VFX del tajo.") == []
+    assert [t.source for t in style.misses(st.terms, "Add the VFX slash.", "Añade los efectos del corte.")] == ["VFX", "Slash"]
+    with pytest.raises(ValueError):
+        style.parse({"register": "vos"})

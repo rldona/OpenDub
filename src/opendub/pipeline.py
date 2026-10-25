@@ -9,6 +9,7 @@ from pathlib import Path
 from . import download as download_mod
 from . import mix as mix_mod
 from . import separate as separate_mod
+from . import style as style_mod
 from . import transcribe as transcribe_mod
 from . import translate as translate_mod
 from . import tts as tts_mod
@@ -35,6 +36,7 @@ def dub(url: str, settings: Settings, output: Path | None = None, force: bool = 
     rate (measured from the separated vocals) caps the translation length.
     """
     wd = workdir(url, settings)
+    settings = style_mod.with_variant_voice(settings, style_mod.load(settings.work_root, wd.path, settings.style_file))
     if force:
         wd.invalidate_from("download")
     with phase("Download"):

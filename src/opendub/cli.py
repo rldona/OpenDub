@@ -11,6 +11,7 @@ from . import download as download_mod
 from . import pipeline
 from . import mix as mix_mod
 from . import separate as separate_mod
+from . import style as style_mod
 from . import transcribe as transcribe_mod
 from . import translate as translate_mod
 from . import tts as tts_mod
@@ -73,6 +74,14 @@ CloneRef = Annotated[
     Path | None,
     typer.Option("--clone-ref", help="Fixed Spanish reference recording for cloned clips that fail the quality check"),
 ]
+StyleFile = Annotated[
+    Path | None,
+    typer.Option(
+        "--style",
+        help="style.json with register (tu/usted), variant (es-ES/latam), glossary terms and notes; "
+        "applied over work/style.json and the video's own work/<id>/style.json",
+    ),
+]
 BatchSize = Annotated[int, typer.Option("--batch-size", help="Segments per translation call")]
 CharsPerSecond = Annotated[
     float | None,
@@ -119,6 +128,11 @@ def _setup(url: str, settings: Settings) -> WorkDir:
     wd = WorkDir(settings.work_root, download_mod.video_id(url))
     log.info(f"Working folder: {wd.path}")
     return wd
+
+
+def _with_style(settings: Settings, wd: WorkDir) -> Settings:
+    """The edge-tts voice of the style's variant, if it asks for the other one."""
+    return style_mod.with_variant_voice(settings, style_mod.load(settings.work_root, wd.path, settings.style_file))
 
 
 def _require(wd: WorkDir, step: str) -> None:
@@ -169,14 +183,16 @@ def translate(
     batch_size: BatchSize = 30,
     chars_per_second: CharsPerSecond = None,
     rate: Rate = "-10%",
+    style: StyleFile = None,
     force: Force = False,
 ) -> None:
     """Translate the segments into Spanish with Claude. Requires `transcribe` (and `separate` with --tts clone)."""
     settings = Settings(
         work_root=work, backend=backend, claude_model=model, voice=voice, tts=tts, engine=engine, batch_size=batch_size,
-        chars_per_second=chars_per_second, rate=rate,
+        chars_per_second=chars_per_second, rate=rate, style_file=style,
     )
     wd = _setup(url, settings)
+    settings = _with_style(settings, wd)
     _require(wd, "transcribe")
     if tts != "edge":
         _require(wd, "separate")
@@ -200,6 +216,7 @@ def tts(
     shorten: Shorten = True,
     backend: Backend = "cli",
     model: ClaudeModel = "claude-sonnet-5-5",
+    style: StyleFile = None,
     force: Force = False,
 ) -> None:
     """Generate one voice clip per segment and fit it to its slot. Requires `translate` (and `separate` with --tts clone)."""
@@ -207,8 +224,10 @@ def tts(
         work_root=work, voice=voice, tts=tts, engine=engine, min_factor=min_factor, clone_ref=clone_ref,
         whisper_model=whisper_model, rate=rate,
         min_tempo=min_tempo, max_tempo=max_tempo, shorten=shorten, backend=backend, claude_model=model,
+        style_file=style,
     )
     wd = _setup(url, settings)
+    settings = _with_style(settings, wd)
     _require(wd, "translate")
     if tts != "edge":
         _require(wd, "separate")
@@ -326,6 +345,7 @@ def dub(
     min_factor: MinFactor = 0.7,
     clone_ref: CloneRef = None,
     keep_translation: KeepTranslation = False,
+    style: StyleFile = None,
     batch_size: BatchSize = 30,
     chars_per_second: CharsPerSecond = None,
     rate: Rate = "-10%",
@@ -349,7 +369,7 @@ def dub(
         work_root=work, source_lang=source_lang, max_height=max_height,
         subs=subs, whisper_model=whisper_model, backend=backend, claude_model=model,
         voice=voice, tts=tts, engine=engine, min_factor=min_factor, clone_ref=clone_ref,
-        keep_translation=keep_translation, batch_size=batch_size, chars_per_second=chars_per_second, rate=rate,
+        keep_translation=keep_translation, style_file=style, batch_size=batch_size, chars_per_second=chars_per_second, rate=rate,
         min_tempo=min_tempo, shorten=shorten, max_tempo=max_tempo,
         bg_volume_db=bg_volume, mute_original=mute_original,
         separate=separate, separator=separator, music_volume_db=music_volume,

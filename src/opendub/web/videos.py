@@ -14,7 +14,7 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any
 
-from .. import translate, tts
+from .. import style, translate, tts
 from ..config import Settings
 from ..models import load_segments, save_segments
 from ..workdir import WorkDir
@@ -259,6 +259,33 @@ def save_translation(wd: WorkDir, edits: list[dict[str, Any]]) -> None:
     wd.invalidate_from("tts")
 
 
+# --- translation style ------------------------------------------------------------
+def video_style(wd: WorkDir) -> dict[str, Any]:
+    """The video's own style, the global one, what applies, and whether the translation predates it.
+
+    `used` are the glossary terms the video says; `stale` is true when the style that
+    applies differs from the one the current translation was made with (or never had one).
+    """
+    own = style.read(wd.path / style.FILE)
+    shared = style.read(wd.path.parent / style.FILE)
+    applied = style.merge(shared, own)
+    sources = [s.text for s in load_segments(wd.segments)] if wd.segments.exists() else []
+    made_with = _read_json(wd.translation_style)
+    current = style.snapshot(applied, sources)
+    if made_with is None:  # translated before styles existed: as if with an empty one
+        made_with = style.snapshot(style.Style(), sources)
+    return {
+        "video": own.to_json(), "global": shared.to_json(), "applied": applied.to_json(),
+        "used": [t.source for t in style.matching(applied.terms, sources)],
+        "stale": wd.translation.exists() and made_with != current,
+    }
+
+
+def save_style(path: Path, data: dict[str, Any]) -> None:
+    """Write a style.json (an empty style removes it). ValueError if a value is not valid."""
+    style.write(path, style.parse(data))
+
+
 # --- clips with problems --------------------------------------------------------
 def _version_sources(wd: WorkDir, version: str | None) -> tuple[dict[str, Any], str, bool]:
     """(tts.json, overflow.log text, whether it is the latest dub) of a kept version; None: the latest."""
@@ -311,9 +338,28 @@ def issues(wd: WorkDir, version: str | None = None) -> list[dict[str, Any]]:
         else:
             if m := _DELAYED.match(line):
                 add("delayed", int(m[1]), m[2])
+    for clip_id, term in _glossary_misses(wd, clips):
+        add("glossary", clip_id, f'glossary: "{term.source}" → "{term.expected}"')
     for clip in clips.values():
         label = clip.get("voice") or ""
         if engine and engine != "edge" and label not in (engine, "edge"):
             add("repaired", clip["id"], f"redone by the quality check: {label}")
-    order = {"fallback": 0, "floor": 1, "overflow": 2, "abnormal": 3, "repaired": 4, "delayed": 5}
+    order = {"fallback": 0, "floor": 1, "overflow": 2, "abnormal": 3, "glossary": 4, "repaired": 5, "delayed": 6}
     return sorted(out, key=lambda i: (order[i["kind"]], i["start"] or 0))
+
+
+def _glossary_misses(wd: WorkDir, clips: dict[int, dict[str, Any]]) -> list[tuple[int, style.Term]]:
+    """Spoken sentences that don't use a glossary term their original says (not hand edits:
+    what you wrote is what you meant). Against today's glossary, so a new term shows up
+    on the dubs made before it."""
+    terms = style.load(wd.path.parent, wd.path).terms
+    if not terms or not wd.segments.exists():
+        return []
+    edited = set(_read_json(wd.translation_edits) or {})
+    sources = {s.id: s.text for s in load_segments(wd.segments)}
+    out = []
+    for clip_id, clip in clips.items():
+        if str(clip_id) in edited or clip_id not in sources:
+            continue
+        out += [(clip_id, t) for t in style.misses(terms, sources[clip_id], clip.get("text") or "")]
+    return out
