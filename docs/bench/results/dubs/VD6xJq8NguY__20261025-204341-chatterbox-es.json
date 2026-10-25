@@ -1,0 +1,22 @@
+{
+ "video": "VD6xJq8NguY",
+ "version": "20261025-204341-chatterbox-es",
+ "engine": "chatterbox-es",
+ "shortened": 12,
+ "clips": 111,
+ "sped_up": 55,
+ "max_tempo": 1.25,
+ "not_fitting": 6,
+ "edge": 0,
+ "max_delay_s": 1.4,
+ "mean_delay_s": 0.205,
+ "late_voice_s": 62.1,
+ "lufs": -16.0,
+ "true_peak_db": -2.0,
+ "asr_clips": 111,
+ "cer_mean": 0.015,
+ "cer_p90": 0.036,
+ "cer_over_0_3": 0,
+ "p_es_mean": 0.942,
+ "whisper": "small"
+}

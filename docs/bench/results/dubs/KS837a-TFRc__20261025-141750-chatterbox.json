@@ -1,0 +1,22 @@
+{
+ "video": "KS837a-TFRc",
+ "version": "20261025-141750-chatterbox",
+ "engine": "chatterbox",
+ "shortened": 0,
+ "clips": 199,
+ "sped_up": 46,
+ "max_tempo": 1.25,
+ "not_fitting": 1,
+ "edge": 0,
+ "max_delay_s": 0.45,
+ "mean_delay_s": 0.042,
+ "late_voice_s": 0,
+ "lufs": -26.6,
+ "true_peak_db": -1.5,
+ "asr_clips": 199,
+ "cer_mean": 0.031,
+ "cer_p90": 0.068,
+ "cer_over_0_3": 5,
+ "p_es_mean": 0.923,
+ "whisper": "small"
+}

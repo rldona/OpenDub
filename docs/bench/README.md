@@ -69,6 +69,41 @@ with PyTorch 2.8 + CUDA 12.8, are made by `setup.sh` scripts under
 `work/_bench/<engine>/`; install them with `uv pip install --no-config`, or the
 overrides in OpenDub's `pyproject.toml` leak into them.
 
+## Whole dubs
+
+`dub_metrics.py` measures a kept version as it is heard, the final MP4: fit
+(sped up, not fitting, shortened, edge-tts), delays and drift from the mix's own
+placement, loudness and true peak, and whisper small's CER and p_es over each
+clip's stretch of the mixed track (with the music under it). One JSON per
+version in `results/dubs/`.
+
+```bash
+uv run python docs/bench/dub_metrics.py 17kBVfGjI8c rwF-X5STYks KS837a-TFRc   # latest version of each
+uv run python docs/bench/dub_metrics.py KS837a-TFRc/20261025-141750-chatterbox # one version
+```
+
+The committed set (25 Oct 2026), Chatterbox V3 against the es-ES finetune on the
+listening corpus, and the long video before and after loudness normalization:
+
+| Video | Version | Clips | Sped up | Not fitting | Voice > 0.5 s late | LUFS | True peak | CER | p_es |
+|---|---|---|---|---|---|---|---|---|---|
+| 17kBVfGjI8c (2 min) | V3 | 24 | 1 | 0 | 0 s | −16.0 | −1.5 | 0.016 | 0.95 |
+| | es-ES | 24 | 2 | 0 | 0 s | −16.0 | −1.8 | 0.004 | 0.98 |
+| rwF-X5STYks (2 min) | V3 | 17 | 8 | 0 | 0 s | −16.0 | −1.6 | 0.008 | 0.99 |
+| | es-ES | 17 | 10 | 0 | 0 s | −16.0 | −1.9 | 0.001 | 0.98 |
+| VD6xJq8NguY (11 min, music) | V3 | 111 | 57 | 3 | 46 s | −16.0 | −1.9 | 0.011 | 0.95 |
+| | es-ES | 111 | 55 | 6 | 62 s | −16.0 | −2.0 | 0.015 | 0.94 |
+| 7mCTaTJ0kDo (20 min, fast) | V3 | 228 | 69 | 6 | 33 s | −16.0 | −1.7 | 0.016 | 0.95 |
+| | es-ES | 228 | 75 | 9 | 43 s | −16.0 | −2.3 | 0.018 | 0.97 |
+| KS837a-TFRc (19 min) | before T-07 | 199 | 46 | 1 | 0 s | −26.6 | −1.5 | 0.031 | 0.92 |
+| | after T-07 | 199 | 46 | 1 | 0 s | −16.3 | −1.5 | 0.030 | 0.93 |
+
+Normalizing the loudness moved the long video from −26.6 to −16.3 LUFS and left
+everything else as it was (same clips, same peak, CER within noise). The es-ES
+finetune is a little longer-winded: more clips sped up or not fitting and more
+voice heard late on the fast videos; intelligibility is the same within noise.
+Which one sounds better is for the blind listening (`listening/`).
+
 ## Audio
 
 `audio/` holds the reference cuts (from the original videos), the generated

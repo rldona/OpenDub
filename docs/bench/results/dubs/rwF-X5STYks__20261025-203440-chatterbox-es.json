@@ -1,0 +1,22 @@
+{
+ "video": "rwF-X5STYks",
+ "version": "20261025-203440-chatterbox-es",
+ "engine": "chatterbox-es",
+ "shortened": 3,
+ "clips": 17,
+ "sped_up": 10,
+ "max_tempo": 1.25,
+ "not_fitting": 0,
+ "edge": 0,
+ "max_delay_s": 0.36,
+ "mean_delay_s": 0.104,
+ "late_voice_s": 0,
+ "lufs": -16.0,
+ "true_peak_db": -1.9,
+ "asr_clips": 17,
+ "cer_mean": 0.001,
+ "cer_p90": 0.0,
+ "cer_over_0_3": 0,
+ "p_es_mean": 0.981,
+ "whisper": "small"
+}
