@@ -25,13 +25,19 @@ MODEL = "chatterbox-multilingual-v3"
 HF_REPO = "ResembleAI/chatterbox"
 HF_REV = "5bb1f6ee58e50c3b8d408bc82a6d3740c2db6e18"  # the weights benchmarked (docs/v2-plan.md)
 T3_MODEL = "v3"
+# The es-ES finetune (--engine chatterbox-es): an evaluation variant for the blind listening. It lost
+# to V3 by ear in the first benchmark (docs/v2-plan.md, Phase C) and is compared again on whole dubs
+MODEL_ES = "chatterbox-multilingual-es-es"
+HF_REPO_ES = "ResembleAI/Chatterbox-Multilingual-es-es"
+HF_REV_ES = "7262b364e3222ba9446c9289e7485eadc47ed902"
+VARIANTS = {"v3": MODEL, "es-es": MODEL_ES}
 SAMPLE_RATE = 24000
 QC_MAX_CER = 0.3  # whisper character error rate above which a clip is redone
 # On very short texts one misheard word swings the rate: "Ups, llénalo" failed on a fine clip
 QC_SHORT_CHARS, QC_SHORT_MAX_CER = 20, 0.6
 INSTALL_HINT = "Install the optional dependencies with: uv sync --extra clone"
 
-_model = None
+_models: dict[str, object] = {}  # one per variant (v3, es-es)
 _whisper: dict[str, object] = {}  # quality-check model, loaded once per run (several check rounds)
 
 
@@ -49,18 +55,20 @@ def _device() -> str:
     return "cpu"
 
 
-def _load():
-    global _model
-    if _model is None:
+def _load(variant: str = "v3"):
+    if variant not in _models:
         try:
             from chatterbox.mtl_tts import ChatterboxMultilingualTTS
         except ImportError:
             raise SystemExit(f"chatterbox-tts is not installed. {INSTALL_HINT}")
         device = _device()
-        log.info(f"Loading {MODEL} ({device})…")
-        # what from_pretrained does, at a fixed revision instead of its "main"
-        _model = ChatterboxMultilingualTTS.from_local(_checkpoints(), device, t3_model=T3_MODEL)
-    return _model
+        log.info(f"Loading {VARIANTS[variant]} ({device})…")
+        if variant == "es-es":
+            _models[variant] = ChatterboxMultilingualTTS.from_local(_checkpoints_es(), device,
+                                                                    t3_model="t3_es_es.safetensors")
+        else:  # what from_pretrained does, at a fixed revision instead of its "main"
+            _models[variant] = ChatterboxMultilingualTTS.from_local(_checkpoints(), device, t3_model=T3_MODEL)
+    return _models[variant]
 
 
 def _checkpoints() -> Path:
@@ -75,18 +83,47 @@ def _checkpoints() -> Path:
     return Path(snapshot_download(HF_REPO, revision=HF_REV, allow_patterns=files, token=os.getenv("HF_TOKEN")))
 
 
+def _checkpoints_es() -> Path:
+    """The es-ES finetune assembled as the benchmark did: V3's voice encoder and conditionals,
+    the finetune's T3 and tokenizer, and its s3gen_v3 with the two buffers it omits rebuilt."""
+    import os
+
+    import torch
+    from huggingface_hub import hf_hub_download
+
+    d = Path.home() / ".cache" / "opendub" / f"chatterbox-es-es-{HF_REV_ES[:12]}"
+    d.mkdir(parents=True, exist_ok=True)
+    token = os.getenv("HF_TOKEN")
+    files = {"ve.pt": (HF_REPO, HF_REV), "conds.pt": (HF_REPO, HF_REV), "Cangjie5_TC.json": (HF_REPO, HF_REV),
+             "t3_es_es.safetensors": (HF_REPO_ES, HF_REV_ES),
+             "grapheme_mtl_merged_expanded_v1.json": (HF_REPO_ES, HF_REV_ES)}
+    for name, (repo, rev) in files.items():
+        if not (d / name).exists():
+            (d / name).symlink_to(hf_hub_download(repo, name, revision=rev, token=token))
+    if not (d / "s3gen.pt").exists():
+        from chatterbox.models.s3gen import S3Gen
+
+        state = torch.load(hf_hub_download(HF_REPO_ES, "s3gen_v3.pt", revision=HF_REV_ES, token=token),
+                           map_location="cpu", weights_only=True)
+        fresh = S3Gen().state_dict()
+        missing, unexpected = set(fresh) - set(state), set(state) - set(fresh)
+        if unexpected or not missing <= {"tokenizer._mel_filters", "tokenizer.window"}:
+            raise RuntimeError(f"Unexpected es-ES s3gen: missing {sorted(missing)}, unexpected {sorted(unexpected)}")
+        torch.save(state | {k: fresh[k] for k in missing}, d / "s3gen.pt")
+    return d
+
+
 def unload() -> None:
     """Drop the Chatterbox and quality-check whisper models (the next use loads them again)."""
-    global _model
-    _model = None
+    _models.clear()
     _whisper.clear()
 
 
-def synthesize(text: str, ref: Path, seed: int, out: Path) -> None:
+def synthesize(text: str, ref: Path, seed: int, out: Path, variant: str = "v3") -> None:
     """Speak `text` with the voice of `ref` and write it as a 24 kHz mono wav."""
     import torch
 
-    model = _load()
+    model = _load(variant)
     torch.manual_seed(seed)
     wav = model.generate(text, language_id="es", audio_prompt_path=str(ref))
     pcm = (np.clip(wav.squeeze(0).cpu().numpy(), -1.0, 1.0) * 32767).astype(np.int16)
@@ -125,7 +162,8 @@ def pool_size() -> int:
     return 1
 
 
-def synthesize_batch(jobs: list[tuple[str, Path, int, Path]], log_path: Path, done=lambda: None) -> None:
+def synthesize_batch(jobs: list[tuple[str, Path, int, Path]], log_path: Path, done=lambda: None,
+                     variant: str = "v3") -> None:
     """Speak (text, ref, seed, out) jobs, on pool_size() processes when there is more than one.
 
     Each process takes the next job as soon as it is free; `done` is called after
@@ -139,7 +177,7 @@ def synthesize_batch(jobs: list[tuple[str, Path, int, Path]], log_path: Path, do
     size = min(pool_size(), len(jobs))
     if pool_size() <= 1:
         for text, ref, seed, out in jobs:
-            synthesize(text, ref, seed, out)
+            synthesize(text, ref, seed, out, variant)
             done()
         return
     import sys
@@ -148,20 +186,21 @@ def synthesize_batch(jobs: list[tuple[str, Path, int, Path]], log_path: Path, do
 
     from . import engines
 
-    global _model
-    _model = None  # the workers speak: this process doesn't need Chatterbox on the GPU
+    _models.pop(variant, None)  # the workers speak: this process doesn't need Chatterbox on the GPU
+    model = VARIANTS[variant]
     pending: Queue = Queue()
     for job in jobs:
         pending.put(job)
 
     def serve(k: int) -> None:
-        start = lambda: engines.Worker(f"{MODEL} #{k + 1}", Path(sys.executable), WORKER, [], Path.cwd(), log_path)
+        start = lambda: engines.Worker(f"{model} #{k + 1}", Path(sys.executable), WORKER, [variant], Path.cwd(),
+                                       log_path)
         while True:
             try:
                 text, ref, seed, out = pending.get_nowait()
             except Empty:
                 return
-            engines.speak(f"{MODEL}#{k}", start, text, ref, out, 1.0, seed)
+            engines.speak(f"{model}#{k}", start, text, ref, out, 1.0, seed)
             done()
 
     with ThreadPoolExecutor(max_workers=size) as pool:

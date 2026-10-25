@@ -27,7 +27,9 @@ _ISSUE_LINES = [
     ("fallback", re.compile(r"^#(\d+) @([\d.]+)s: (cloned voice failed the quality check, used edge-tts) · (.*)$")),
     ("floor", re.compile(r"^#(\d+) @([\d.]+)s: (did not fit even shortened, duration[_ ]factor .*?) · (.*)$")),
 ]
-ENGINE_NAMES = {"chatterbox": "Chatterbox V3", "indextts": "IndexTTS-2.5", "cosyvoice": "CosyVoice 3"}
+ENGINE_NAMES = {"chatterbox": "Chatterbox V3", "indextts": "IndexTTS-2.5", "cosyvoice": "CosyVoice 3",
+                "chatterbox-es": "Chatterbox es-ES"}
+WEB_ENGINES = ("chatterbox", "indextts", "cosyvoice")  # chatterbox-es is a CLI-only evaluation variant
 
 
 def engines(settings: Settings | None = None) -> list[dict[str, Any]]:
@@ -54,7 +56,7 @@ def engines(settings: Settings | None = None) -> list[dict[str, Any]]:
     auto_missing = [e for e in ("chatterbox", "indextts") if not ready[e]]
     out = [{"id": "auto", "name": "Automatic", "installed": not auto_missing,
             "setup": " && ".join(setup[e] for e in auto_missing) or None}]
-    for e in tts.CLONE_ENGINES:
+    for e in WEB_ENGINES:
         out.append({"id": e, "name": ENGINE_NAMES[e], "installed": ready[e], "setup": None if ready[e] else setup[e]})
     return out
 

@@ -258,14 +258,16 @@ def _synthesize_jobs(jobs: list[tuple[str, Path, Voice]], settings: Settings) ->
         TimeElapsedColumn(), console=console, transient=True,
     ) as progress:
         task = progress.add_task("Cloning voice", total=len(cloned))
-        # Chatterbox clips go to its process pool, several at a time (clone.synthesize_batch)
-        batch = [(spell_numbers(text), voice.ref, voice.seed, path) for text, path, voice in cloned
-                 if voice.engine == "chatterbox"]
-        if batch:
-            clone.synthesize_batch(batch, settings.work_root / "chatterbox.log", lambda: progress.advance(task))
+        # Chatterbox clips go to its process pool, several at a time (clone.synthesize_batch), per variant
+        for engine, variant in CHATTERBOX.items():
+            batch = [(spell_numbers(text), voice.ref, voice.seed, path) for text, path, voice in cloned
+                     if voice.engine == engine]
+            if batch:
+                clone.synthesize_batch(batch, settings.work_root / "chatterbox.log", lambda: progress.advance(task),
+                                       variant)
         for text, path, voice in cloned:
             said = spell_numbers(text)  # cloned voices misread figures and "2x2"
-            if voice.engine == "chatterbox":
+            if voice.engine in CHATTERBOX:
                 continue
             if voice.engine == "indextts":
                 indextts.synthesize(settings.indextts_dir, settings.work_root / "indextts.log",
@@ -435,7 +437,10 @@ def voice_rate(wd: WorkDir, settings: Settings) -> Pace:
     return Pace(speaking_rate(settings.work_root, settings.voice, settings.rate))
 
 
-CLONE_ENGINES = ("chatterbox", "indextts", "cosyvoice")  # --engine; Settings.engine defaults to chatterbox
+# --engine; Settings.engine defaults to chatterbox. chatterbox-es (the es-ES finetune) is a CLI-only
+# variant for the blind listening, not offered on the web page
+CLONE_ENGINES = ("chatterbox", "indextts", "cosyvoice", "chatterbox-es")
+CHATTERBOX = {"chatterbox": "v3", "chatterbox-es": "es-es"}  # engine → clone variant
 # Engines that scale a clip's duration themselves (a duration factor): their clips are
 # fitted to the slot natively, down to --min-factor, before shortening and atempo
 NATIVE_DURATION = ("indextts", "cosyvoice")
@@ -561,7 +566,7 @@ def native_duration(engine: str) -> bool:
 def _engine_module(engine: str):
     from . import clone, cosyvoice, indextts
 
-    return {"chatterbox": clone, "indextts": indextts, "cosyvoice": cosyvoice}[engine]
+    return {"chatterbox": clone, "chatterbox-es": clone, "indextts": indextts, "cosyvoice": cosyvoice}[engine]
 
 
 def calibration_factor(engine: str) -> float:
@@ -574,6 +579,10 @@ def min_factor(engine: str) -> float:
 
 
 def engine_model(engine: str) -> str:
+    if engine in CHATTERBOX:
+        from . import clone
+
+        return clone.VARIANTS[CHATTERBOX[engine]]
     return _engine_module(engine).MODEL
 
 

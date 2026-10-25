@@ -52,7 +52,7 @@ Engine = Annotated[
     str,
     typer.Option(
         "--engine",
-        help="Cloning engine for --tts clone: chatterbox, indextts, cosyvoice, or auto (by the reference's pitch: "
+        help="Cloning engine for --tts clone: chatterbox, indextts, cosyvoice, chatterbox-es (the es-ES finetune, for comparisons), or auto (by the reference's pitch: "
         "IndexTTS below 165 Hz, Chatterbox above)",
     ),
 ]

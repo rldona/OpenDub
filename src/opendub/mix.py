@@ -162,7 +162,7 @@ def archive(wd: WorkDir) -> Path | None:
 
 
 # outputs/<YYYYmmdd-HHMMSS>-<engine>.mp4; dubs kept before every version was (one per engine) are <engine>.mp4
-VERSION = re.compile(r"(?:(\d{8}-\d{6})-)?([a-z]+)")
+VERSION = re.compile(r"(?:(\d{8}-\d{6})-)?([a-z][a-z-]*)")  # the engine may carry a variant: chatterbox-es
 
 
 def run(wd: WorkDir, settings: Settings, force: bool = False, output: Path | None = None) -> Path:

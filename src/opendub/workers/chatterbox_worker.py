@@ -28,7 +28,8 @@ def main() -> None:
     t0 = time.monotonic()
     from opendub import clone
 
-    clone._load()
+    variant = sys.argv[1] if len(sys.argv) > 1 else "v3"  # v3 | es-es
+    clone._load(variant)
     import torch
 
     device = torch.cuda.get_device_name(0) if torch.cuda.is_available() else clone._device()
@@ -40,7 +41,7 @@ def main() -> None:
         req = json.loads(line)
         try:
             t = time.monotonic()
-            clone.synthesize(req["text"], Path(req["ref"]), req.get("seed", 0), Path(req["out"]))
+            clone.synthesize(req["text"], Path(req["ref"]), req.get("seed", 0), Path(req["out"]), variant)
             reply = {"id": req["id"], "ok": True, "seconds": round(time.monotonic() - t, 2)}
         except Exception as e:  # report and keep serving: one bad sentence must not kill the worker
             traceback.print_exc()
