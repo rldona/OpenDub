@@ -229,3 +229,13 @@ tr:hover .add-term, .add-term:focus-visible { opacity: 1; }
 tr:hover .row-action, .row-action:focus-visible, .row-action.on { opacity: 1; }
 .row-action.on { font-weight: 650; }
 @media (hover: none) { .row-action { opacity: 1; } }
+
+/* download menu */
+.menu { position: relative; }
+.menu > summary { list-style: none; width: 100%; }
+.menu > summary::-webkit-details-marker { display: none; }
+.menu-list { position: absolute; z-index: 20; bottom: calc(100% + 6px); left: 0; min-width: 260px; padding: 6px;
+  display: grid; gap: 2px; background: var(--surface, var(--bg)); border: 1px solid var(--border); border-radius: 10px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3); }
+.menu-list a { display: grid; gap: 1px; padding: 8px 10px; border-radius: 7px; color: var(--text); text-decoration: none; }
+.menu-list a:hover, .menu-list a:focus-visible { background: var(--accent-soft); }

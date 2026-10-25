@@ -67,6 +67,8 @@ export interface Translation {
 
 export type IssueKind = "fallback" | "floor" | "overflow" | "abnormal" | "glossary" | "repaired" | "delayed";
 
+export type ExportFormat = "mkv" | "m4a" | "srt" | "srt-orig";
+
 export type Register = "auto" | "tu" | "usted";
 export type Variant = "auto" | "es-ES" | "latam";
 
@@ -199,6 +201,9 @@ export const media = {
   video: (id: string, version: string | null) =>
     version ? `/videos/${id}/outputs/${encodeURIComponent(version)}.mp4` : `/videos/${id}/output.mp4`,
   events: (id: string) => `/jobs/${id}/events`,
+  /** A version as srt (the dubbed voice), srt-orig, mkv (both audio tracks and subtitles) or m4a. */
+  exported: (id: string, version: string | null, format: ExportFormat) =>
+    `/videos/${id}/outputs/${encodeURIComponent(version ?? "latest")}/export/${format}`,
 };
 
 /** Dub a video again with its last options, changed by `overrides`. */

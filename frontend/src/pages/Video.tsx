@@ -290,7 +290,19 @@ export function VideoPage({ id }: { id: string }) {
               </dl>
             )}
             <div className="grid-2" style={{ gridTemplateColumns: "repeat(2, minmax(0, 1fr))", gap: 8 }}>
-              <a className="btn" href={media.video(id, selected)} download={`${id}.es${selected ? "." + selected : ""}.mp4`}>{t("download")}</a>
+              <details className="menu">
+                <summary className="btn">{t("download")} ▾</summary>
+                <div className="menu-list" role="menu"
+                  onClick={(e) => { (e.currentTarget.parentElement as HTMLDetailsElement).open = false; }}>
+                  <a role="menuitem" href={media.video(id, selected)} download={`${id}.es${selected ? "." + selected : ""}.mp4`}>
+                    {t("dl_mp4")}<span className="small faint">{t("dl_mp4_hint")}</span></a>
+                  {(["mkv", "m4a", "srt", "srt-orig"] as const).map((f) => (
+                    <a key={f} role="menuitem" href={media.exported(id, selected, f)} download>
+                      {t(`dl_${f.replace("-", "_")}` as never)}<span className="small faint">{t(`dl_${f.replace("-", "_")}_hint` as never)}</span>
+                    </a>
+                  ))}
+                </div>
+              </details>
               <button type="button" className="btn danger" disabled={!detail || detail.current} onClick={remove}
                 title={detail?.current ? t("delete_latest") : undefined}>{t("delete")}</button>
             </div>

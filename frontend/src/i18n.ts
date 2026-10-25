@@ -100,6 +100,10 @@ const en = {
   saved_hint_retouch: "Regenerate just these sentences, in seconds, or re-dub the whole video.",
   to_retouch: "{n} sentence(s) to regenerate.", n_edited: "{n} edited", n_takes: "{n} new take(s)",
   save_retouch: "Save and regenerate", clear_takes: "Clear takes", retouch_btn: "Regenerate {n} sentence(s)",
+
+  dl_mp4: "MP4", dl_mp4_hint: "the dubbed video", dl_mkv: "MKV", dl_mkv_hint: "dubbed and original audio, both subtitles",
+  dl_m4a: "Audio", dl_m4a_hint: "the dubbed audio, M4A", dl_srt: "Spanish subtitles", dl_srt_hint: "SRT, timed to the dubbed voice",
+  dl_srt_orig: "Original subtitles", dl_srt_orig_hint: "SRT, the original sentences",
 };
 
 export type Key = keyof typeof en;
@@ -204,6 +208,10 @@ const es: Record<Key, string> = {
   saved_hint_retouch: "Regenera solo estas frases, en segundos, o redobla el vídeo entero.",
   to_retouch: "{n} frase(s) por regenerar.", n_edited: "{n} editada(s)", n_takes: "{n} toma(s) nueva(s)",
   save_retouch: "Guardar y regenerar", clear_takes: "Quitar tomas", retouch_btn: "Regenerar {n} frase(s)",
+
+  dl_mp4: "MP4", dl_mp4_hint: "el vídeo doblado", dl_mkv: "MKV", dl_mkv_hint: "audio doblado y original, ambos subtítulos",
+  dl_m4a: "Audio", dl_m4a_hint: "el audio doblado, M4A", dl_srt: "Subtítulos en español", dl_srt_hint: "SRT, al ritmo de la voz doblada",
+  dl_srt_orig: "Subtítulos originales", dl_srt_orig_hint: "SRT, las frases originales",
 };
 
 export type Lang = "en" | "es";
