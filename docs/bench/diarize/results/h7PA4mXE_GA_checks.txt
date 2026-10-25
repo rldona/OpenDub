@@ -1,0 +1,4 @@
+h7PA4mXE_GA: 720 sentences, clear pitch in 627 (119 female, 508 male)
+  pyannote  gender right 607/627 (96.8%) · per speaker {'SPEAKER_02': {'M': 110, 'F': 3}, 'SPEAKER_00': {'M': 397, 'F': 16}, 'SPEAKER_01': {'F': 100, 'M': 1}}
+  nemotron  gender right 606/627 (96.7%) · per speaker {'speaker_0': {'M': 110, 'F': 4}, 'speaker_1': {'M': 397, 'F': 16}, 'speaker_2': {'F': 99, 'M': 1}}
+  agreement pyannote↔nemotron: 715/720 (99.3%) · {'SPEAKER_00': 'speaker_1', 'SPEAKER_01': 'speaker_2', 'SPEAKER_02': 'speaker_0'}

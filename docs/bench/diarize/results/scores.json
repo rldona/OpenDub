@@ -1,0 +1,235 @@
+[
+ {
+  "video": "17kBVfGjI8c",
+  "model": "pyannote",
+  "speakers": 1,
+  "seconds": 2.1,
+  "vram_gb": 1.59,
+  "true_speakers": 1
+ },
+ {
+  "video": "17kBVfGjI8c",
+  "model": "nemotron",
+  "speakers": 1,
+  "seconds": 4.4,
+  "vram_gb": 0.58,
+  "true_speakers": 1
+ },
+ {
+  "video": "KS837a-TFRc",
+  "model": "pyannote",
+  "speakers": 2,
+  "seconds": 11.6,
+  "vram_gb": 1.59,
+  "true_speakers": 1
+ },
+ {
+  "video": "KS837a-TFRc",
+  "model": "nemotron",
+  "speakers": 2,
+  "seconds": 1.9,
+  "vram_gb": 1.25,
+  "true_speakers": 1
+ },
+ {
+  "video": "h7PA4mXE_GA",
+  "model": "pyannote",
+  "speakers": 3,
+  "seconds": 43.0,
+  "vram_gb": 1.59,
+  "true_speakers": 0,
+  "labeled": 0,
+  "accuracy": null,
+  "mixed": 0,
+  "unsure": 1,
+  "mapping": {},
+  "per_speaker": {}
+ },
+ {
+  "video": "h7PA4mXE_GA",
+  "model": "nemotron",
+  "speakers": 3,
+  "seconds": 8.7,
+  "vram_gb": 3.6,
+  "true_speakers": 0,
+  "labeled": 0,
+  "accuracy": null,
+  "mixed": 0,
+  "unsure": 1,
+  "mapping": {},
+  "per_speaker": {}
+ },
+ {
+  "video": "qODPK9kf-h4",
+  "model": "pyannote",
+  "speakers": 1,
+  "seconds": 28.6,
+  "vram_gb": 1.59,
+  "true_speakers": 1
+ },
+ {
+  "video": "qODPK9kf-h4",
+  "model": "nemotron",
+  "speakers": 1,
+  "seconds": 4.0,
+  "vram_gb": 2.52,
+  "true_speakers": 1
+ },
+ {
+  "video": "r5VIb2wLww4",
+  "model": "pyannote",
+  "speakers": 1,
+  "seconds": 18.1,
+  "vram_gb": 1.59,
+  "true_speakers": 1
+ },
+ {
+  "video": "r5VIb2wLww4",
+  "model": "nemotron",
+  "speakers": 1,
+  "seconds": 2.8,
+  "vram_gb": 1.74,
+  "true_speakers": 1
+ },
+ {
+  "video": "rwF-X5STYks",
+  "model": "pyannote",
+  "speakers": 1,
+  "seconds": 1.8,
+  "vram_gb": 1.59,
+  "true_speakers": 1
+ },
+ {
+  "video": "rwF-X5STYks",
+  "model": "nemotron",
+  "speakers": 1,
+  "seconds": 1.2,
+  "vram_gb": 0.58,
+  "true_speakers": 1
+ },
+ {
+  "video": "synth_mf",
+  "model": "pyannote",
+  "speakers": 2,
+  "seconds": 2.3,
+  "vram_gb": 1.59,
+  "true_speakers": 2,
+  "labeled": 31,
+  "accuracy": 1.0,
+  "mixed": 0,
+  "unsure": 0,
+  "mapping": {
+   "SPEAKER_00": "B",
+   "SPEAKER_01": "A"
+  },
+  "per_speaker": {
+   "A": "14/14",
+   "B": "17/17"
+  }
+ },
+ {
+  "video": "synth_mf",
+  "model": "nemotron",
+  "speakers": 2,
+  "seconds": 1.1,
+  "vram_gb": 0.59,
+  "true_speakers": 2,
+  "labeled": 31,
+  "accuracy": 1.0,
+  "mixed": 0,
+  "unsure": 0,
+  "mapping": {
+   "speaker_0": "B",
+   "speaker_1": "A"
+  },
+  "per_speaker": {
+   "A": "14/14",
+   "B": "17/17"
+  }
+ },
+ {
+  "video": "synth_mm",
+  "model": "pyannote",
+  "speakers": 2,
+  "seconds": 3.2,
+  "vram_gb": 1.59,
+  "true_speakers": 2,
+  "labeled": 53,
+  "accuracy": 0.849,
+  "mixed": 0,
+  "unsure": 0,
+  "mapping": {
+   "SPEAKER_00": "A",
+   "SPEAKER_01": "B"
+  },
+  "per_speaker": {
+   "A": "24/24",
+   "B": "21/29"
+  }
+ },
+ {
+  "video": "synth_mm",
+  "model": "nemotron",
+  "speakers": 2,
+  "seconds": 1.2,
+  "vram_gb": 0.6,
+  "true_speakers": 2,
+  "labeled": 53,
+  "accuracy": 1.0,
+  "mixed": 0,
+  "unsure": 0,
+  "mapping": {
+   "speaker_0": "A",
+   "speaker_1": "B"
+  },
+  "per_speaker": {
+   "A": "24/24",
+   "B": "29/29"
+  }
+ },
+ {
+  "video": "synth_panel",
+  "model": "pyannote",
+  "speakers": 3,
+  "seconds": 3.3,
+  "vram_gb": 1.59,
+  "true_speakers": 3,
+  "labeled": 57,
+  "accuracy": 0.895,
+  "mixed": 0,
+  "unsure": 0,
+  "mapping": {
+   "SPEAKER_00": "B",
+   "SPEAKER_01": "C",
+   "SPEAKER_02": "A"
+  },
+  "per_speaker": {
+   "A": "16/18",
+   "B": "17/17",
+   "C": "18/22"
+  }
+ },
+ {
+  "video": "synth_panel",
+  "model": "nemotron",
+  "speakers": 3,
+  "seconds": 1.2,
+  "vram_gb": 0.61,
+  "true_speakers": 3,
+  "labeled": 57,
+  "accuracy": 0.982,
+  "mixed": 0,
+  "unsure": 0,
+  "mapping": {
+   "speaker_0": "C",
+   "speaker_1": null,
+   "speaker_2": "B",
+   "speaker_3": "A"
+  },
+  "per_speaker": {
+   "A": "18/18",
+   "B": "17/17",
+   "C": "21/22"
+  }
+ }
+]

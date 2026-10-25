@@ -271,3 +271,41 @@ today, voice cloning (the most uncertain part) last.
   and 49.0 → 39.5 s and 62.9 → 56.9 s on the short ones (where the two processes'
   10 s start weighs more), with the same clips (same seeds: identical speed-ups,
   shortenings and quality-check redos).
+
+## Several voices
+
+Until now a video is dubbed with one cloned voice. Telling who speaks each
+sentence (diarization) lets each person keep their own voice.
+
+### Diarization benchmark
+- Two open candidates, each in its own venv (scripts and method in
+  [bench/diarize/](bench/diarize/README.md)): **pyannote community-1**
+  (CC-BY-4.0, gated on Hugging Face) and **NVIDIA Nemotron 3 Diarization**
+  (OpenMDW 1.1, commercial use allowed, up to 8 speakers; it needs NeMo from its
+  repository, the PyPI release can't load it yet). DiariZen was left out: its
+  weights are non-commercial.
+- With no one to label by ear, the answer came from conversations built from the
+  single-voice videos (who speaks each sentence is known exactly) and from checks
+  on a real 70-minute interview of three people. Two real videos more couldn't be
+  downloaded (YouTube asked to sign in).
+
+  | | pyannote community-1 | Nemotron 3 |
+  |---|---|---|
+  | man + woman (synthetic) | 100% | 100% |
+  | two men of nearly the same pitch (synthetic) | 85% | **100%** |
+  | panel of three with overlaps (synthetic) | 90% | **98%** |
+  | real interview: sentences whose pitch agrees with their speaker's gender | 96.8% | 96.7% |
+  | real interview: sentences both models give the same speaker | 99.3% | 99.3% |
+  | single-voice controls: sentences a false second voice would take | 6 of 199 (one video) | 1 of 199 |
+  | time on the 70-minute interview | 43 s | **8.7 s** |
+  | VRAM | 1.6 GB | 0.6–3.6 GB |
+
+  The ~3% of "wrong gender" in the interview is mostly the pitch measure's own
+  noise (a man raising his voice); that two independent models agree on 715 of
+  720 sentences says both are nearly always right there. Both found 3 speakers.
+- False splits, the worst outcome for a single-voice video (two slightly different
+  clones of one person), came from crumbs of mumbled speech adding up to 14–19 s
+  in one tutorial. A speaker needs about 30 s of speech to count; the interview's
+  real speakers have over 10 minutes each.
+- **Decision: Nemotron 3 is integrated**, off by default (it is opt-in per dub),
+  with the 30 s minimum.
