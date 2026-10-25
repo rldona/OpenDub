@@ -3,6 +3,8 @@ name = "opendub"
 version = "0.1.0"
 description = "Dub YouTube videos into Spanish with a synthetic voice"
 readme = "README.md"
+license = "MIT"  # OpenDub's own code; the engines keep their licenses (README, Licenses)
+license-files = ["LICENSE"]
 requires-python = ">=3.11"
 dependencies = [
     "anthropic>=2.3.0",

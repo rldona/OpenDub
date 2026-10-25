@@ -332,9 +332,38 @@ duration factor, and the order is:
 `tts.json` records the engine and the factor of each clip. The workers log to
 `work/indextts.log` and `work/cosyvoice.log`.
 
-Licenses: Chatterbox is MIT; CosyVoice 3 is Apache 2.0; IndexTTS-2.5 is under
-the bilibili Model Use License Agreement, which allows this kind of personal use
-but is more restrictive (see [docs/v2-plan.md](docs/v2-plan.md)).
+Each engine keeps its own license: see [Licenses](#licenses).
+
+## Licenses
+
+OpenDub's own code, this repository, is under the [MIT license](LICENSE). It
+covers OpenDub's code only. The voice engines and models run in their own venvs,
+are downloaded from their authors when installed (`uv sync --extra …`,
+`setup-engine`, Hugging Face), are not redistributed here, and each keeps its own
+license:
+
+| Component | License | Notes |
+|---|---|---|
+| Chatterbox Multilingual V3 (Resemble AI) | MIT | Its output carries Resemble AI's inaudible Perth watermark |
+| IndexTTS-2.5 (bilibili) | bilibili Model Use License Agreement | Allows this personal use; separate license above 100 M monthly users; outputs may not train other models; revocable ([details](docs/v2-plan.md)) |
+| CosyVoice 3 (Alibaba FunAudioLLM) | Apache 2.0 | Code and weights |
+| Nemotron 3 Diarization (NVIDIA) | OpenMDW 1.1 | Several voices |
+| HTDemucs (demucs) | MIT | Separation |
+| faster-whisper and the Whisper models | MIT | Transcription, quality check |
+| yt-dlp | Unlicense | Download |
+
+Two services are used online: edge-tts talks to Microsoft's read-aloud voices (not
+an official API, under Microsoft's terms), and the translation sends the
+transcript to Anthropic (Claude) under your subscription or API terms. OpenDub is
+a personal tool: it is not packaged or supported for distribution.
+
+## Responsible use
+
+- Clone a voice only with the consent of the person it belongs to, and don't
+  present a cloned voice as that person speaking.
+- Dub only what you may adapt (your own videos, content whose license allows it,
+  personal study): a dub is a derivative work of its source, and the rights of
+  the original video stay with its owners.
 
 ## Known limitations
 
