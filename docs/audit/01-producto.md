@@ -31,7 +31,7 @@ implementación y comprobado con ejecuciones, no en el README. Ingeniería
 | Encargo | Realidad verificada |
 |---|---|
 | "Un único hablante; diarización prevista para más adelante" | **Hecho**: ya existe, opt-in. `--multi-speaker` y la casilla "Varias voces" de la web usan Nemotron 3 Diarization (`diarize.py`, commits `a360aee`–`9fe1fee`). Desactivada por defecto; el flujo de una voz no cambia. |
-| "Chatterbox (afinado es-ES) por defecto" | **Hecho**: `clone._load` carga `ChatterboxMultilingualTTS.from_pretrained(t3_model="v3")`, el modelo **multilingüe V3**, no el afinado `Chatterbox-Multilingual-es-es`. `v2-plan.md` (Fase C) dice que se eligió V3 tras escuchar. **Pregunta P1**. |
+| "Chatterbox (afinado es-ES) por defecto" | **Hecho**: `clone._load` carga **Multilingual V3**, el mismo checkpoint de la comparativa que eligió el motor (`docs/bench/audio/listen/engines/`, `gen_chatterbox.py v3`). El afinado es-ES solo se comparó en la Fase C y perdió. Sin defecto (P1, G-015 retirado). |
 | "Chatterbox por defecto" | **Hecho**: es el valor por defecto en la CLI (`Settings.engine = "chatterbox"`), pero **no en la web**: `JobRequest.engine = "auto"` y `prefs.tsx` usa `engine: "auto"`. *Automático* elige IndexTTS si la referencia baja de 165 Hz (`tts.resolve_engine`), algo que `v2-plan.md` describe como opt-in. **Pregunta P2**. |
 | "Solo español" | **Hecho**: la traducción apunta a castellano o español latino neutro (`style.target_name`); no hay otros idiomas de destino. |
 
@@ -329,9 +329,9 @@ ese retoque.
 - **G-009** · Varias voces validada en un solo vídeo real y sin escucha (P8: fuera del alcance de implementación de la ejecución 3; ya integrada como opción desactivada por defecto) · §5.7.
 - **G-010** · Mensajes de error y logs en inglés en la interfaz en español · `NowDubbing`, mensajes de `app.py`.
 - **G-011** · El idioma por defecto de la interfaz es inglés · `prefs.tsx` `lang: "en"`.
-- **G-012** · El diálogo de redoblaje no permite activar varias voces · `RedubDialog.tsx`.
+- **G-012** · El diálogo de redoblaje no permite activar varias voces (P2 como máximo: varias voces está congelada, P8) · `RedubDialog.tsx`.
 - **G-013** · Controles por frase ocultos hasta pasar el ratón · `.add-term`, `.row-action` en `styles.css`.
 - **G-014** · **Defecto (P2)**: la web usa *Automático* por defecto; debe ser Chatterbox fijo, como la CLI · `JobRequest.engine`, `prefs.tsx`, `Settings.engine`.
-- **G-015** · **Defecto (P1)**: se carga Chatterbox Multilingual V3 en lugar del afinado es-ES decidido por escucha; `v2-plan.md` documenta lo contrario · `clone._load`.
+- **G-015** · ~~Modelo de Chatterbox distinto del decidido~~ **Retirado**: la comparativa que eligió el motor usó Multilingual V3, el mismo que carga `clone._load` (`docs/bench/audio/listen/engines/*/N_chatterbox_v3.wav`). El es-ES pasa a ser una variante de la escucha a ciegas (G-016) · `clone._load`.
 - **G-016** · No hay un corpus ni un protocolo de evaluación de doblajes completos (P7: escucha a ciegas de 10–12 clips y dos motores sobre los dos cortos más dos de 10–20 min, uno con música y otro con un hablante rápido, con un script que genere la sesión y registre las respuestas); el bench mide frases sueltas · `docs/bench/README.md`.
 - **G-017** · Funcionamiento en Apple Silicon y en CPU sin probar para la clonación (cerrado por decisión: el Mac no es objetivo de la v2; ver G-032) · `clone._device` contempla `mps`; los venvs de motores fijan CUDA 12.8.
