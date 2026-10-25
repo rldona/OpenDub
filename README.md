@@ -5,8 +5,11 @@ kept in sync with the original.
 
 ```
 URL → download (yt-dlp) → transcription (subtitles or faster-whisper)
-    → translation (Claude) → voice (edge-tts + atempo) → mix (numpy + ffmpeg) → MP4
+    → separation (HTDemucs) → translation (Claude)
+    → voice (Chatterbox, IndexTTS or edge-tts) → mix (numpy + ffmpeg) → MP4
 ```
+
+How each piece works: [docs/architecture.md](docs/architecture.md).
 
 ## Installation
 
