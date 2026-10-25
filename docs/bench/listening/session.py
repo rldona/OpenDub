@@ -4,8 +4,8 @@
         --videos 17kBVfGjI8c rwF-X5STYks VD6xJq8NguY 7mCTaTJ0kDo [--clips 12] [--seed 1]
     uv run python docs/bench/listening/session.py serve <name>        # http://127.0.0.1:8766/
 
-`make` takes, per video, the latest version of each engine (outputs/<date>-<engine>.mp4)
-and picks 10–15 s fragments spread over the videos. For each one it cuts the original
+`make` takes, per video, the latest version of each engine (outputs/<date>-<engine>.mp4),
+or the version named instead of an engine (--a 20261025-213000-chatterbox), and picks 10–15 s fragments spread over the videos. For each one it cuts the original
 (audio only, to judge the meaning) and both dubs (with the picture, to judge the sync),
 brings each fragment to the same loudness, and shuffles which dub is "1" and which "2"
 with the seed, so a session is made again identically. The media and the hidden mapping
@@ -37,7 +37,10 @@ LOUDNESS = -20  # LUFS of every fragment, so neither dub wins by being louder
 
 
 def latest(vid: str, engine: str) -> str:
-    """The newest kept version of an engine for a video."""
+    """The newest kept version of an engine for a video, or the version itself if one is named (to set two
+    dubs of the same engine against each other: one voice and several voices)."""
+    if VERSION.fullmatch(engine) and (WORK / vid / "outputs" / f"{engine}.mp4").exists():
+        return engine
     found = sorted(m[0] for p in (WORK / vid / "outputs").glob("*.mp4") if (m := VERSION.fullmatch(p.stem))
                    and m[2] == engine)
     if not found:

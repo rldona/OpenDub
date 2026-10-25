@@ -32,6 +32,17 @@ def test_fragments_last_10_to_15_s_and_a_seed_makes_them_again(work):
         assert all(a[1] <= b[0] for a, b in zip(picked, picked[1:]))
 
 
+def test_a_version_can_be_named_instead_of_an_engine(work):
+    out = work / "abcdefghijk" / "outputs"
+    out.mkdir()
+    for v in ("20261025-100000-chatterbox", "20261025-110000-chatterbox"):
+        (out / f"{v}.mp4").touch()
+    assert session.latest("abcdefghijk", "chatterbox") == "20261025-110000-chatterbox"
+    assert session.latest("abcdefghijk", "20261025-100000-chatterbox") == "20261025-100000-chatterbox"
+    with pytest.raises(SystemExit):
+        session.latest("abcdefghijk", "indextts")
+
+
 def test_answers_are_given_back_per_engine():
     s = {"a": "chatterbox", "b": "chatterbox-es", "fragments": [
         {"id": "f01", "video": "v", "start": 1.0, "end": 12.0, "versions": {"a": "x-chatterbox", "b": "y-chatterbox-es"},
