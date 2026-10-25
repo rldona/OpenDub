@@ -28,6 +28,22 @@ jobs:
       - run: uv sync --frozen --extra web
       - run: uv run --frozen pytest -q
 
+  macos-edge:
+    name: macOS, stock voice without separation (the Mac's v2 requirement)
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v7
+      - name: ffmpeg
+        run: brew install ffmpeg
+      - uses: astral-sh/setup-uv@v10.3.0
+        with:
+          python-version: "3.12"
+          enable-cache: true
+      # no extras: neither separate (torch, demucs) nor clone (Chatterbox) may be needed on this path
+      - run: uv sync --frozen
+      - name: A whole dub with the stock voice, no torch imported
+        run: uv run --frozen python tests/e2e_flow.py "$RUNNER_TEMP/e2e"
+
   frontend:
     name: Frontend (types, build in sync with src/opendub/web/static)
     runs-on: ubuntu-latest
