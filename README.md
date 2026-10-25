@@ -341,3 +341,10 @@ similarity, F0, jitter and 3–9 Hz tremor) are in [docs/bench/](docs/bench/);
 ```bash
 uv run pytest
 ```
+
+They need ffmpeg and the `web` extra, but no GPU and no voice engine: every
+test that would reach one replaces it. GitHub Actions runs them on each push
+and pull request (`.github/workflows/ci.yml`), and also checks the frontend:
+its types, and that the committed build in `src/opendub/web/static` matches
+what `npm run build` makes from `frontend/` (rebuild and commit it after
+changing the frontend).
