@@ -5,8 +5,8 @@ Run with OpenDub's env (edge-tts), after `dub` on both videos:
 """
 import asyncio
 import json
-import sys
 import subprocess
+import sys
 from pathlib import Path
 
 import edge_tts

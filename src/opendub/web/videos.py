@@ -197,7 +197,6 @@ def delete_output(wd: WorkDir, version: str) -> None:
     """Delete a kept dub (its video, tts.json, overflow.log and exports). Not the latest one:
     output.mp4, tts.json and the issues on the video's page belong to it."""
     from ..export import FORMATS
-
     from ..mix import VERSION
 
     video = wd.outputs_dir / f"{version}.mp4"

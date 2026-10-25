@@ -102,7 +102,10 @@ def test_voice_rate_dispatches_on_engine(tmp_path, monkeypatch):
 def test_tiny_texts_are_judged_by_duration_only():
     assert tts.tiny("Yo") and tts.tiny("¿Sí?") and tts.tiny(" Y. ") and not tts.tiny("Hola") and not tts.tiny("Yo sé.")
     voice = tts.Voice("chatterbox", "es-ES-AlvaroNeural", "-10%")
-    seg = lambda i, text: Segment(i, i * 10.0, i * 10.0 + 3, text)
+
+    def seg(i, text):
+        return Segment(i, i * 10.0, i * 10.0 + 3, text)
+
     clips = [_clip(seg(i, f"Una frase normal número {i}."), voice) for i in range(1, 6)]
     fine = replace(_clip(seg(6, "Yo"), voice), raw_duration=0.6)
     garbled = replace(_clip(seg(7, "Yo"), voice), raw_duration=3.2)  # a cloned "Yo" that ran away

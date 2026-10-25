@@ -4,8 +4,8 @@ import json
 import shutil
 
 import pytest
-
 from e2e_flow import VID, dub, install_fakes, make_video
+
 from opendub.media import probe
 
 pytestmark = pytest.mark.skipif(not shutil.which("ffmpeg"), reason="needs ffmpeg")

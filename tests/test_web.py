@@ -369,8 +369,9 @@ def test_ytdlp_children_join_the_web_server_session_rules(monkeypatch):
     import os
     import subprocess
 
-    from opendub import download, media  # noqa: F401  (download adopts yt-dlp's Popen)
     from yt_dlp.utils import Popen as YtdlpPopen
+
+    from opendub import download, media  # noqa: F401  (download adopts yt-dlp's Popen)
 
     monkeypatch.setattr(media, "CHILD_SESSION", True)
     with YtdlpPopen(["sleep", "2"], stdout=subprocess.DEVNULL) as proc:

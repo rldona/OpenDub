@@ -10,8 +10,8 @@ from typing import Annotated
 import typer
 
 from . import download as download_mod
-from . import pipeline
 from . import mix as mix_mod
+from . import pipeline
 from . import separate as separate_mod
 from . import style as style_mod
 from . import transcribe as transcribe_mod

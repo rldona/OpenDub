@@ -1,9 +1,9 @@
 import math
 import struct
 import wave
+from dataclasses import replace
 
 import pytest
-from dataclasses import replace
 
 from opendub import tts
 from opendub.config import Settings

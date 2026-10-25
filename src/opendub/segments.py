@@ -73,14 +73,14 @@ def parse_vtt(path: Path) -> list[Piece]:
     blocks = re.split(r"\n\s*\n", path.read_text(encoding="utf-8").replace("\r", ""))
     for block in blocks:
         lines = block.strip().split("\n")
-        idx = next((i for i, l in enumerate(lines) if "-->" in l), None)
+        idx = next((i for i, line in enumerate(lines) if "-->" in line), None)
         if idx is None:
             continue
         a, b = lines[idx].split("-->")
         start, end = _vtt_seconds(a), _vtt_seconds(b.split()[0])
-        text_lines = [l for l in lines[idx + 1 :] if l.strip()]
+        text_lines = [line for line in lines[idx + 1 :] if line.strip()]
 
-        tagged = [l for l in text_lines if _VTT_INLINE.search(l)]
+        tagged = [line for line in text_lines if _VTT_INLINE.search(line)]
         if tagged:
             # Rolling ASR: only lines with per-word timestamps are new
             for line in tagged:
@@ -90,11 +90,11 @@ def parse_vtt(path: Path) -> list[Piece]:
                 for i, w in enumerate(words):
                     w_end = times[i + 1] if i + 1 < len(times) else end
                     pieces.append(Piece(times[i], w_end, _TAG.sub("", w)))
-            prev_lines = {clean_text(l) for l in text_lines}
+            prev_lines = {clean_text(line) for line in text_lines}
             continue
 
-        cleaned = [clean_text(l) for l in text_lines]
-        new = [l for l in cleaned if l and l not in prev_lines]
+        cleaned = [clean_text(line) for line in text_lines]
+        new = [line for line in cleaned if line and line not in prev_lines]
         prev_lines = set(cleaned)
         if new:
             pieces.append(Piece(start, end, " ".join(new)))

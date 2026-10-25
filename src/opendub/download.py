@@ -10,9 +10,9 @@ from typing import Any
 import yt_dlp
 from rich.progress import BarColumn, DownloadColumn, TransferSpeedColumn
 
+from . import media
 from .config import Settings
 from .log import Progress, console, log
-from . import media
 from .media import ffmpeg, probe
 from .workdir import WorkDir, write_text_atomic
 

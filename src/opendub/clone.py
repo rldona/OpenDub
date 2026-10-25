@@ -193,8 +193,9 @@ def synthesize_batch(jobs: list[tuple[str, Path, int, Path]], log_path: Path, do
         pending.put(job)
 
     def serve(k: int) -> None:
-        start = lambda: engines.Worker(f"{model} #{k + 1}", Path(sys.executable), WORKER, [variant], Path.cwd(),
-                                       log_path)
+        def start() -> engines.Worker:
+            return engines.Worker(f"{model} #{k + 1}", Path(sys.executable), WORKER, [variant], Path.cwd(), log_path)
+
         while True:
             try:
                 text, ref, seed, out = pending.get_nowait()

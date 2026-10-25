@@ -67,7 +67,7 @@ def install_fakes(setattr) -> None:
         return {"segments": [{"id": s["id"], "text": f"Frase número {s['id']}."} for s in data["segments"]]}, 0.0
 
     def fake_voice(jobs, settings):
-        for text, path, voice in jobs:  # about 14 chars/s, like a real voice
+        for text, path, _voice in jobs:  # about 14 chars/s, like a real voice
             _tone(path, max(0.4, len(text) / 14))
 
     async def no_check(voice):

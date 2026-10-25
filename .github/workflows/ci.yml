@@ -28,6 +28,20 @@ jobs:
       - run: uv sync --frozen --extra web
       - run: uv run --frozen pytest -q
 
+  lint:
+    name: ruff, and mypy not growing
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: astral-sh/setup-uv@v10.3.0
+        with:
+          python-version: "3.12"
+          enable-cache: true
+      - run: uv sync --frozen --extra web
+      - run: uv run --frozen ruff check src tests docs/bench tools
+      - name: mypy, against mypy-baseline.txt
+        run: uv run --frozen python tools/mypy_baseline.py
+
   macos-edge:
     name: macOS, stock voice without separation (the Mac's v2 requirement)
     runs-on: macos-latest

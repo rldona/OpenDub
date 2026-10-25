@@ -76,13 +76,13 @@ def score(vid: str, model: str) -> dict | None:
     synth = OUT / "synth" / vid / "segments.json"  # synth.py's conversations, else a real video
     seg_path = synth if synth.exists() else WORK / vid / "segments.json"
     segments = {s["id"]: s for s in json.loads(seg_path.read_text(encoding="utf-8"))}
-    single = [(int(i), l) for i, l in labels.items() if l in ("A", "B", "C", "D")]
-    pairs = [(speaker_of(segments[i], turns), l) for i, l in single]
+    single = [(int(i), label) for i, label in labels.items() if label in ("A", "B", "C", "D")]
+    pairs = [(speaker_of(segments[i], turns), label) for i, label in single]
     right, mapping = best_match(pairs)
-    row |= {"true_speakers": len({l for _, l in single}), "labeled": len(single),
+    row |= {"true_speakers": len({label for _, label in single}), "labeled": len(single),
             "accuracy": round(right / len(single), 3) if single else None,
-            "mixed": sum(1 for l in labels.values() if l == "mixed"),
-            "unsure": sum(1 for l in labels.values() if l == "unsure"),
+            "mixed": sum(1 for label in labels.values() if label == "mixed"),
+            "unsure": sum(1 for label in labels.values() if label == "unsure"),
             "mapping": {k: v for k, v in mapping.items()}}
     # per true speaker: how many of their sentences went to the right one (who gets confused with whom)
     per = defaultdict(lambda: [0, 0])

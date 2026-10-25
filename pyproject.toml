@@ -47,7 +47,9 @@ build-backend = "hatchling.build"
 [dependency-groups]
 dev = [
     "httpx>=0.27",
+    "mypy==2.4.0",
     "pytest>=9.1.1",
+    "ruff==0.17.2",
 ]
 
 # CUDA 12.8 builds of PyTorch: required by RTX 50-series (Blackwell) GPUs
@@ -78,3 +80,26 @@ environments = [
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+
+[tool.ruff]
+line-length = 120
+target-version = "py312"
+
+[tool.ruff.lint]
+# real mistakes and import order; a wider set can be added rule by rule, each with its fixes
+select = ["E", "F", "W", "I", "B"]
+ignore = [
+    "E501",  # long lines are left to judgement: the long ones are messages and ffmpeg graphs
+    "B904",  # SystemExit with a message inside except: the user gets the message, not the chain
+    "B905",  # zip(strict=) is added where lengths can differ, not everywhere
+]
+
+[tool.ruff.lint.flake8-bugbear]
+extend-immutable-calls = ["fastapi.Body", "typer.Option", "typer.Argument"]
+
+[tool.mypy]
+python_version = "3.12"
+files = ["src/opendub"]
+ignore_missing_imports = true  # torch, demucs, chatterbox and the like ship no types
+# the errors there were when mypy was added are listed in mypy-baseline.txt: CI fails on any new one
+# (tools/mypy_baseline.py), and the list only shrinks

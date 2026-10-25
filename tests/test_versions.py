@@ -2,7 +2,7 @@
 import json
 
 from opendub import mix, translate
-from opendub.models import Segment, load_segments, save_segments
+from opendub.models import Segment, save_segments
 from opendub.tts import Pace
 from opendub.workdir import WorkDir
 

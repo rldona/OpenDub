@@ -58,7 +58,7 @@ def test_retouching_needs_the_clips_and_a_dub_speaks_them_again(tmp_path, monkey
 
     def fake_render(wd_, jobs, slots, settings, regenerate=False):
         out = []
-        for seg, voice in jobs:
+        for seg, _voice in jobs:
             spoken.append(seg.id)
             (wd_.tts_dir).mkdir(exist_ok=True)
             (wd_.tts_dir / f"{seg.id:04d}.wav").write_bytes(b"")

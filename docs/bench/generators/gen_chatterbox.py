@@ -9,8 +9,8 @@ from pathlib import Path
 
 import soundfile as sf
 import torch
-from huggingface_hub import hf_hub_download
 from chatterbox.mtl_tts import ChatterboxMultilingualTTS
+from huggingface_hub import hf_hub_download
 
 HERE = Path(__file__).parent
 AUDIO = HERE.parent / "audio"

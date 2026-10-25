@@ -172,7 +172,9 @@ def suspicious(clips: list[Clip], min_chars: int = 15) -> list[Clip]:
     (under 0.15 s) or far too long for what they say (a garbled "Yo" of 3 s).
     """
     # duration_factor shortens clips on purpose: judge them at the speed they'd have at 1.0
-    natural = lambda c: spoken_len(c.text) * c.factor / c.raw_duration
+    def natural(c: Clip) -> float:
+        return spoken_len(c.text) * c.factor / c.raw_duration
+
     rates = [natural(c) for c in clips if c.raw_duration > 0 and len(c.text) >= min_chars]
     if len(rates) < 3:
         return [c for c in clips if c.raw_duration < 0.15 or _too_long(c, min_chars)]

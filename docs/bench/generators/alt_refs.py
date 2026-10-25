@@ -47,7 +47,11 @@ for i, first in enumerate(segs):
         cands.append({"start": start, "end": end, "coverage": round(coverage, 3),
                       "music_db": round(music, 1), "voice_to_music_db": round(voice - music, 1)})
 
-overlaps = lambda a, b: a[0] < b[1] and b[0] < a[1]
+
+def overlaps(a, b) -> bool:
+    return a[0] < b[1] and b[0] < a[1]
+
+
 picked = []
 # continuous speech first (coverage ≥ 0.9), then the cleanest voice-to-music ratio
 for c in sorted(cands, key=lambda c: (c["coverage"] < 0.9, -c["voice_to_music_db"])):

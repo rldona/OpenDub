@@ -12,7 +12,7 @@ import shutil
 import subprocess
 from dataclasses import replace
 from pathlib import Path
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from rich.progress import BarColumn, MofNCompleteColumn, TimeElapsedColumn
 
@@ -23,6 +23,9 @@ from .config import Settings
 from .log import Progress, check_cancelled, console, log
 from .models import Segment, load_segments, save_segments
 from .workdir import WorkDir, params_hash, write_text_atomic
+
+if TYPE_CHECKING:
+    from .tts import Pace  # tts imports translate: only for the annotations
 
 CONTEXT_SEGMENTS = 5
 MAX_ATTEMPTS = 3
