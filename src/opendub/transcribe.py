@@ -119,7 +119,12 @@ def run(wd: WorkDir, settings: Settings, force: bool = False) -> list[Segment]:
     meta = json.loads(wd.meta.read_text(encoding="utf-8"))
     source = _choose_source(meta, settings.subs)
     params = {"source": source, "whisper_model": settings.whisper_model if source == "whisper" else None}
-    if not force and wd.is_done("transcribe", params) and wd.segments.exists():
+    # "segments-v2": fragments joined to their sentence (segments.join_fragments). Videos cut
+    # before it keep their segments, so their translation and its hand edits stay valid;
+    # --force cuts them again
+    legacy = dict(params)
+    params["segments"] = 2
+    if not force and (wd.is_done("transcribe", params) or wd.is_done("transcribe", legacy)) and wd.segments.exists():
         log.info("Transcription cached, skipping")
         return load_segments(wd.segments)
 

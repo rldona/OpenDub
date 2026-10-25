@@ -87,7 +87,7 @@ def test_regroup_joins_until_sentence_end():
 
 
 def test_regroup_splits_on_gap_and_max_duration():
-    gap = regroup([Piece(0, 1, "a"), Piece(3, 4, "b")])
+    gap = regroup([Piece(0, 1, "one two three four"), Piece(3, 4, "five six seven eight")])
     assert len(gap) == 2
     words = [Piece(i, i + 0.9, f"w{i}") for i in range(30)]
     long = regroup(words, max_dur=12)
@@ -110,3 +110,31 @@ def test_regroup_merges_very_short_sentences():
 def test_regroup_fixes_overlaps():
     segs = regroup([Piece(0, 3, "One."), Piece(2, 4, "Two words.")])
     assert segs[0].end == 2
+
+
+def test_fragments_join_their_sentence_across_a_pause():
+    # real cases from a 19-minute video: a lone "I" before a 2.5 s pause, a sentence's tail after one
+    segs = regroup([
+        Piece(25.7, 29.5, "You can buy them individually on my itch store."),
+        Piece(29.5, 30.1, "I"),
+        Piece(32.6, 35.2, "want to redesign and reanimate this character."),
+        Piece(531.6, 540.0, "we're going to add a layer here which is going to be the VFX and this will be the"),
+        Piece(542.1, 542.7, "slash itself."),
+        Piece(545.3, 551.3, "I think we're going to go for a hard slash."),
+    ])
+    assert [s.text for s in segs] == [
+        "You can buy them individually on my itch store.",
+        "I want to redesign and reanimate this character.",
+        "we're going to add a layer here which is going to be the VFX and this will be the slash itself.",
+        "I think we're going to go for a hard slash.",
+    ]
+    assert (segs[1].start, segs[1].end) == (29.5, 35.2)
+
+
+def test_fragments_stay_apart_across_long_pauses_or_past_max_duration():
+    far = regroup([Piece(0, 0.5, "So"), Piece(5.0, 8.0, "this is a whole new sentence.")])
+    assert len(far) == 2  # 4.5 s of pause: not the same sentence
+    closed = regroup([Piece(0, 3, "That was the first part."), Piece(4.0, 4.6, "Okay.")])
+    assert len(closed) == 2  # the previous one closed its sentence
+    long = regroup([Piece(0, 11.5, "a very long piece of speech that keeps going on and on"), Piece(12.0, 12.5, "here")])
+    assert len(long) == 2  # together it would pass max_dur

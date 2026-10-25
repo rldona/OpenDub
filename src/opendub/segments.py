@@ -138,6 +138,46 @@ def split_sentences(pieces: list[Piece]) -> list[Piece]:
     return out
 
 
+# A pause splits a sentence in two: "I" | (2.5 s) | "want to redesign this character.", or
+# "…and this will be the" | "slash itself.". Translated and spoken on its own, such a
+# fragment comes out odd ("Yo" said alone) and is what the voices most often garble.
+FRAGMENT_WORDS = 3  # a group this short that doesn't close a sentence is a fragment
+MAX_JOIN_GAP = 4.0  # seconds of pause a fragment is joined across
+
+
+def _words(group: list[Piece]) -> int:
+    return sum(len(p.text.split()) for p in group)
+
+
+def _closes(group: list[Piece]) -> bool:
+    return bool(_SENTENCE_END.search(group[-1].text))
+
+
+def join_fragments(groups: list[list[Piece]], max_dur: float = 12.0) -> list[list[Piece]]:
+    """Join a short fragment to the sentence it belongs to, across a pause.
+
+    A short group that leaves its sentence open goes with the next group; a short
+    group after one that was left open goes with that one. Never across more
+    than MAX_JOIN_GAP of pause, nor into a group longer than max_dur.
+    """
+    def fits(a: list[Piece], b: list[Piece]) -> bool:
+        return b[0].start - a[-1].end <= MAX_JOIN_GAP and b[-1].end - a[0].start <= max_dur
+
+    out: list[list[Piece]] = []
+    i = 0
+    while i < len(groups):
+        g = groups[i]
+        short = _words(g) <= FRAGMENT_WORDS
+        if short and out and not _closes(out[-1]) and fits(out[-1], g):
+            out[-1] = out[-1] + g  # "…and this will be the" + "slash itself."
+        elif short and not _closes(g) and i + 1 < len(groups) and fits(g, groups[i + 1]):
+            groups[i + 1] = g + groups[i + 1]  # "I" + "want to redesign this character."
+        else:
+            out.append(g)
+        i += 1
+    return out
+
+
 def regroup(
     pieces: list[Piece], max_dur: float = 12.0, max_gap: float = 0.7, min_dur: float = 1.0
 ) -> list[Segment]:
@@ -154,6 +194,7 @@ def regroup(
             cur = []
     if cur:
         groups.append(cur)
+    groups = join_fragments(groups, max_dur)
 
     return [
         Segment(
