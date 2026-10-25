@@ -9,6 +9,7 @@ invalidates the phases that depend on it.
 from __future__ import annotations
 
 import json
+import os
 import re
 from datetime import datetime
 from pathlib import Path
@@ -153,11 +154,38 @@ def outputs(wd: WorkDir) -> list[dict[str, Any]]:
     for o in found:
         del o["_mtime"]
     for o in found:
-        version = None if o["current"] else o["version"]
-        o["issues"] = len(issues(wd, version))
-        # a retouch: how many sentences it spoke again over the dub before it
-        o["retouched"] = len((_version_sources(wd, version)[0].get("stats") or {}).get("retouched") or [])
+        o["issues"], o["retouched"] = _counts(wd, None if o["current"] else o["version"])
     return found
+
+
+# (video folder, version) → (the stamps of the files its numbers come from, (issues, retouched)): the library
+# lists every version of every video on each load, and a kept version's files don't change
+_COUNTS: dict[tuple[Path, str | None], tuple[tuple, tuple[int, int]]] = {}
+
+
+def _counts(wd: WorkDir, version: str | None) -> tuple[int, int]:
+    """A version's issues and retouched sentences, read again only when a file they depend on changed."""
+    if version is None:
+        own = [wd.tts_index, wd.overflow_log]
+    else:
+        own = [wd.outputs_dir / f"{version}.tts.json", wd.outputs_dir / f"{version}.overflow.log"]
+    # issues() also reads the transcription, the hand edits and both styles (glossary misses)
+    inputs = [*own, wd.segments, wd.translation_edits, wd.path / style.FILE, wd.path.parent / style.FILE]
+    stamp = tuple((st.st_mtime_ns, st.st_size) if (st := _stat(p)) else None for p in inputs)
+    key = (wd.path, version)
+    if (cached := _COUNTS.get(key)) and cached[0] == stamp:
+        return cached[1]
+    # a retouch: how many sentences it spoke again over the dub before it
+    retouched = len((_version_sources(wd, version)[0].get("stats") or {}).get("retouched") or [])
+    _COUNTS[key] = (stamp, counts := (len(issues(wd, version)), retouched))
+    return counts
+
+
+def _stat(path: Path) -> os.stat_result | None:
+    try:
+        return path.stat()
+    except OSError:
+        return None
 
 
 def version_detail(wd: WorkDir, version: str) -> dict[str, Any]:

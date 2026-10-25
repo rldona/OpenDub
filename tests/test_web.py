@@ -578,3 +578,24 @@ def test_errors_carry_a_code_the_page_translates(tmp_path):
     assert detail == {"code": "unknown_video", "message": "Unknown video", "params": {}}
     detail = c.post("/jobs/AAAAAAAAAAA/cancel").json()["detail"]
     assert detail["code"] == "no_job"
+
+
+def test_the_library_reads_a_version_again_only_when_its_files_change(tmp_path, monkeypatch):
+    import os
+
+    from opendub import mix
+    from opendub.web import videos
+    from opendub.workdir import WorkDir
+
+    wd = make_video(tmp_path)
+    mix.archive(WorkDir(tmp_path, VID))
+    read = []
+    real = videos.issues
+    monkeypatch.setattr(videos, "issues", lambda wd, version=None: read.append(version) or real(wd, version))
+    first = videos.outputs(wd)
+    assert videos.outputs(wd) == first and len(read) == 1  # the second listing reads nothing
+    wd.overflow_log.write_text(wd.overflow_log.read_text() + "#2 delayed 0.30s in the mix\n")
+    os.utime(wd.overflow_log, ns=(1, wd.overflow_log.stat().st_mtime_ns + 10**9))
+    assert videos.outputs(wd)[0]["issues"] == first[0]["issues"] + 1 and len(read) == 2  # changed: read again
+    (tmp_path / "style.json").write_text(json.dumps({"terms": [{"source": "rewind", "target": "rebobinar"}]}))
+    assert videos.outputs(wd)[0]["issues"] == first[0]["issues"] + 2 and len(read) == 3  # a new glossary term
