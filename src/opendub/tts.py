@@ -154,21 +154,39 @@ def spoken_len(text: str) -> int:
     return len(spell_numbers(text))
 
 
+# Texts this short ("Yo", "Sí") can't be judged by whisper (one misheard sound is half the
+# text) nor shortened (Claude turned "Yo" into "Y"): only their duration is checked
+TINY_CHARS = 3
+
+
+def tiny(text: str) -> bool:
+    return spoken_len(text.strip(" .,;:!?¡¿«»\"'…-")) <= TINY_CHARS
+
+
 def suspicious(clips: list[Clip], min_chars: int = 15) -> list[Clip]:
-    """Clips whose speed (characters/s) is far from the video's median."""
+    """Clips whose speed (characters/s) is far from the video's median.
+
+    Short texts don't count towards the median; they are flagged when cut off
+    (under 0.15 s) or far too long for what they say (a garbled "Yo" of 3 s).
+    """
     # duration_factor shortens clips on purpose: judge them at the speed they'd have at 1.0
     natural = lambda c: spoken_len(c.text) * c.factor / c.raw_duration
     rates = [natural(c) for c in clips if c.raw_duration > 0 and len(c.text) >= min_chars]
     if len(rates) < 3:
-        return [c for c in clips if c.raw_duration < 0.15]
+        return [c for c in clips if c.raw_duration < 0.15 or _too_long(c, min_chars)]
     median = statistics.median(rates)
     out = []
     for c in clips:
-        if c.raw_duration < 0.15:
+        if c.raw_duration < 0.15 or _too_long(c, min_chars):
             out.append(c)
         elif len(c.text) >= min_chars and not 0.5 * median <= natural(c) <= 1.8 * median:
             out.append(c)
     return out
+
+
+def _too_long(c: Clip, min_chars: int) -> bool:
+    """A short text that takes far longer than even a slow voice would (1 s plus 5 chars/s)."""
+    return len(c.text) < min_chars and c.raw_duration / c.factor > 1.0 + spoken_len(c.text) / 5
 
 
 def _slots(segments: list[Segment], media_duration: float | None) -> list[float]:
@@ -636,7 +654,7 @@ def _shorten_overflows(
 
     shortened = set()
     for round_ in range(1, SHORTEN_ROUNDS + 1):
-        bad = [c for c in clips.values() if _needs_shortening(c, voices[c.id])]
+        bad = [c for c in clips.values() if _needs_shortening(c, voices[c.id]) and not tiny(c.text)]
         if not bad:
             break
         log.info(f"Shortening round {round_}: {len(bad)} sentence(s) do not fit, asking for shorter versions…")
@@ -658,7 +676,7 @@ def _clone_failures(wd: WorkDir, ids: set[int], clips: dict[int, Clip], settings
     from . import clone
 
     bad = {c.id for c in suspicious(list(clips.values())) if c.id in ids}
-    rest = [(i, wd.path / clips[i].file, clips[i].text) for i in sorted(ids - bad)]
+    rest = [(i, wd.path / clips[i].file, clips[i].text) for i in sorted(ids - bad) if not tiny(clips[i].text)]
     return bad | (clone.unintelligible(rest, settings.whisper_model) if rest else set())
 
 
@@ -690,21 +708,25 @@ def _repair_clones(
                           for i in bad}
         elif step == "a shorter sentence":
             originals = {s.id: s.text for s in load_segments(wd.segments)}
-            items = [(i, originals[i], texts[i], max(int(len(texts[i]) * 0.85), 1)) for i in sorted(bad)]
-            texts = translate.shorten(items, settings.voice, settings)
-            new_voices = {i: replace(voices[i], label=f"{voices[i].engine} (shortened)") for i in bad}
+            items = [(i, originals[i], texts[i], max(int(len(texts[i]) * 0.85), 1)) for i in sorted(bad)
+                     if not tiny(texts[i])]
+            if not items:
+                continue
+            texts = {**texts, **translate.shorten(items, settings.voice, settings)}
+            new_voices = {i: replace(voices[i], label=f"{voices[i].engine} (shortened)") for i, *_ in items}
         elif step == "the fixed reference":
             new_voices = {i: replace(voices[i], ref=settings.clone_ref, seed=SEED,
                                      label=f"{voices[i].engine} (fixed reference)") for i in bad}
         else:
             new_voices = {i: Voice.edge(settings) for i in bad}
-        jobs = [(replace(by_id[i], text=texts[i]), new_voices[i]) for i in sorted(bad)]
+        redo = set(new_voices)  # a tiny text skips the shorter-sentence step and goes on as it is
+        jobs = [(replace(by_id[i], text=texts[i]), new_voices[i]) for i in sorted(redo)]
         for clip in _render_each(wd, jobs, slots, settings):
             clips[clip.id] = clip
         voices.update(new_voices)
         if step == "edge-tts":
             return bad
-        bad = _clone_failures(wd, bad, clips, settings)
+        bad = _clone_failures(wd, redo, clips, settings) | (bad - redo)
     return set()
 
 

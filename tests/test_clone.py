@@ -97,3 +97,39 @@ def test_voice_rate_dispatches_on_engine(tmp_path, monkeypatch):
         tts.voice_rate(wd, Settings(tts="qwen"))
     with pytest.raises(SystemExit):
         tts.voice_rate(wd, Settings(tts="clone", engine="qwen"))
+
+
+def test_tiny_texts_are_judged_by_duration_only():
+    assert tts.tiny("Yo") and tts.tiny("¿Sí?") and tts.tiny(" Y. ") and not tts.tiny("Hola") and not tts.tiny("Yo sé.")
+    voice = tts.Voice("chatterbox", "es-ES-AlvaroNeural", "-10%")
+    seg = lambda i, text: Segment(i, i * 10.0, i * 10.0 + 3, text)
+    clips = [_clip(seg(i, f"Una frase normal número {i}."), voice) for i in range(1, 6)]
+    fine = replace(_clip(seg(6, "Yo"), voice), raw_duration=0.6)
+    garbled = replace(_clip(seg(7, "Yo"), voice), raw_duration=3.2)  # a cloned "Yo" that ran away
+    assert [c.id for c in tts.suspicious([*clips, fine, garbled])] == [7]
+
+
+def test_quality_check_never_shortens_a_tiny_text(tmp_path, monkeypatch):
+    from opendub import translate
+
+    wd = WorkDir(tmp_path, "vid")
+    segs = [Segment(1, 0.0, 3.0, "Yo"), Segment(2, 5.0, 8.0, "Una frase larga que no se entiende.")]
+    save_segments(wd.segments, [Segment(1, 0.0, 3.0, "I"), Segment(2, 5.0, 8.0, "A long sentence.")])
+    ref = tmp_path / "ref.wav"
+    ref.write_bytes(b"ref")
+    settings = Settings(tts="clone")
+    voice = tts.Voice.clone(settings, ref)
+    voices = {s.id: voice for s in segs}
+    clips = {s.id: _clip(s, voice) for s in segs}
+    rendered, asked = [], []
+
+    monkeypatch.setattr(tts, "_clone_failures", lambda wd_, ids, c, s: {i for i in ids if c[i].voice != "edge"})
+    monkeypatch.setattr(tts, "_render_each", lambda wd_, jobs, slots, s, regenerate=False: (
+        rendered.append(sorted((sg.id, v.label, sg.text) for sg, v in jobs)) or [_clip(sg, v) for sg, v in jobs]))
+    monkeypatch.setattr(translate, "shorten", lambda items, v, s: asked.extend(i for i, *_ in items) or
+                        {i: t[:m] for i, _o, t, m in items})
+
+    tts._repair_clones(wd, clips, voices, {}, {s.id: s for s in segs}, settings)
+    assert asked == [2]  # "Yo" is never sent to be shortened (it came back as "Y")
+    assert [(i, label) for i, label, _ in rendered[1]] == [(2, "chatterbox (shortened)")]
+    assert (1, "edge", "Yo") in rendered[-1]  # still says "Yo" on the last resort
