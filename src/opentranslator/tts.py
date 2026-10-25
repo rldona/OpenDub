@@ -97,13 +97,13 @@ SEED = 0  # cloned voices: base seed, so a rerun reproduces the same clips
 class Voice:
     """How a clip is spoken: an edge-tts voice or a clone of a reference recording."""
 
-    engine: str  # edge | chatterbox | indextts
+    engine: str  # edge | chatterbox | indextts | cosyvoice
     name: str  # edge-tts voice; also gives the target Spanish variant
     rate: str
     ref: Path | None = None  # cloned voices: reference recording
     seed: int = SEED
     label: str = "edge"  # recorded in tts.json
-    factor: float = 1.0  # indextts: duration_factor (<1 = shorter)
+    factor: float = 1.0  # engines with a native duration control: duration factor (<1 = shorter)
 
     @classmethod
     def edge(cls, settings: Settings) -> Voice:
@@ -127,7 +127,7 @@ class Clip:
     file: str
     text: str = ""  # spoken text (may be a shortened version of the translation)
     voice: str = "edge"  # Voice.label that produced it
-    factor: float = 1.0  # duration_factor it was spoken with (indextts)
+    factor: float = 1.0  # duration factor it was spoken with (native duration control)
 
 
 def choose_tempo(duration: float, slot: float, seg_duration: float, min_tempo: float, max_tempo: float) -> float:
@@ -196,7 +196,7 @@ def _raw_path(wd: WorkDir, voice: Voice, text: str) -> Path:
 
         # "spoken-v1": cloned voices get figures written out (spoken.py); older clips said them wrong
         raw = f"{engine_model(voice.engine)}\n{clone.file_hash(voice.ref)}\n{voice.seed}\nspoken-v1\n{text}"
-        if voice.engine == "indextts":
+        if native_duration(voice.engine):
             raw += f"\n{voice.factor:.3f}"
         return wd.tts_dir / "raw" / f"{hashlib.sha256(raw.encode()).hexdigest()[:16]}.wav"
     key = hashlib.sha256(f"{voice.name}\n{voice.rate}\n{text}".encode()).hexdigest()[:16]
@@ -226,7 +226,7 @@ def _synthesize_jobs(jobs: list[tuple[str, Path, Voice]], settings: Settings) ->
         asyncio.run(_synthesize_all(group, name, rate))
     if not cloned:
         return
-    from . import clone, indextts
+    from . import clone, cosyvoice, indextts
 
     # One GPU model: clips go one after another
     with Progress(
@@ -239,6 +239,9 @@ def _synthesize_jobs(jobs: list[tuple[str, Path, Voice]], settings: Settings) ->
             if voice.engine == "indextts":
                 indextts.synthesize(settings.indextts_dir, settings.work_root / "indextts.log",
                                     said, voice.ref, path, voice.factor, voice.seed)
+            elif voice.engine == "cosyvoice":
+                cosyvoice.synthesize(settings.cosyvoice_dir, settings.work_root / "cosyvoice.log",
+                                     said, voice.ref, path, voice.factor, voice.seed)
             else:
                 clone.synthesize(said, voice.ref, voice.seed, path)
             progress.advance(task)
@@ -302,8 +305,9 @@ def speaking_rate(work_root: Path, voice: str, rate: str) -> float:
 def cloned_speaking_rate(settings: Settings, voice: Voice) -> Pace:
     """Pace of a cloned voice (per-clip overhead and chars/s), cached like speaking_rate.
 
-    IndexTTS is measured at indextts.CALIBRATION_FACTOR, the pace its clips are
-    planned around; Chatterbox at its only pace.
+    Engines with a native duration control are measured at their
+    CALIBRATION_FACTOR, the pace their clips are planned around (IndexTTS 0.85,
+    CosyVoice 1.0); Chatterbox at its only pace.
     """
     factor = calibration_factor(voice.engine)
     cache = settings.work_root / "voice_rates.json"
@@ -393,7 +397,10 @@ def voice_rate(wd: WorkDir, settings: Settings) -> Pace:
     return Pace(speaking_rate(settings.work_root, settings.voice, settings.rate))
 
 
-CLONE_ENGINES = ("chatterbox", "indextts")  # --engine; Settings.engine defaults to chatterbox
+CLONE_ENGINES = ("chatterbox", "indextts", "cosyvoice")  # --engine; Settings.engine defaults to chatterbox
+# Engines that scale a clip's duration themselves (a duration factor): their clips are
+# fitted to the slot natively, down to --min-factor, before shortening and atempo
+NATIVE_DURATION = ("indextts", "cosyvoice")
 
 
 AUTO_F0_HZ = 165.0  # --engine auto: references below it get IndexTTS, the rest Chatterbox
@@ -421,16 +428,27 @@ def resolve_engine(settings: Settings, ref: Path | None = None) -> str:
     return "indextts" if f0 is not None and f0 < AUTO_F0_HZ else "chatterbox"
 
 
-def calibration_factor(engine: str) -> float:
-    from . import indextts
+def native_duration(engine: str) -> bool:
+    return engine in NATIVE_DURATION
 
-    return indextts.CALIBRATION_FACTOR if engine == "indextts" else 1.0
+
+def _engine_module(engine: str):
+    from . import clone, cosyvoice, indextts
+
+    return {"chatterbox": clone, "indextts": indextts, "cosyvoice": cosyvoice}[engine]
+
+
+def calibration_factor(engine: str) -> float:
+    return _engine_module(engine).CALIBRATION_FACTOR if native_duration(engine) else 1.0
+
+
+def min_factor(engine: str) -> float:
+    """The lowest duration factor an engine is asked for (below --min-factor, a last resort)."""
+    return _engine_module(engine).MIN_FACTOR
 
 
 def engine_model(engine: str) -> str:
-    from . import clone, indextts
-
-    return {"chatterbox": clone.MODEL, "indextts": indextts.MODEL}[engine]
+    return _engine_module(engine).MODEL
 
 
 def _calibrate(settings: Settings, voice: Voice, sentences: list[str]) -> list[tuple[int, float]]:
@@ -512,32 +530,32 @@ def _render_each(
     wd: WorkDir, jobs: list[tuple[Segment, Voice]], slots: dict[int, float], settings: Settings,
     regenerate: bool = False,
 ) -> list[Clip]:
-    """Like _render, but every segment with its own voice (IndexTTS clips fitted to their slot)."""
+    """Like _render, but every segment with its own voice (native-duration clips fitted to their slot)."""
     jobs = _predict_factors(jobs, slots, settings)
     clips = _render_jobs(wd, jobs, slots, settings, regenerate=regenerate)
-    return _fit_indextts(wd, clips, jobs, slots, settings)
+    return _fit_native(wd, clips, jobs, slots, settings)
 
 
-def _fit_indextts(
+def _fit_native(
     wd: WorkDir, clips: list[Clip], jobs: list[tuple[Segment, Voice]], slots: dict[int, float], settings: Settings,
 ) -> list[Clip]:
-    """Re-speak the IndexTTS clips that overflow their slot with a measured duration_factor.
+    """Re-speak the native-duration clips that overflow their slot with a measured duration factor.
 
     The first pass already used a factor predicted from the calibrated speaking
-    rate; duration_factor scales the duration almost exactly, so one measured
-    correction is enough. Never below --min-factor: past it the sentence is
-    shortened first (_shorten_overflows), and only then compressed further
-    (_below_floor).
+    rate; the factor scales the duration almost exactly (IndexTTS's
+    duration_factor, CosyVoice's speed), so one measured correction is enough.
+    Never below --min-factor: past it the sentence is shortened first
+    (_shorten_overflows), and only then compressed further (_below_floor).
     """
-    from . import indextts
+    from . import engines
 
     voices = {seg.id: voice for seg, voice in jobs}
     segs = {seg.id: seg for seg, _ in jobs}
     redo = []
     for c in clips:
         v = voices[c.id]
-        if v.engine == "indextts" and c.raw_duration > slots[c.id]:
-            factor = indextts.fit_factor(c.raw_duration, slots[c.id], v.factor, floor=min(settings.min_factor, v.factor))
+        if native_duration(v.engine) and c.raw_duration > slots[c.id]:
+            factor = engines.fit_factor(c.raw_duration, slots[c.id], v.factor, floor=min(settings.min_factor, v.factor))
             if factor < v.factor - 0.01:
                 redo.append((segs[c.id], replace(v, factor=factor)))
     if not redo:
@@ -551,19 +569,19 @@ def _fit_indextts(
 def _predict_factors(
     jobs: list[tuple[Segment, Voice]], slots: dict[int, float], settings: Settings,
 ) -> list[tuple[Segment, Voice]]:
-    """Give IndexTTS jobs the duration_factor their calibrated speaking rate predicts for the slot.
+    """Give native-duration jobs the factor their calibrated speaking rate predicts for the slot.
 
     The slowest factor that fits, between --min-factor and 1.0 (natural pace):
-    clips with room are not compressed just because the calibration is at 0.85.
+    clips with room are not compressed just because IndexTTS is calibrated at 0.85.
     """
-    from . import indextts
+    from . import engines
 
     out = []
     for seg, voice in jobs:
-        if voice.engine == "indextts":
-            cal = indextts.CALIBRATION_FACTOR
+        if native_duration(voice.engine):
+            cal = calibration_factor(voice.engine)
             expected = cloned_speaking_rate(settings, voice).seconds(spoken_len(seg.text))  # seconds at `cal`
-            factor = indextts.fit_factor(expected, slots[seg.id], cal, floor=settings.min_factor, ceiling=1.0)
+            factor = engines.fit_factor(expected, slots[seg.id], cal, floor=settings.min_factor, ceiling=1.0)
             voice = replace(voice, factor=factor)
         out.append((seg, voice))
     return out
@@ -578,8 +596,8 @@ def _clip_overhead(clip: Clip, voice: Voice, settings: Settings) -> float:
 
 
 def _needs_shortening(clip: Clip, voice: Voice) -> bool:
-    """IndexTTS: it doesn't fit at --min-factor, before atempo. Others: it doesn't fit even after atempo."""
-    if voice.engine == "indextts":
+    """Native duration: it doesn't fit at --min-factor, before atempo. Others: not even after atempo."""
+    if native_duration(voice.engine):
         return clip.raw_duration - clip.slot > OVERFLOW_TOLERANCE
     return clip.overflow > OVERFLOW_TOLERANCE
 
@@ -588,18 +606,18 @@ def _below_floor(
     wd: WorkDir, clips: dict[int, Clip], voices: dict[int, Voice], slots: dict[int, float],
     by_id: dict[int, Segment], settings: Settings,
 ) -> set[int]:
-    """Last step for IndexTTS clips that don't fit even shortened: compress below --min-factor.
+    """Last step for native-duration clips that don't fit even shortened: compress below --min-factor.
 
-    Down to indextts.MIN_FACTOR; atempo covers whatever is still left. Returns
-    the ids compressed this way (they go to overflow.log).
+    Down to the engine's MIN_FACTOR; atempo covers whatever is still left.
+    Returns the ids compressed this way (they go to overflow.log).
     """
-    from . import indextts
+    from . import engines
 
     jobs = []
     for c in clips.values():
         v = voices[c.id]
-        if v.engine == "indextts" and c.raw_duration > c.slot:
-            factor = indextts.fit_factor(c.raw_duration, c.slot, c.factor, floor=indextts.MIN_FACTOR)
+        if native_duration(v.engine) and c.raw_duration > c.slot:
+            factor = engines.fit_factor(c.raw_duration, c.slot, c.factor, floor=min_factor(v.engine))
             if factor < c.factor - 0.01:
                 jobs.append((replace(by_id[c.id], text=c.text), replace(v, factor=factor)))
     for clip in _render_jobs(wd, jobs, slots, settings):
@@ -621,9 +639,9 @@ def _shorten_overflows(
         if not bad:
             break
         log.info(f"Shortening round {round_}: {len(bad)} sentence(s) do not fit, asking for shorter versions…")
-        # IndexTTS aims to fit without atempo: the target leaves it out
+        # native-duration engines aim to fit without atempo: the target leaves it out
         items = [(c.id, originals[c.id], c.text,
-                  shorten_target(c.text, c, 1.0 if voices[c.id].engine == "indextts" else settings.max_tempo,
+                  shorten_target(c.text, c, 1.0 if native_duration(voices[c.id].engine) else settings.max_tempo,
                                  _clip_overhead(c, voices[c.id], settings)))
                  for c in bad]
         new_texts = translate.shorten(items, settings.voice, settings)
@@ -712,7 +730,7 @@ def run(wd: WorkDir, settings: Settings, force: bool = False) -> list[Clip]:
             "clone_ref": clone.file_hash(settings.clone_ref) if settings.clone_ref else None,
             "qc_whisper": settings.whisper_model,
         }
-        if engine == "indextts":
+        if native_duration(engine):
             params["min_factor"] = settings.min_factor
     ref_f0 = reference.mean_f0(ref) if cloned else None
     choice = None
@@ -766,7 +784,7 @@ def run(wd: WorkDir, settings: Settings, force: bool = False) -> list[Clip]:
     if settings.shorten:
         originals = {s.id: s.text for s in load_segments(wd.segments)}
         n_short = _shorten_overflows(wd, clips, originals, slots, by_id, settings, voices)
-    below_floor = _below_floor(wd, clips, voices, slots, by_id, settings) if engine == "indextts" else set()
+    below_floor = _below_floor(wd, clips, voices, slots, by_id, settings) if native_duration(engine) else set()
 
     result = [clips[s.id] for s in segments]
     index = {
@@ -790,7 +808,7 @@ def run(wd: WorkDir, settings: Settings, force: bool = False) -> list[Clip]:
             if c.id in fell_back:
                 f.write(f"#{c.id} @{c.start:.2f}s: cloned voice failed the quality check, used edge-tts · {c.text}\n")
             if c.id in below_floor:
-                f.write(f"#{c.id} @{c.start:.2f}s: did not fit even shortened, duration_factor {c.factor:.2f} "
+                f.write(f"#{c.id} @{c.start:.2f}s: did not fit even shortened, duration factor {c.factor:.2f} "
                         f"below the {settings.min_factor:.2f} floor · {c.text}\n")
 
     sped = sum(1 for c in result if c.tempo > 1.0)
@@ -799,9 +817,9 @@ def run(wd: WorkDir, settings: Settings, force: bool = False) -> list[Clip]:
         f"Sped up: {sped} · shortened: {n_short} · do not fit: {len(overflows)}"
         + (f" (max +{max(c.overflow for c in overflows):.2f}s, see overflow.log)" if overflows else "")
     )
-    if engine == "indextts":
+    if native_duration(engine):
         fitted = sum(1 for c in result if c.factor < 1.0)
-        log.info(f"Fitted with duration_factor: {fitted} (min {min(c.factor for c in result):.2f}) · "
+        log.info(f"Fitted with the native duration factor: {fitted} (min {min(c.factor for c in result):.2f}) · "
                  f"below the {settings.min_factor:.2f} floor: {len(below_floor)}")
     if cloned:
         repaired = sum(1 for c in result if c.voice not in (engine, "edge"))

@@ -40,8 +40,6 @@
           <label><span data-i18n="engine">Engine</span>
             <select id="engine">
               <option value="auto" data-i18n="engine_auto">Automatic</option>
-              <option value="chatterbox">Chatterbox</option>
-              <option value="indextts">IndexTTS</option>
             </select>
           </label>
           <label class="check"><input id="separate" type="checkbox" checked> <span data-i18n="keep_music">Keep the music</span></label>
@@ -50,6 +48,7 @@
               <output id="bg-volume-out">0 dB</output></span>
           </label>
         </div>
+        <p id="engine-hint" class="muted small" hidden></p>
       </form>
 
       <section id="job" class="card" hidden aria-live="polite">

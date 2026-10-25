@@ -36,7 +36,8 @@ def test_suspicious_judges_fitted_clips_at_their_natural_speed():
     assert [x.id for x in tts.suspicious(clips)] == [7]
 
 
-CPS = 10.0  # calibrated chars/s at indextts.CALIBRATION_FACTOR
+CPS = 10.0  # calibrated chars/s at the engine's CALIBRATION_FACTOR
+NATIVE = pytest.mark.parametrize("engine", tts.NATIVE_DURATION)  # indextts, cosyvoice: same fitting
 
 
 def _fake_render(rendered):
@@ -44,18 +45,18 @@ def _fake_render(rendered):
 
     def render(wd_, jobs, slots_, settings_, regenerate=False):
         rendered.append(sorted((s.id, v.factor) for s, v in jobs))
-        cal = indextts.CALIBRATION_FACTOR
-        return [tts.Clip(s.id, s.start, slots_[s.id], len(s.text) / CPS * v.factor / cal * 1.1, 1.0,
+        return [tts.Clip(s.id, s.start, slots_[s.id], len(s.text) / CPS * v.factor / tts.calibration_factor(v.engine) * 1.1, 1.0,
                          0.0, 0.0, f"tts/{s.id:04d}.wav", s.text, v.label, v.factor) for s, v in jobs]
 
     return render
 
 
-def test_indextts_factor_is_predicted_and_corrected_within_the_floor(tmp_path, monkeypatch):
+@NATIVE
+def test_native_factor_is_predicted_and_corrected_within_the_floor(tmp_path, monkeypatch, engine):
     wd = WorkDir(tmp_path, "vid")
     ref = tmp_path / "ref.wav"
     ref.write_bytes(b"ref")
-    settings = Settings(tts="clone", engine="indextts")  # --min-factor 0.7
+    settings = Settings(tts="clone", engine=engine)  # --min-factor 0.7
     voice = tts.Voice.clone(settings, ref)
     # 2 s, 4 s and 6 s at the calibration factor, all in 4 s slots
     segs = [Segment(1, 0.0, 2.0, "x" * 20), Segment(2, 5.0, 7.0, "x" * 40), Segment(3, 10.0, 12.0, "x" * 60)]
@@ -66,7 +67,7 @@ def test_indextts_factor_is_predicted_and_corrected_within_the_floor(tmp_path, m
 
     clips = {c.id: c for c in tts._render_each(wd, [(s, voice) for s in segs], slots, settings)}
 
-    cal = indextts.CALIBRATION_FACTOR
+    cal = tts.calibration_factor(engine)  # IndexTTS 0.85, CosyVoice 1.0
     predicted = round(cal * 4.0 * 0.97 / 4.0, 3)
     assert rendered[0] == [(1, 1.0), (2, predicted), (3, 0.7)]  # one batch; room → natural pace; 3 → floor
     first_pass = 40 / CPS * predicted / cal * 1.1  # seg 2's duration at the predicted factor
@@ -77,8 +78,9 @@ def test_indextts_factor_is_predicted_and_corrected_within_the_floor(tmp_path, m
     assert clips[3].factor == 0.7 and clips[3].raw_duration > 4.0  # left for shortening, not compressed further
 
 
+@NATIVE
 @pytest.mark.parametrize("shortening_helps", [True, False])
-def test_indextts_shortens_before_going_below_the_floor(tmp_path, monkeypatch, shortening_helps):
+def test_native_shortens_before_going_below_the_floor(tmp_path, monkeypatch, shortening_helps, engine):
     import json as _json
 
     from opentranslator import reference, translate
@@ -109,24 +111,24 @@ def test_indextts_shortens_before_going_below_the_floor(tmp_path, monkeypatch, s
     monkeypatch.setattr(tts, "_render_jobs", _fake_render(rendered))
     monkeypatch.setattr(translate, "shorten", fake_shorten)
 
-    clips = tts.run(wd, Settings(tts="clone", engine="indextts"))
+    clips = tts.run(wd, Settings(tts="clone", engine=engine))
 
     # shortening is asked while no clip has gone below the floor yet
     assert shortened and all(f >= 0.7 for batch in shortened[0][1] for _, f in batch)
     assert shortened[0][0][0][0] == 2
     index = _json.loads(wd.tts_index.read_text())
-    assert index["engine"] == "indextts" and index["reference_f0_hz"] == 212.0
+    assert index["engine"] == engine and index["model"] == tts.engine_model(engine) and index["reference_f0_hz"] == 212.0
     assert tts.load_clips(wd)[1].factor == clips[1].factor
     log = wd.overflow_log.read_text()
     if shortening_helps:
         assert clips[1].factor >= 0.7 and "below the 0.70 floor" not in log
     else:
-        assert indextts.MIN_FACTOR <= clips[1].factor < 0.7 and "#2" in log and "below the 0.70 floor" in log
+        assert tts.min_factor(engine) <= clips[1].factor < 0.7 and "#2" in log and "below the 0.70 floor" in log
 
 
 def test_worker_reports_missing_install(tmp_path):
-    with pytest.raises(SystemExit, match="setup-indextts"):
-        indextts.Worker(tmp_path / "nowhere", tmp_path / "ix.log")
+    with pytest.raises(SystemExit, match="setup-engine indextts"):
+        indextts._start(tmp_path / "nowhere", tmp_path / "ix.log")
 
 
 def test_engine_auto_picks_by_reference_pitch(tmp_path, monkeypatch):

@@ -44,6 +44,17 @@ class FakePipeline:
             log.info("Output: [bold]work/x/output.mp4[/]")
 
 
+@pytest.fixture(autouse=True)
+def engines_installed(monkeypatch):
+    """Every cloning engine counts as installed, whatever this machine has (see test_engines_*)."""
+    from opentranslator.web import videos
+
+    real = videos.engines
+    monkeypatch.setattr(videos, "engines", lambda settings=None: [
+        {**e, "installed": True, "setup": None} for e in real(settings)])
+    return real
+
+
 def client(tmp_path, runner):
     app = create_app(tmp_path / "work", runner=runner, allowed_hosts=("testserver",))
     return TestClient(app)
@@ -329,7 +340,8 @@ def test_media_run_behaves_like_subprocess_run():
         media.run(["sh", "-c", "exit 3"], check=True)
     with pytest.raises(subprocess.TimeoutExpired):
         media.run(["sleep", "5"], timeout=0.2)
-    assert not media._children  # nothing left registered
+    # nothing left running (finished ones drop out of the WeakSet once collected; other tests' may linger)
+    assert not [p for p in media._children if p.poll() is None]
 
 
 def test_ytdlp_children_join_the_web_server_session_rules(monkeypatch):
@@ -348,3 +360,37 @@ def test_ytdlp_children_join_the_web_server_session_rules(monkeypatch):
     monkeypatch.setattr(media, "CHILD_SESSION", False)
     with YtdlpPopen(["true"]) as proc:
         assert os.getsid(proc.pid) == os.getsid(0)  # the CLI: unchanged
+
+
+def test_engines_say_which_are_installed_and_how(tmp_path, monkeypatch, engines_installed):
+    from opentranslator import cosyvoice, indextts
+    from opentranslator.config import Settings
+    from opentranslator.web import videos
+
+    nowhere = Settings(indextts_dir=tmp_path / "ix", cosyvoice_dir=tmp_path / "cv")
+    listed = {e["id"]: e for e in engines_installed(nowhere)}
+    assert list(listed) == ["auto", "chatterbox", "indextts", "cosyvoice"]
+    assert not listed["cosyvoice"]["installed"] and "setup-engine cosyvoice" in listed["cosyvoice"]["setup"]
+    assert not listed["indextts"]["installed"] and not listed["auto"]["installed"]  # auto needs IndexTTS too
+    assert "setup-engine indextts" in listed["auto"]["setup"]
+    assert not cosyvoice.installed(tmp_path / "cv") and indextts.paths(tmp_path / "ix")[0] == tmp_path / "ix" / "repo"
+
+    # a job with an engine that isn't installed is refused with the command that installs it
+    monkeypatch.setattr(videos, "engines", lambda settings=None: engines_installed(nowhere))
+    fake = FakePipeline()
+    c = client(tmp_path, fake)
+    assert c.get("/engines").json()[3]["id"] == "cosyvoice"
+    r = c.post("/jobs", json={"url": VID, "engine": "cosyvoice"})
+    assert r.status_code == 422 and "setup-engine cosyvoice" in r.json()["detail"]
+    assert c.post("/jobs", json={"url": VID, "tts": "edge", "engine": "cosyvoice"}).status_code == 200  # no cloning
+    assert fake.runs == [] or fake.runs[0][1].tts == "edge"
+
+
+def test_another_engine_keeps_the_translation(tmp_path):
+    fake = FakePipeline()
+    c = client(tmp_path, fake)
+    c.post("/jobs", json={"url": VID, "engine": "cosyvoice", "keep_translation": True})
+    job = wait_status(c, VID)
+    assert job["options"]["engine"] == "cosyvoice" and job["options"]["keep_translation"] is True
+    settings = fake.runs[0][1]
+    assert settings.engine == "cosyvoice" and settings.keep_translation and settings.tts == "clone"

@@ -49,7 +49,7 @@ Engine = Annotated[
     str,
     typer.Option(
         "--engine",
-        help="Cloning engine for --tts clone: chatterbox, indextts, or auto (by the reference's pitch: "
+        help="Cloning engine for --tts clone: chatterbox, indextts, cosyvoice, or auto (by the reference's pitch: "
         "IndexTTS below 165 Hz, Chatterbox above)",
     ),
 ]
@@ -57,7 +57,16 @@ MinFactor = Annotated[
     float,
     typer.Option(
         "--min-factor",
-        help="indextts: lowest duration_factor before shortening the sentence (it goes down to 0.5 only after that)",
+        help="indextts, cosyvoice: lowest duration factor before shortening the sentence "
+        "(it goes down to 0.5 only after that)",
+    ),
+]
+KeepTranslation = Annotated[
+    bool,
+    typer.Option(
+        "--keep-translation",
+        help="Reuse the existing translation even if it was made for another voice (e.g. another engine): "
+        "only TTS and the mix are redone",
     ),
 ]
 CloneRef = Annotated[
@@ -275,10 +284,30 @@ def setup_indextts(
         typer.Option("--path", help="Install folder (default: $OPENTRANSLATOR_INDEXTTS_DIR or ~/.local/share/opentranslator/indextts)"),
     ] = None,
 ) -> None:
-    """Install IndexTTS-2.5 for --tts indextts: its repo, its own venv (Python 3.11) and the checkpoints."""
+    """Install IndexTTS-2.5 for --engine indextts (same as `setup-engine indextts`)."""
     from . import indextts
 
     indextts.setup(path or Settings().indextts_dir)
+
+
+@app.command("setup-engine")
+def setup_engine(
+    name: Annotated[str, typer.Argument(help="indextts or cosyvoice")],
+    path: Annotated[
+        Path | None,
+        typer.Option("--path", help="Install folder (default: $OPENTRANSLATOR_<NAME>_DIR or "
+                     "~/.local/share/opentranslator/<name>)"),
+    ] = None,
+) -> None:
+    """Install a cloning engine that runs in its own venv: its repo, the venv and the weights."""
+    from . import cosyvoice, indextts
+
+    if name == "indextts":
+        indextts.setup(path or Settings().indextts_dir)
+    elif name == "cosyvoice":
+        cosyvoice.setup(path or Settings().cosyvoice_dir)
+    else:
+        raise typer.BadParameter("the engines with their own venv are indextts and cosyvoice")
 
 
 @app.command()
@@ -296,6 +325,7 @@ def dub(
     engine: Engine = "chatterbox",
     min_factor: MinFactor = 0.7,
     clone_ref: CloneRef = None,
+    keep_translation: KeepTranslation = False,
     batch_size: BatchSize = 30,
     chars_per_second: CharsPerSecond = None,
     rate: Rate = "-10%",
@@ -318,7 +348,8 @@ def dub(
     settings = Settings(
         work_root=work, source_lang=source_lang, max_height=max_height,
         subs=subs, whisper_model=whisper_model, backend=backend, claude_model=model,
-        voice=voice, tts=tts, engine=engine, min_factor=min_factor, clone_ref=clone_ref, batch_size=batch_size, chars_per_second=chars_per_second, rate=rate,
+        voice=voice, tts=tts, engine=engine, min_factor=min_factor, clone_ref=clone_ref,
+        keep_translation=keep_translation, batch_size=batch_size, chars_per_second=chars_per_second, rate=rate,
         min_tempo=min_tempo, shorten=shorten, max_tempo=max_tempo,
         bg_volume_db=bg_volume, mute_original=mute_original,
         separate=separate, separator=separator, music_volume_db=music_volume,

@@ -27,6 +27,13 @@ const STRINGS = {
     elapsed: "{t} elapsed", took: "took {t}", estimating: "estimating time left…",
     finishing: "finishing: fitting and quality check…",
     version: "Version", latest: "latest", edited: "edited by hand",
+    engine_note_auto: "Chatterbox or IndexTTS by the voice's pitch",
+    engine_note_chatterbox: "MIT · preferred by ear for female voices",
+    engine_note_indextts: "bilibili license · preferred by ear for male voices",
+    engine_note_cosyvoice: "Apache 2.0 · fits almost every slot as is",
+    not_installed: "not installed", install_hint: "{e} is not installed: {cmd}",
+    regen_engine: "Regenerate with another engine",
+    regen_engine_hint: "Keeps this translation: only the voice and the mix are redone.",
   },
   es: {
     preferences: "Preferencias", language: "Idioma", dub: "Doblar", voice: "Voz", voice_clone: "Clonada",
@@ -54,6 +61,13 @@ const STRINGS = {
     elapsed: "lleva {t}", took: "tardó {t}", estimating: "calculando lo que falta…",
     finishing: "terminando: ajuste y control de calidad…",
     version: "Versión", latest: "la última", edited: "editada a mano",
+    engine_note_auto: "Chatterbox o IndexTTS según el tono de la voz",
+    engine_note_chatterbox: "MIT · la preferida de oído en voces femeninas",
+    engine_note_indextts: "licencia bilibili · la preferida de oído en voces masculinas",
+    engine_note_cosyvoice: "Apache 2.0 · cabe casi todo sin ajustar",
+    not_installed: "sin instalar", install_hint: "{e} no está instalado: {cmd}",
+    regen_engine: "Regenerar con otro motor",
+    regen_engine_hint: "Conserva esta traducción: solo se rehacen la voz y la mezcla.",
   },
 };
 
@@ -130,10 +144,44 @@ function initPrefs() {
     lang = select.value;
     storageSet("ot.lang", lang);
     applyI18n();
+    renderEngines();
     renderJob();
     loadVideos();
     if (location.hash.startsWith("#/video/")) route();
   });
+}
+
+// ---- cloning engines ---------------------------------------------------------
+let engineList = [{ id: "auto", name: "Automatic", installed: true }]; // GET /engines replaces it
+
+function engineName(e) { return e.id === "auto" ? t("engine_auto") : e.name; }
+
+function fillEngines(select, selected) {
+  // name — license and what it stands out for (docs/v2-plan.md); engines without their venv can't be picked
+  const value = selected ?? select.value;
+  select.replaceChildren(...engineList.map((e) => el("option", {
+    value: e.id, disabled: !e.installed, title: e.installed ? null : e.setup,
+  }, `${engineName(e)} — ${t(`engine_note_${e.id}`)}${e.installed ? "" : ` (${t("not_installed")})`}`)));
+  const usable = engineList.find((e) => e.id === value && e.installed) || engineList.find((e) => e.installed);
+  if (usable) select.value = usable.id;
+}
+
+function installHints() {
+  return engineList.filter((e) => !e.installed && e.id !== "auto")
+    .map((e) => t("install_hint", { e: e.name, cmd: e.setup })).join(" · ");
+}
+
+function renderEngines() {
+  fillEngines($("#engine"));
+  const hint = $("#engine-hint");
+  hint.textContent = installHints();
+  hint.hidden = !hint.textContent;
+}
+
+async function loadEngines() {
+  try { engineList = await api("/engines"); } catch { /* keep the fallback */ }
+  renderEngines();
+  if (detail) renderDetail();
 }
 
 // ---- dub form --------------------------------------------------------------
@@ -411,9 +459,10 @@ function togglePlayer(id) {
   renderVideos();
 }
 
-async function redub(id) {
+async function redub(id, overrides = {}) {
   const saved = await api(`/jobs/${id}`).catch(() => null);
-  const opts = saved && saved.options ? { ...saved.options, url: id } : { ...formOptions(), url: id };
+  const base = saved && saved.options ? saved.options : formOptions();
+  const opts = { ...base, ...overrides, url: id };
   const started = await api("/jobs", { method: "POST", body: JSON.stringify(opts) });
   location.hash = "#/";
   watch(started.id);
@@ -473,6 +522,7 @@ function renderDetail() {
       el("div", { class: "detail-actions" },
         video.status === "done" ? el("a", { class: "badge", href: src, download: `${id}.es${version ? "." + version : ""}.mp4` }, t("download_file")) : null,
         translation ? el("button", { type: "button", class: "primary", onclick: regenerate }, t("regenerate")) : null),
+      translation ? otherEngine(video) : null,
       translation && translation.needs_regeneration && !detail.edits.size
         ? el("p", { class: "small", style: "color: var(--warning)" }, t("needs_regen")) : null));
 
@@ -552,6 +602,21 @@ async function saveEdits() {
   }
 }
 
+function otherEngine(video) {
+  // same video, same translation, another engine: only TTS and the mix run (outputs/<engine>.mp4 keeps each)
+  const select = el("select", { "aria-label": t("engine") });
+  const current = engineList.find((e) => e.id !== "auto" && e.id !== video.engine && e.installed);
+  fillEngines(select, current ? current.id : undefined);
+  const go = async () => {
+    if (detail.edits.size) await saveEdits();
+    if (detail.edits.size) return; // save failed
+    await redub(detail.id, { tts: "clone", engine: select.value, keep_translation: true });
+  };
+  return el("div", { class: "other-engine" },
+    el("div", { class: "row" }, select, el("button", { type: "button", onclick: go }, t("regen_engine"))),
+    el("p", { class: "muted small" }, t("regen_engine_hint")));
+}
+
 async function regenerate() {
   if (detail.edits.size) await saveEdits();
   if (detail.edits.size) return; // save failed
@@ -580,6 +645,7 @@ window.addEventListener("hashchange", route);
 applyI18n();
 initPrefs();
 initForm();
+loadEngines();
 route();
 reconnect();
 setInterval(() => { if (!document.hidden && !$("#home").hidden) loadVideos(); }, 15000);

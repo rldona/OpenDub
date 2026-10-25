@@ -25,8 +25,40 @@ _ISSUE_LINES = [
     ("overflow", re.compile(r"^#(\d+) @([\d.]+)s: (lasts .*?\(\+[\d.]+s\)) · (.*)$")),
     ("abnormal", re.compile(r"^#(\d+) @([\d.]+)s: (abnormal duration after regenerating .*?) · (.*)$")),
     ("fallback", re.compile(r"^#(\d+) @([\d.]+)s: (cloned voice failed the quality check, used edge-tts) · (.*)$")),
-    ("floor", re.compile(r"^#(\d+) @([\d.]+)s: (did not fit even shortened, duration_factor .*?) · (.*)$")),
+    ("floor", re.compile(r"^#(\d+) @([\d.]+)s: (did not fit even shortened, duration[_ ]factor .*?) · (.*)$")),
 ]
+ENGINE_NAMES = {"chatterbox": "Chatterbox V3", "indextts": "IndexTTS-2.5", "cosyvoice": "CosyVoice 3"}
+
+
+def engines(settings: Settings | None = None) -> list[dict[str, Any]]:
+    """The cloning engines for the selector: ready to use or not, and the command that installs them.
+
+    Automatic uses Chatterbox and IndexTTS (tts.resolve_engine), so it needs both.
+    """
+    import importlib.util
+
+    from .. import cosyvoice, indextts
+
+    settings = settings or Settings()
+    _, ix_python, ix_checkpoints = indextts.paths(settings.indextts_dir)
+    ready = {
+        "chatterbox": importlib.util.find_spec("chatterbox") is not None,
+        "indextts": ix_python.exists() and (ix_checkpoints / "config.yaml").exists(),
+        "cosyvoice": cosyvoice.installed(settings.cosyvoice_dir),
+    }
+    setup = {
+        "chatterbox": "uv sync --extra clone",
+        "indextts": "uv run opentranslator setup-engine indextts",
+        "cosyvoice": "uv run opentranslator setup-engine cosyvoice",
+    }
+    auto_missing = [e for e in ("chatterbox", "indextts") if not ready[e]]
+    out = [{"id": "auto", "name": "Automatic", "installed": not auto_missing,
+            "setup": " && ".join(setup[e] for e in auto_missing) or None}]
+    for e in tts.CLONE_ENGINES:
+        out.append({"id": e, "name": ENGINE_NAMES[e], "installed": ready[e], "setup": None if ready[e] else setup[e]})
+    return out
+
+
 _DELAYED = re.compile(r"^#(\d+) (delayed [\d.]+s in the mix)$")
 
 

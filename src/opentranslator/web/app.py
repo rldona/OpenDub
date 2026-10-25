@@ -31,9 +31,11 @@ class JobRequest(BaseModel):
     url: str = Field(min_length=1)
     separate: bool = True
     tts: Literal["edge", "clone"] = "clone"
-    engine: Literal["auto", "chatterbox", "indextts"] = "auto"
+    engine: Literal["auto", "chatterbox", "indextts", "cosyvoice"] = "auto"
     voice: str = "es-ES-AlvaroNeural"
     bg_volume: float = Field(0.0, ge=-40.0, le=12.0)
+    # reuse the translation made for another engine: only TTS and the mix are redone
+    keep_translation: bool = False
 
 
 class SegmentEdit(BaseModel):
@@ -67,8 +69,17 @@ def create_app(work_root: Path = Path("work"), runner: Runner | None = None,
     app.state.work_root = work_root
 
     # --- jobs --------------------------------------------------------------
+    @app.get("/engines")
+    def list_engines() -> list[dict]:
+        """The cloning engines, whether each one is ready to use and how to install it if not."""
+        return videos.engines()
+
     @app.post("/jobs")
     def create_job(req: JobRequest) -> dict:
+        if req.tts == "clone":
+            engine = next(e for e in videos.engines() if e["id"] == req.engine)
+            if not engine["installed"]:
+                raise HTTPException(422, f"{engine['name']} is not installed. Install it with: {engine['setup']}")
         try:
             job = manager.submit(JobOptions(**req.model_dump()))
         except Exception as e:  # not a YouTube URL or id

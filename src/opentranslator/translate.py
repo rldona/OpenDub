@@ -243,6 +243,9 @@ def run(wd: WorkDir, settings: Settings, force: bool = False) -> list[Segment]:
     target = _target_name(settings.voice)
     from .tts import Pace, voice_rate  # lazy import: tts also imports this module
 
+    if settings.keep_translation and wd.has("translate") and wd.translation.exists():
+        log.info("Keeping the existing translation (made for another voice's pace, fitted in TTS)")
+        return load_segments(wd.translation)
     pace = Pace(settings.chars_per_second) if settings.chars_per_second else voice_rate(wd, settings)
     cps = pace.cps
     params = {

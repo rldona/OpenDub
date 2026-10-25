@@ -36,14 +36,15 @@ class JobOptions:
     url: str
     separate: bool = True  # keep the music: mix over the separated background
     tts: str = "clone"  # edge | clone
-    engine: str = "auto"  # chatterbox | indextts | auto
+    engine: str = "auto"  # chatterbox | indextts | cosyvoice | auto
     voice: str = "es-ES-AlvaroNeural"  # edge-tts voice (also the cloned voice's last resort)
     bg_volume: float = 0.0  # dB of the background: the separated one, or the original audio
+    keep_translation: bool = False  # another engine on the same translation: only TTS and mix are redone
 
     def settings(self, work_root: Path) -> Settings:
         volume = {"music_volume_db": self.bg_volume} if self.separate else {"bg_volume_db": self.bg_volume}
         return Settings(work_root=work_root, separate=self.separate, tts=self.tts, engine=self.engine,
-                        voice=self.voice, **volume)
+                        voice=self.voice, keep_translation=self.keep_translation, **volume)
 
 
 Runner = Callable[[str, Settings], Any]

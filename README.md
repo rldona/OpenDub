@@ -6,7 +6,7 @@ kept in sync with the original.
 ```
 URL → download (yt-dlp) → transcription (subtitles or faster-whisper)
     → separation (HTDemucs) → translation (Claude)
-    → voice (Chatterbox, IndexTTS or edge-tts) → mix (numpy + ffmpeg) → MP4
+    → voice (Chatterbox, IndexTTS, CosyVoice or edge-tts) → mix (numpy + ffmpeg) → MP4
 ```
 
 How each piece works: [docs/architecture.md](docs/architecture.md).
@@ -47,17 +47,24 @@ the separation, so install both:
 uv sync --extra separate --extra clone
 ```
 
-The other cloning engine, IndexTTS-2.5 (`--tts clone --engine indextts`), needs Python 3.11 and
-its own pinned PyTorch, so it lives in a separate venv and runs as a separate
-process. This clones a pinned commit of its repo, creates that venv and downloads
-the checkpoints (~5 GB, plus ~5 GB of auxiliary models on the first run) into
-`~/.local/share/opentranslator/indextts` (or `$OPENTRANSLATOR_INDEXTTS_DIR`). It also
-installs flash-attn for IndexTTS's acceleration engine (1.3× faster, same quality);
-if that fails, IndexTTS runs without it:
+The other two cloning engines, IndexTTS-2.5 (`--engine indextts`) and
+CosyVoice 3 (`--engine cosyvoice`), pin their own Python and PyTorch, so each
+lives in a separate venv and runs as a separate process. `setup-engine` clones a
+pinned commit of its repo, creates that venv and downloads the weights into
+`~/.local/share/opentranslator/<engine>` (or `$OPENTRANSLATOR_INDEXTTS_DIR`,
+`$OPENTRANSLATOR_COSYVOICE_DIR`):
 
 ```bash
-uv run opentranslator setup-indextts
+uv run opentranslator setup-engine indextts   # ~5 GB, plus ~5 GB of auxiliary models on the first run
+uv run opentranslator setup-engine cosyvoice  # ~9 GB
 ```
+
+IndexTTS's venv comes from its repo's own lockfile, plus flash-attn for its
+acceleration engine (1.3× faster, same quality; without it if that fails).
+CosyVoice's comes from [engines/cosyvoice/pyproject.toml](engines/cosyvoice/pyproject.toml),
+whose versions were checked on an RTX 5080 (its repo pins a PyTorch without RTX
+50-series support). If an engine isn't installed, choosing it says which
+command installs it. (`setup-indextts` still works too.)
 
 There are two ways to translate:
 
@@ -81,8 +88,9 @@ Common `dub` options:
 |---|---|---|
 | `--voice` | `es-ES-AlvaroNeural` | edge-tts voice (`es-ES-ElviraNeural`, `es-MX-JorgeNeural`…) |
 | `--tts` | `edge` | `edge`: the `--voice` voice · `clone`: the original speaker's voice, cloned from the separated vocals |
-| `--engine` | `chatterbox` | Cloning engine for `--tts clone`: `chatterbox`, `indextts` or `auto` (by the reference's pitch, see below) |
-| `--min-factor` | `0.7` | `indextts`: lowest `duration_factor` before shortening a sentence that doesn't fit |
+| `--engine` | `chatterbox` | Cloning engine for `--tts clone`: `chatterbox`, `indextts`, `cosyvoice` or `auto` (by the reference's pitch, see below) |
+| `--min-factor` | `0.7` | `indextts`, `cosyvoice`: lowest duration factor before shortening a sentence that doesn't fit |
+| `--keep-translation` | off | Reuses the existing translation even if it was made for another engine: only TTS and the mix are redone |
 | `--clone-ref` | none | Fixed Spanish recording to clone from when a cloned clip fails the quality check |
 | `--bg-volume` | `-15` | Volume of the original audio, in dB |
 | `--mute-original` | off | Drops the original audio |
@@ -113,6 +121,11 @@ the dubbed videos with a player and a download button; each video's page shows
 the translation segment by segment (original, Spanish, slot and characters
 against the limit Claude got), lets you edit it and regenerate only the voice
 and the mix, and lists the clips with problems with a player for each.
+**Regenerate with another engine** dubs the same video with another engine on
+the same translation (only the voice and the mix run); each engine's dub is
+kept (`outputs/<engine>.mp4`) and the player switches between them. The engine
+selector shows each engine's license and what it stood out for in the
+benchmark, and marks the ones not installed, with the command that installs them.
 
 ```bash
 uv sync --extra web          # plus --extra separate --extra clone for cloned voices
@@ -166,41 +179,49 @@ AI's inaudible Perth watermark to everything it generates.
 
 ### Choosing the engine
 
-Chatterbox is the default; IndexTTS is chosen per video with `--engine
-indextts`. Neither won everywhere in the benchmark (details in
+Chatterbox is the default; IndexTTS and CosyVoice are chosen per video with
+`--engine`. Chatterbox and IndexTTS split the benchmark (details in
 [docs/v2-plan.md](docs/v2-plan.md)): IndexTTS fits its slots far better (41/42
 clips without atempo, against 30/42), and by ear it was preferred for the male
 voice but not for the female one, where Chatterbox sounded steadier (IndexTTS
 sometimes sounds as if trembling). So: `--engine indextts` for low voices, the
 default Chatterbox for high ones.
 
-`--engine auto` applies that rule by itself: IndexTTS when the reference's mean
+CosyVoice 3, benchmarked later on the same material, speaks fastest
+(~16 chars/s), so nearly every clip fits as is (42/42 in the benchmark; none of
+the 41 clips of the real dubs of both videos needed atempo), with a native accent and the least tremor on the male
+voice. It clones cross-lingually (reference audio, no transcript) and once in a
+while garbles a sentence; the quality check catches it (in the female test
+video, one sentence ended on edge-tts after every retry).
+
+`--engine auto` applies the Chatterbox/IndexTTS rule by itself: IndexTTS when the reference's mean
 F0 is below 165 Hz, Chatterbox otherwise (or when the pitch can't be measured).
 It comes from two voices, one of each, so it is opt-in and a low female or high
 male voice may land on the wrong side; the log line and `tts.json` record the
 engine, how it was chosen and the F0, so that after 8–10 videos the rule can be
 checked before it becomes the default.
 
-The two engines fit clips to their slot differently. Chatterbox has no length
+The engines fit clips to their slot differently. Chatterbox has no length
 control, so clips that don't fit are sped up with atempo (up to `--max-tempo`)
-and, if that's not enough, shortened by Claude. IndexTTS has `duration_factor`,
-and the order is:
+and, if that's not enough, shortened by Claude. IndexTTS (`duration_factor`) and
+CosyVoice (`speed`, which stretches the spectrogram before the vocoder) take a
+duration factor, and the order is:
 
 1. Speak each clip with the factor its calibrated speaking rate predicts for
-   the slot (the rate is measured at factor 0.85, so translations aren't cut
-   more than needed), never below `--min-factor` (0.7), and correct it once
+   the slot (IndexTTS's rate is measured at factor 0.85, so translations aren't
+   cut more than needed), never below `--min-factor` (0.7), and correct it once
    with the measured duration.
 2. If it still doesn't fit, ask Claude for a shorter sentence.
 3. Only if the shortened sentence doesn't fit either, compress below
    `--min-factor`, down to 0.5, noted in `overflow.log`; atempo covers whatever
    is left.
 
-`tts.json` records the factor of each clip. The worker logs to
-`work/indextts.log`.
+`tts.json` records the engine and the factor of each clip. The workers log to
+`work/indextts.log` and `work/cosyvoice.log`.
 
-Licenses: Chatterbox is MIT; IndexTTS-2.5 is under the bilibili Model Use
-License Agreement, which allows this kind of personal use but is more
-restrictive (see [docs/v2-plan.md](docs/v2-plan.md)).
+Licenses: Chatterbox is MIT; CosyVoice 3 is Apache 2.0; IndexTTS-2.5 is under
+the bilibili Model Use License Agreement, which allows this kind of personal use
+but is more restrictive (see [docs/v2-plan.md](docs/v2-plan.md)).
 
 ## Known limitations
 

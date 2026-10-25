@@ -53,12 +53,12 @@ def dub(url: str, settings: Settings, output: Path | None = None, force: bool = 
 
 
 def release_models() -> None:
-    """Free the GPU memory the phases keep between clips: the IndexTTS worker, Chatterbox
-    and PyTorch's cached blocks. A CLI run frees it on exit; a long-lived server must
-    do it after each job, or the next one may run out of memory."""
-    from . import clone, indextts
+    """Free the GPU memory the phases keep between clips: the engine workers (IndexTTS,
+    CosyVoice), Chatterbox and PyTorch's cached blocks. A CLI run frees it on exit; a
+    long-lived server must do it after each job, or the next one may run out of memory."""
+    from . import clone, engines
 
-    indextts.shutdown()
+    engines.shutdown()
     clone.unload()
     gc.collect()
     if "torch" in sys.modules:

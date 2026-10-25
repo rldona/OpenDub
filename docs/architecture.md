@@ -16,7 +16,7 @@ flowchart TD
         transcribe["Transcription · YouTube subtitles or faster-whisper<br/>English sentences with timings"]
         separate["Separation · HTDemucs<br/>voice apart from music and noise"]
         translate["Translation · Claude Sonnet 5.5 (claude CLI)<br/>Spanish that fits each sentence's slot"]
-        tts["Voice · TTS engine<br/>Chatterbox, IndexTTS or edge-tts"]
+        tts["Voice · TTS engine<br/>Chatterbox, IndexTTS, CosyVoice or edge-tts"]
         mix["Mix · numpy + ffmpeg<br/>Spanish voice over the original background"]
         download --> transcribe --> separate --> translate --> tts --> mix
     end
@@ -37,12 +37,12 @@ Claude).
 | CLI | `cli.py` | `dub`, `web`, `setup-indextts` commands and their flags. |
 | Web | `web/app.py`, `web/jobs.py`, `web/videos.py` | Job queue (one at a time), replayable SSE progress, translation editor, versions per engine, Ctrl+C guard. |
 | Pipeline | `pipeline.py` | Runs the phases in order; `release_models()` frees GPU memory after each web job. |
-| Child processes | `media.py` | The single place ffmpeg, yt-dlp's children, the IndexTTS worker and the `claude` CLI are started from, so the web server can keep them out of a stray Ctrl+C and stop them on exit. |
+| Child processes | `media.py`, `engines.py` | The single place ffmpeg, yt-dlp's children, the engine workers (IndexTTS, CosyVoice) and the `claude` CLI are started from, so the web server can keep them out of a stray Ctrl+C and stop them on exit. `engines.py` is the shared JSON-lines client of the engines that run in their own venv. |
 | Download | `download.py` | yt-dlp for the video, audio and thumbnail. |
 | Transcription | `transcribe.py`, `segments.py` | Uses YouTube's subtitles when available, faster-whisper otherwise; regroups pieces into sentences with timings. |
 | Separation | `separate.py` | HTDemucs splits the original voice from the background, which is kept for the mix. |
 | Translation | `translate.py` | Claude translates each sentence within a character budget set by the voice's pace model; keeps hand edits made in the web. |
-| Voice | `tts.py`, `clone.py`, `indextts.py`, `reference.py`, `spoken.py` | See below. |
+| Voice | `tts.py`, `clone.py`, `indextts.py`, `cosyvoice.py`, `reference.py`, `spoken.py` | See below. |
 | Mix | `mix.py` | Places each clip at its timestamp over the background, writes `output.mp4` and archives a copy per engine in `outputs/`. |
 
 Every phase stores its result in `work/<video id>/` under a hash of its
@@ -59,8 +59,10 @@ flowchart TD
     auto{"Automatic engine<br/>mean F0 vs 165 Hz"}
     auto -- "higher" --> cb["Chatterbox Multilingual V3<br/>in-process"]
     auto -- "lower" --> itts["IndexTTS-2.5<br/>JSON-lines worker in its own Python 3.11 venv"]
+    ref -. "--engine cosyvoice" .-> cv["CosyVoice 3<br/>JSON-lines worker in its own Python 3.11 venv"]
     cb --> fit
     itts --> fit
+    cv --> fit
     fit["Fit to slot<br/>speed factor → Claude shortening → below floor → atempo"] --> qc
     qc["Quality check · whisper<br/>on failure: another seed → shorter sentence → fixed reference → edge-tts"] --> clips
     clips["Clips in tts/ + tts.json → mix"]
@@ -71,7 +73,7 @@ flowchart TD
 - **Pace model** (`tts.py`): seconds = overhead + characters / characters per
   second, calibrated per voice and cached. It sets the translation's character
   budget and predicts each clip's speed factor.
-- **Fit to slot**: IndexTTS takes a speed factor between 0.7 and 1.0 (one
+- **Fit to slot**: IndexTTS and CosyVoice take a speed factor between 0.7 and 1.0 (one
   measured correction); if the clip still overflows, Claude shortens the
   sentence; then the factor may go down to 0.5 (logged in `overflow.log`), and
   `atempo` covers what is left.
