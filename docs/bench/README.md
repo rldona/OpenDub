@@ -8,6 +8,8 @@ so a new model can be compared with one command.
 uv run docs/bench/run.py <name>        # score a new model's clips against all the others
 uv run docs/bench/run.py --all         # rescore every model with clips on disk
 uv run docs/bench/run.py --refs docs/bench/audio/fit/indextts_alt   # alternative references
+uv run docs/bench/run.py --compare chatterbox_v3 indextts cosyvoice3 voxcpm2   # one table per video
+python docs/bench/listen.py chatterbox_v3 indextts cosyvoice3 voxcpm2   # listening folder
 ```
 
 `run.py` declares its own dependencies (faster-whisper, resemblyzer, SpeechBrain,
@@ -55,6 +57,17 @@ how many clips fit without atempo, and the same CER, p_es, ECAPA and stability.
 | `gen_indextts.py` | the IndexTTS venv (`setup-indextts`), from its repo | `audio/out/indextts`, `audio/fit/indextts` |
 | `alt_refs.py` | OpenTranslator's env | alternative references of one speaker (8–12 s, continuous, least music) |
 | `gen_alt_refs.py` | the IndexTTS venv | one clip set per alternative reference |
+| `ref_texts.py` | OpenTranslator's env | transcripts of the dub references (`audio/fit/*_clone_ref.txt`) |
+| `gen_cosyvoice.py` | a CosyVoice venv, from its repo | `audio/out/cosyvoice3`, `audio/fit/cosyvoice3` |
+| `gen_voxcpm.py` | a venv with `voxcpm` | `audio/out/voxcpm2`, `audio/fit/voxcpm2` |
+| `gen_fish.py` | a fish-speech venv, from its repo | `audio/out/fish_s2` (does not fit in 16 GB) |
+
+`common.py` is the loop the last three share: a generator only loads its model
+and says how it speaks one sentence (and whether it has a native speed control,
+which (B) then uses like IndexTTS's `duration_factor`). The venvs used for them,
+with PyTorch 2.8 + CUDA 12.8, are made by `setup.sh` scripts under
+`work/_bench/<engine>/`; install them with `uv pip install --no-config`, or the
+overrides in OpenTranslator's `pyproject.toml` leak into them.
 
 ## Audio
 

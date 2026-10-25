@@ -23,6 +23,7 @@
     uv run docs/bench/run.py --all           # rescore every model that has clips
     uv run docs/bench/run.py --refs <dir>    # tremor of one speaker's alternative references
     uv run docs/bench/run.py --dub <dir>…    # real dubs: folders with tts.json and its clips
+    uv run docs/bench/run.py --compare <name>…  # one markdown table per video, from results/
 
 A new model only has to write its clips where the generators in generators/
 write theirs (see README.md). Scores go to results/<name>.json, which is
@@ -155,6 +156,54 @@ def table() -> None:
               f"{own.get('cps', '—'):>5} {sp.get('rtf', '—'):>5} {sp.get('peak_vram_gb', '—'):>5} │ {trem:>36} │ {fit}")
 
 
+def fit_counts(name: str, floor: float) -> dict:
+    """Per video: clips that fit their slot without atempo, and those that did with a factor >= floor."""
+    path = AUDIO / "fit" / name / "fit.json"
+    if not path.exists():
+        return {}
+    out = {}
+    for r in json.loads(path.read_text()):
+        c = out.setdefault(r["vid"], {"clips": 0, "fit": 0, "fit_floor": 0, "native": False})
+        c["clips"] += 1
+        c["fit"] += r["fits"]
+        factors = r.get("factors", [1.0])  # engines without a native speed control have none
+        c["fit_floor"] += r["fits"] and factors[-1] >= floor
+        c["native"] |= len(factors) > 1
+    return out
+
+
+def compare(names: list[str], floor: float = 0.7) -> None:
+    """The comparison table, one per video: test sentences (A) from that video's speaker, dub fit (B)."""
+    base = json.loads((RESULTS / "_baselines.json").read_text())
+    for vid in CFG["sentences"]:
+        print(f"\n### {vid}\n")
+        print("| engine | CER | p_es | ECAPA | tremor pitch/loud | chars/s | RTF | VRAM GB | fit without atempo "
+              f"| fit with factor ≥ {floor} |")
+        print("|---|---|---|---|---|---|---|---|---|---|")
+        ref = base[vid]
+        print(f"| *original speaker* | | | {ref['same_speaker_ecapa']} | "
+              f"{ref['reference']['pitch_tremor']}/{ref['reference']['loudness_tremor']} | | | | | |")
+        for name in names:
+            r = json.loads((RESULTS / f"{name}.json").read_text())
+            clips = [c for c in r["sentences"]["own"]["clips"] if c["vid"] == vid]
+            st = r["sentences"]["stability"][vid]
+            sp = r["sentences"]["speed"]
+            fc = fit_counts(name, floor).get(vid)
+            fit = f"{fc['fit']}/{fc['clips']}" if fc else "—"
+            floor_fit = f"{fc['fit_floor']}/{fc['clips']}" if fc and fc["native"] else "—"
+            print(f"| {name} | {mean(c['cer'] for c in clips)} | {mean(c['p_es'] for c in clips)} "
+                  f"| {mean(c['sim_original']['ecapa'] for c in clips)} | {st['pitch_tremor']}/{st['loudness_tremor']} "
+                  f"| {mean(c['cps'] for c in clips)} | {sp.get('rtf', '—')} | {sp.get('peak_vram_gb', '—')} "
+                  f"| {fit} | {floor_fit} |")
+        print(f"\nDub segments of {vid} as fitted (B):\n")
+        print("| engine | CER | p_es | ECAPA | tremor pitch/loud |")
+        print("|---|---|---|---|---|")
+        for name in names:
+            r = json.loads((RESULTS / f"{name}.json").read_text())
+            if (f := r.get("fit", {}).get("per_video", {}).get(vid)):
+                print(f"| {name} | {f['cer']} | {f['p_es']} | {f['ecapa']} | {f['pitch_tremor']}/{f['loudness_tremor']} |")
+
+
 def score_refs(refs_dir: Path) -> None:
     """Tremor of the clips generated from each alternative reference (generators/gen_alt_refs.py)."""
     out = {}
@@ -209,7 +258,11 @@ if __name__ == "__main__":
     ap.add_argument("--all", action="store_true", help="rescore every model with clips on disk")
     ap.add_argument("--refs", type=Path, help="score clips generated from alternative references")
     ap.add_argument("--dub", type=Path, nargs="+", help="score real dubs (folders with tts.json)")
+    ap.add_argument("--compare", nargs="+", metavar="NAME", help="one markdown table per video, from results/")
     args = ap.parse_args()
+    if args.compare:
+        compare(args.compare)
+        sys.exit()
     if args.dub:
         score_dubs([d.resolve() for d in args.dub])
     elif args.refs:

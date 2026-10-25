@@ -1,0 +1,458 @@
+{
+ "model": "voxcpm2",
+ "sentences": {
+  "stability": {
+   "17kBVfGjI8c": {
+    "f0_hz": 113.3,
+    "jitter_st": 0.31,
+    "pitch_tremor": 0.484,
+    "loudness_tremor": 0.622,
+    "voiced_runs": 24
+   },
+   "rwF-X5STYks": {
+    "f0_hz": 193.0,
+    "jitter_st": 0.234,
+    "pitch_tremor": 0.461,
+    "loudness_tremor": 0.557,
+    "voiced_runs": 19
+   }
+  },
+  "own": {
+   "cer": 0.009,
+   "worst_cer": 0.096,
+   "p_es": 0.923,
+   "cps": 15.425,
+   "ecapa_original": 0.576,
+   "ecapa_fixed_es": 0.148,
+   "resemblyzer_original": 0.88,
+   "clips": [
+    {
+     "vid": "17kBVfGjI8c",
+     "i": 0,
+     "cps": 15.0,
+     "cer": 0.0,
+     "p_es": 0.993,
+     "hyp": "Los terremotos son uno de los desastres naturales más comunes del mundo.",
+     "sim_original": {
+      "resemblyzer": 0.815,
+      "ecapa": 0.475
+     },
+     "sim_fixed_es": {
+      "resemblyzer": 0.688,
+      "ecapa": 0.297
+     }
+    },
+    {
+     "vid": "17kBVfGjI8c",
+     "i": 1,
+     "cps": 13.8,
+     "cer": 0.0,
+     "p_es": 0.883,
+     "hyp": "¿Pero qué es exactamente lo que hace temblar la tierra?",
+     "sim_original": {
+      "resemblyzer": 0.885,
+      "ecapa": 0.542
+     },
+     "sim_fixed_es": {
+      "resemblyzer": 0.587,
+      "ecapa": 0.112
+     }
+    },
+    {
+     "vid": "17kBVfGjI8c",
+     "i": 2,
+     "cps": 16.8,
+     "cer": 0.0,
+     "p_es": 0.998,
+     "hyp": "Debido a las corrientes de convección del manto, las placas empiezan a moverse y flotan como láminas de hielo sobre el agua.",
+     "sim_original": {
+      "resemblyzer": 0.847,
+      "ecapa": 0.524
+     },
+     "sim_fixed_es": {
+      "resemblyzer": 0.63,
+      "ecapa": 0.32
+     }
+    },
+    {
+     "vid": "17kBVfGjI8c",
+     "i": 3,
+     "cps": 13.8,
+     "cer": 0.0,
+     "p_es": 0.988,
+     "hyp": "La tensión se libera de golpe con una enorme sacudida y la tierra tiembla.",
+     "sim_original": {
+      "resemblyzer": 0.842,
+      "ecapa": 0.525
+     },
+     "sim_fixed_es": {
+      "resemblyzer": 0.676,
+      "ecapa": 0.358
+     }
+    },
+    {
+     "vid": "17kBVfGjI8c",
+     "i": 4,
+     "cps": 15.4,
+     "cer": 0.0,
+     "p_es": 0.999,
+     "hyp": "Con cada temblor se liberan fuerzas destructivas que se propagan como ondas desde el hipocentro.",
+     "sim_original": {
+      "resemblyzer": 0.823,
+      "ecapa": 0.536
+     },
+     "sim_fixed_es": {
+      "resemblyzer": 0.696,
+      "ecapa": 0.31
+     }
+    },
+    {
+     "vid": "17kBVfGjI8c",
+     "i": 5,
+     "cps": 15.6,
+     "cer": 0.096,
+     "p_es": 0.995,
+     "hyp": "Con la escala de Richter, al temblor se le asigna un nivel del 1 al 10.",
+     "sim_original": {
+      "resemblyzer": 0.885,
+      "ecapa": 0.548
+     },
+     "sim_fixed_es": {
+      "resemblyzer": 0.665,
+      "ecapa": 0.278
+     }
+    },
+    {
+     "vid": "rwF-X5STYks",
+     "i": 0,
+     "cps": 16.5,
+     "cer": 0.0,
+     "p_es": 0.881,
+     "hyp": "¿Qué es exactamente la inteligencia artificial generativa?",
+     "sim_original": {
+      "resemblyzer": 0.917,
+      "ecapa": 0.746
+     },
+     "sim_fixed_es": {
+      "resemblyzer": 0.532,
+      "ecapa": 0.001
+     }
+    },
+    {
+     "vid": "rwF-X5STYks",
+     "i": 1,
+     "cps": 14.2,
+     "cer": 0.0,
+     "p_es": 0.805,
+     "hyp": "Puede consistir en generar textos e imágenes, pero también vídeos, música o voces.",
+     "sim_original": {
+      "resemblyzer": 0.941,
+      "ecapa": 0.806
+     },
+     "sim_fixed_es": {
+      "resemblyzer": 0.565,
+      "ecapa": -0.012
+     }
+    },
+    {
+     "vid": "rwF-X5STYks",
+     "i": 2,
+     "cps": 12.9,
+     "cer": 0.0,
+     "p_es": 0.546,
+     "hyp": "Esta descripción se llama Prompt.",
+     "sim_original": {
+      "resemblyzer": 0.896,
+      "ecapa": 0.647
+     },
+     "sim_fixed_es": {
+      "resemblyzer": 0.534,
+      "ecapa": 0.024
+     }
+    },
+    {
+     "vid": "rwF-X5STYks",
+     "i": 3,
+     "cps": 19.2,
+     "cer": 0.0,
+     "p_es": 0.995,
+     "hyp": "A menudo es impresionante y cuesta distinguirlo de lo que hacen las personas.",
+     "sim_original": {
+      "resemblyzer": 0.897,
+      "ecapa": 0.523
+     },
+     "sim_fixed_es": {
+      "resemblyzer": 0.571,
+      "ecapa": 0.058
+     }
+    },
+    {
+     "vid": "rwF-X5STYks",
+     "i": 4,
+     "cps": 16.2,
+     "cer": 0.0,
+     "p_es": 0.999,
+     "hyp": "Además, la IA puede dar respuestas que suenan correctas, pero que en realidad son falsas.  Es lo que se llama alucinación.",
+     "sim_original": {
+      "resemblyzer": 0.9,
+      "ecapa": 0.534
+     },
+     "sim_fixed_es": {
+      "resemblyzer": 0.585,
+      "ecapa": 0.037
+     }
+    },
+    {
+     "vid": "rwF-X5STYks",
+     "i": 5,
+     "cps": 15.7,
+     "cer": 0.011,
+     "p_es": 0.996,
+     "hyp": "Sin embargo, la EA debería hacer el trabajo duro, y las personas deberían responder de los hechos.",
+     "sim_original": {
+      "resemblyzer": 0.913,
+      "ecapa": 0.511
+     },
+     "sim_fixed_es": {
+      "resemblyzer": 0.606,
+      "ecapa": -0.009
+     }
+    }
+   ]
+  },
+  "fixed_es": {
+   "cer": 0.008,
+   "worst_cer": 0.096,
+   "p_es": 0.999,
+   "cps": 17.683,
+   "ecapa_original": 0.108,
+   "ecapa_fixed_es": 0.81,
+   "resemblyzer_original": 0.553,
+   "clips": [
+    {
+     "vid": "17kBVfGjI8c",
+     "i": 0,
+     "cps": 18.8,
+     "cer": 0.0,
+     "p_es": 0.999,
+     "hyp": "Los terremotos son uno de los desastres naturales más comunes del mundo.",
+     "sim_original": {
+      "resemblyzer": 0.551,
+      "ecapa": 0.172
+     },
+     "sim_fixed_es": {
+      "resemblyzer": 0.908,
+      "ecapa": 0.826
+     }
+    },
+    {
+     "vid": "17kBVfGjI8c",
+     "i": 1,
+     "cps": 18.1,
+     "cer": 0.0,
+     "p_es": 0.996,
+     "hyp": "¿Pero qué es exactamente lo que hace temblar la Tierra?",
+     "sim_original": {
+      "resemblyzer": 0.586,
+      "ecapa": 0.205
+     },
+     "sim_fixed_es": {
+      "resemblyzer": 0.94,
+      "ecapa": 0.81
+     }
+    },
+    {
+     "vid": "17kBVfGjI8c",
+     "i": 2,
+     "cps": 18.9,
+     "cer": 0.0,
+     "p_es": 0.999,
+     "hyp": "Debido a las corrientes de convección del manto, las placas empiezan a moverse y flotan como láminas de hielo sobre el agua.",
+     "sim_original": {
+      "resemblyzer": 0.572,
+      "ecapa": 0.162
+     },
+     "sim_fixed_es": {
+      "resemblyzer": 0.927,
+      "ecapa": 0.822
+     }
+    },
+    {
+     "vid": "17kBVfGjI8c",
+     "i": 3,
+     "cps": 17.4,
+     "cer": 0.0,
+     "p_es": 0.999,
+     "hyp": "La tensión se libera de golpe con una enorme sacudida, y la tierra tiembla.",
+     "sim_original": {
+      "resemblyzer": 0.588,
+      "ecapa": 0.19
+     },
+     "sim_fixed_es": {
+      "resemblyzer": 0.938,
+      "ecapa": 0.792
+     }
+    },
+    {
+     "vid": "17kBVfGjI8c",
+     "i": 4,
+     "cps": 18.8,
+     "cer": 0.0,
+     "p_es": 1.0,
+     "hyp": "Con cada temblor se liberan fuerzas destructivas que se propagan como ondas desde el hipocentro.",
+     "sim_original": {
+      "resemblyzer": 0.553,
+      "ecapa": 0.147
+     },
+     "sim_fixed_es": {
+      "resemblyzer": 0.931,
+      "ecapa": 0.808
+     }
+    },
+    {
+     "vid": "17kBVfGjI8c",
+     "i": 5,
+     "cps": 18.8,
+     "cer": 0.096,
+     "p_es": 1.0,
+     "hyp": "Con la escala de Richter, al temblor se le asigna un nivel del 1 al 10.",
+     "sim_original": {
+      "resemblyzer": 0.563,
+      "ecapa": 0.158
+     },
+     "sim_fixed_es": {
+      "resemblyzer": 0.934,
+      "ecapa": 0.827
+     }
+    },
+    {
+     "vid": "rwF-X5STYks",
+     "i": 0,
+     "cps": 18.1,
+     "cer": 0.0,
+     "p_es": 0.998,
+     "hyp": "¿Qué es exactamente la inteligencia artificial generativa?",
+     "sim_original": {
+      "resemblyzer": 0.531,
+      "ecapa": 0.035
+     },
+     "sim_fixed_es": {
+      "resemblyzer": 0.911,
+      "ecapa": 0.758
+     }
+    },
+    {
+     "vid": "rwF-X5STYks",
+     "i": 1,
+     "cps": 15.1,
+     "cer": 0.0,
+     "p_es": 0.998,
+     "hyp": "Puede consistir en generar textos e imágenes, pero también vídeos, música o voces.",
+     "sim_original": {
+      "resemblyzer": 0.561,
+      "ecapa": 0.061
+     },
+     "sim_fixed_es": {
+      "resemblyzer": 0.946,
+      "ecapa": 0.775
+     }
+    },
+    {
+     "vid": "rwF-X5STYks",
+     "i": 2,
+     "cps": 16.8,
+     "cer": 0.0,
+     "p_es": 0.998,
+     "hyp": "Esta descripción se llama Prompt.",
+     "sim_original": {
+      "resemblyzer": 0.507,
+      "ecapa": 0.087
+     },
+     "sim_fixed_es": {
+      "resemblyzer": 0.919,
+      "ecapa": 0.792
+     }
+    },
+    {
+     "vid": "rwF-X5STYks",
+     "i": 3,
+     "cps": 17.8,
+     "cer": 0.0,
+     "p_es": 0.999,
+     "hyp": "A menudo es impresionante y cuesta distinguirlo de lo que hacen las personas.",
+     "sim_original": {
+      "resemblyzer": 0.548,
+      "ecapa": 0.0
+     },
+     "sim_fixed_es": {
+      "resemblyzer": 0.931,
+      "ecapa": 0.827
+     }
+    },
+    {
+     "vid": "rwF-X5STYks",
+     "i": 4,
+     "cps": 16.6,
+     "cer": 0.0,
+     "p_es": 0.999,
+     "hyp": "Además, la IA puede dar respuestas que suenan correctas pero que en realidad son falsas.  Es lo que se llama alucinación.",
+     "sim_original": {
+      "resemblyzer": 0.549,
+      "ecapa": 0.062
+     },
+     "sim_fixed_es": {
+      "resemblyzer": 0.959,
+      "ecapa": 0.866
+     }
+    },
+    {
+     "vid": "rwF-X5STYks",
+     "i": 5,
+     "cps": 17.0,
+     "cer": 0.0,
+     "p_es": 0.998,
+     "hyp": "Sin embargo, la IA debería hacer el trabajo duro, y las personas deberían responder de los hechos.",
+     "sim_original": {
+      "resemblyzer": 0.531,
+      "ecapa": 0.015
+     },
+     "sim_fixed_es": {
+      "resemblyzer": 0.94,
+      "ecapa": 0.815
+     }
+    }
+   ]
+  },
+  "speed": {
+   "load_s": 20.9,
+   "peak_vram_gb": 5.86,
+   "rtf": 0.41
+  }
+ },
+ "fit": {
+  "clips": 42,
+  "fit_without_atempo": 31,
+  "per_video": {
+   "17kBVfGjI8c": {
+    "cer": 0.002,
+    "p_es": 0.974,
+    "ecapa": 0.521,
+    "f0_hz": 109.4,
+    "jitter_st": 0.302,
+    "pitch_tremor": 0.356,
+    "loudness_tremor": 0.549,
+    "voiced_runs": 60
+   },
+   "rwF-X5STYks": {
+    "cer": 0.011,
+    "p_es": 0.894,
+    "ecapa": 0.609,
+    "f0_hz": 203.0,
+    "jitter_st": 0.236,
+    "pitch_tremor": 0.479,
+    "loudness_tremor": 0.587,
+    "voiced_runs": 98
+   }
+  }
+ }
+}
