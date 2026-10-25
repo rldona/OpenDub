@@ -298,3 +298,35 @@ def test_models_are_released_after_each_job(tmp_path, monkeypatch):
     while not released and time.monotonic() < end:
         time.sleep(0.01)
     assert released == [1]  # also when the job fails
+
+
+def test_first_ctrl_c_only_warns_while_a_dub_runs():
+    from types import SimpleNamespace
+
+    from opentranslator.web.app import ExitGuard
+
+    jobs = []
+    now = [100.0]
+    guard = ExitGuard(SimpleNamespace(active=lambda: jobs), window=5, clock=lambda: now[0])
+    assert guard.allow(exiting=False)  # idle: stops at once
+    jobs.append(SimpleNamespace(id=VID, status="running"))
+    assert not guard.allow(exiting=False)  # first Ctrl+C: warning only
+    now[0] += 2
+    assert guard.allow(exiting=False)  # second within 5 s: stop
+    now[0] += 10
+    assert not guard.allow(exiting=False)  # much later: warns again
+    assert guard.allow(exiting=True)  # already exiting: never blocks
+
+
+def test_media_run_behaves_like_subprocess_run():
+    import subprocess
+
+    from opentranslator import media
+
+    r = media.run(["sh", "-c", "cat; echo err >&2"], input="hola", capture_output=True, text=True)
+    assert (r.returncode, r.stdout, r.stderr) == (0, "hola", "err\n")
+    with pytest.raises(subprocess.CalledProcessError):
+        media.run(["sh", "-c", "exit 3"], check=True)
+    with pytest.raises(subprocess.TimeoutExpired):
+        media.run(["sleep", "5"], timeout=0.2)
+    assert not media._children  # nothing left registered

@@ -16,6 +16,7 @@ from typing import Any
 
 from rich.progress import BarColumn, MofNCompleteColumn, TimeElapsedColumn
 
+from . import media
 from .config import Settings
 from .log import Progress, console, log
 from .models import Segment, load_segments, save_segments
@@ -130,7 +131,7 @@ def _call_cli(system: str, prompt: str, model: str) -> tuple[dict[str, Any], flo
         "--setting-sources", "",
         "--strict-mcp-config",
     ]
-    result = subprocess.run(cmd, input=prompt, capture_output=True, text=True, encoding="utf-8", timeout=600)
+    result = media.run(cmd, input=prompt, capture_output=True, text=True, encoding="utf-8", timeout=600)
     try:
         data = json.loads(result.stdout)
     except json.JSONDecodeError:

@@ -254,9 +254,7 @@ def web(
 ) -> None:
     """Local web frontend: paste a URL, follow the progress, watch and fix the dubs."""
     try:
-        import uvicorn
-
-        from .web.app import create_app
+        from .web.app import create_app, serve
     except ImportError:
         raise SystemExit("The web frontend needs its optional dependencies: uv sync --extra web")
     require_ffmpeg()
@@ -267,8 +265,7 @@ def web(
 
         threading.Timer(1.0, webbrowser.open, args=(url,)).start()
     log.info(f"OpenTranslator web on [bold]{url}[/] (Ctrl+C to stop)")
-    # A paused <video> keeps its connection open; don't let it hold Ctrl+C forever
-    uvicorn.run(create_app(work), host="127.0.0.1", port=port, log_level="warning", timeout_graceful_shutdown=3)
+    serve(create_app(work), port)
 
 
 @app.command("setup-indextts")

@@ -9,11 +9,11 @@ ear or the 3–9 Hz measure could confirm (docs/v2-plan.md).
 
 from __future__ import annotations
 
-import subprocess
 from pathlib import Path
 
 import numpy as np
 
+from . import media
 from .media import ffmpeg
 from .models import Segment, load_segments
 from .workdir import WorkDir
@@ -47,7 +47,7 @@ def pick_reference(segments: list[Segment]) -> tuple[float, float]:
 
 
 def _load(path: Path, sr: int = 16000) -> np.ndarray:
-    raw = subprocess.run(
+    raw = media.run(
         ["ffmpeg", "-v", "error", "-i", str(path), "-ac", "1", "-ar", str(sr), "-f", "f32le", "-"],
         capture_output=True, check=True,
     ).stdout

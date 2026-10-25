@@ -12,13 +12,13 @@ from __future__ import annotations
 
 import hashlib
 import re
-import subprocess
 import unicodedata
 import wave
 from pathlib import Path
 
 import numpy as np
 
+from . import media
 from .log import log
 
 MODEL = "chatterbox-multilingual-v3"
@@ -116,7 +116,7 @@ def unintelligible(clips: list[tuple[int, Path, str]], whisper_model: str) -> se
     bad = set()
     for clip_id, path, text in clips:
         # decoded with ffmpeg to avoid faster-whisper's PyAV decoder, as in transcribe
-        raw = subprocess.run(
+        raw = media.run(
             ["ffmpeg", "-v", "error", "-i", str(path), "-ac", "1", "-ar", "16000", "-f", "f32le", "-"],
             capture_output=True, check=True,
         ).stdout

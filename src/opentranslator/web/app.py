@@ -200,3 +200,55 @@ def create_app(work_root: Path = Path("work"), runner: Runner | None = None,
 
     app.mount("/static", StaticFiles(directory=STATIC), name="static")
     return app
+
+
+CONFIRM_S = 5.0  # a second Ctrl+C within this window stops a running dub
+
+
+class ExitGuard:
+    """Decides whether a Ctrl+C stops the server: not the first one while a dub is running."""
+
+    def __init__(self, manager: JobManager, window: float = CONFIRM_S, clock=None):
+        import time
+
+        self.manager, self.window, self.clock = manager, window, clock or time.monotonic
+        self.warned_at: float | None = None
+
+    def allow(self, exiting: bool) -> bool:
+        running = [j for j in self.manager.active() if j.status == "running"]
+        now = self.clock()
+        if running and not exiting and (self.warned_at is None or now - self.warned_at > self.window):
+            from ..log import log
+
+            self.warned_at = now
+            log.warning(f"A dub is running ({running[0].id}): press Ctrl+C again within "
+                        f"{self.window:.0f} s to stop it and the server")
+            return False
+        return True
+
+
+def serve(app: FastAPI, port: int) -> None:
+    """Run the app with uvicorn on 127.0.0.1, guarding a running dub against a stray Ctrl+C.
+
+    Children (ffmpeg, the claude CLI, the IndexTTS worker) run in their own session,
+    so the terminal's Ctrl+C reaches only the server: with a dub running, the first
+    one only warns; a second within CONFIRM_S seconds stops the children and exits.
+    The interrupted job is marked as such on the next start.
+    """
+    import uvicorn
+
+    from .. import media
+
+    media.CHILD_SESSION = True
+    guard = ExitGuard(app.state.manager)
+
+    class Server(uvicorn.Server):
+        def handle_exit(self, sig, frame) -> None:
+            if not guard.allow(self.should_exit):
+                return
+            media.stop_children()
+            super().handle_exit(sig, frame)
+
+    # a paused <video> keeps its connection open: don't let it hold the exit forever
+    config = uvicorn.Config(app, host="127.0.0.1", port=port, log_level="warning", timeout_graceful_shutdown=3)
+    Server(config).run()

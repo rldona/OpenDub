@@ -21,6 +21,7 @@ import os
 import subprocess
 from pathlib import Path
 
+from . import media
 from .log import log
 
 MODEL = "indextts-2.5"
@@ -81,7 +82,7 @@ class Worker:
         self._stderr = log_path.open("a", encoding="utf-8")
         log.info(f"Starting {MODEL} (its own venv; log in {log_path})…")
         # cwd = repo: IndexTTS resolves its auxiliary model cache relative to it
-        self.proc = subprocess.Popen(
+        self.proc = media.popen(
             [str(python), "-I", str(WORKER), str(checkpoints)], cwd=repo,
             stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=self._stderr, text=True, bufsize=1,
         )

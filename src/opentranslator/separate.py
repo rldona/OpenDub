@@ -9,7 +9,6 @@ PyTorch (demucs), on CUDA when a GPU is available. Both expose the same
 from __future__ import annotations
 
 import platform
-import subprocess
 import sys
 import time
 import wave
@@ -17,6 +16,7 @@ from pathlib import Path
 
 import numpy as np
 
+from . import media
 from .config import Settings
 from .log import log
 from .workdir import WorkDir
@@ -37,7 +37,7 @@ def resolve_backend(choice: str) -> str:
 
 def _load(path: Path) -> np.ndarray:
     """Decode any audio/video file to float32 stereo at 44.1 kHz, shaped (2, samples)."""
-    raw = subprocess.run(
+    raw = media.run(
         ["ffmpeg", "-v", "error", "-i", str(path), "-vn", "-ac", "2", "-ar", str(SAMPLE_RATE),
          "-f", "f32le", "-"],
         capture_output=True, check=True,
