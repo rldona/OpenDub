@@ -15,7 +15,8 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any
 
-from .. import style, translate, tts
+from .. import retouch, style, translate, tts
+from .. import voices as voices_mod
 from ..config import Settings
 from ..models import load_segments, save_segments
 from ..workdir import WorkDir, write_text_atomic
@@ -282,7 +283,7 @@ def translation(wd: WorkDir, manager: JobManager) -> dict[str, Any] | None:
     return {"segments": segments, "chars_per_second": pace.cps if pace else None,
             "needs_regeneration": not (wd.has("tts") and wd.has("mix")),
             # edited since the latest dub: what a retouch speaks again
-            "pending": sorted(tts.pending_edits(wd)) if wd.output.exists() else [],
+            "pending": sorted(retouch.pending_edits(wd)) if wd.output.exists() else [],
             # the voice clips a retouch needs may have been deleted to save space (storage.py)
             "clips_available": tts.clips_exist(wd)}
 
@@ -301,7 +302,7 @@ def retouchable(wd: WorkDir, takes: list[int]) -> list[int]:
         raise LookupError(f"No segment {unknown[0]} in this dub")
     if takes and dub_engine(wd) == "edge":
         raise LookupError("Another take needs a cloned voice: edge-tts always says a text the same way")
-    return sorted(tts.pending_edits(wd) | set(takes))
+    return sorted(retouch.pending_edits(wd) | set(takes))
 
 
 def save_translation(wd: WorkDir, edits: list[dict[str, Any]]) -> None:
@@ -459,7 +460,7 @@ def speakers_info(wd: WorkDir) -> list[dict[str, Any]]:
     for spk, info in diarization["speakers"].items():
         out.append({
             "id": spk, "name": names.get(spk), "seconds": info.get("seconds"), "f0_hz": info.get("f0_hz"),
-            "gender": tts.gender_of(info.get("f0_hz")), "sentences": counts.get(spk, 0),
+            "gender": voices_mod.gender_of(info.get("f0_hz")), "sentences": counts.get(spk, 0),
             "voice": voices.get(spk),
             "sample": f"/videos/{wd.path.name}/speakers/{spk}.wav" if speaker_sample(wd, spk) else None,
         })

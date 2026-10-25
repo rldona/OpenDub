@@ -4,7 +4,7 @@ import json
 
 import pytest
 
-from opendub import download, storage, tts
+from opendub import download, retouch, storage, tts
 from opendub.config import Settings
 from opendub.workdir import WorkDir
 
@@ -73,7 +73,7 @@ def test_retouching_needs_the_clips_and_a_dub_speaks_them_again(tmp_path, monkey
     tts.run(wd, Settings())
     storage.delete(wd, "clips")
     with pytest.raises(SystemExit, match="deleted to save space"):
-        tts.retouch(wd, Settings(), [])
+        retouch.retouch(wd, Settings(), [])
     spoken.clear()
     tts.run(wd, Settings())  # cached by its parameters, but its clips are gone: spoken again
     assert spoken == [1] and tts.clips_exist(wd)

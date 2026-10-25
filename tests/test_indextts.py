@@ -1,7 +1,7 @@
 
 import pytest
 
-from opendub import indextts, tts
+from opendub import indextts, repair, tts
 from opendub.config import Settings
 from opendub.models import Segment
 from opendub.workdir import WorkDir
@@ -105,7 +105,7 @@ def test_native_shortens_before_going_below_the_floor(tmp_path, monkeypatch, sho
     monkeypatch.setattr(reference, "reference", lambda wd_: ref)
     monkeypatch.setattr(reference, "mean_f0", lambda path: 212.0)
     monkeypatch.setattr(tts, "cloned_speaking_rate", lambda s, v: tts.Pace(CPS))
-    monkeypatch.setattr(tts, "_repair_clones", lambda *a: set())
+    monkeypatch.setattr(repair, "repair_clones", lambda *a: set())
     monkeypatch.setattr(tts, "_render_jobs", _fake_render(rendered))
     monkeypatch.setattr(translate, "shorten", fake_shorten)
 

@@ -11,7 +11,7 @@ again (translate.run) keeps it, like the text edits:
   sentence of B to A.
 
 A correction goes into translation.json at once; the TTS phase then sees the
-sentence as pending (tts.pending_edits) and a retouch speaks it with the right
+sentence as pending (retouch.pending_edits) and a retouch speaks it with the right
 voice. The sentence keeps the translation made for the speaker it had.
 """
 

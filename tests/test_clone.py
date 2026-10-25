@@ -3,7 +3,7 @@ from dataclasses import replace
 
 import pytest
 
-from opendub import clone, reference, tts
+from opendub import clone, reference, repair, tts
 from opendub.config import Settings
 from opendub.models import Segment, save_segments
 from opendub.workdir import WorkDir
@@ -47,11 +47,11 @@ def test_repair_chain_keeps_the_cloned_voice_as_long_as_possible(tmp_path, monke
         rendered.append(sorted((s.id, v.label) for s, v in jobs))
         return [_clip(s, v) for s, v in jobs]
 
-    monkeypatch.setattr(tts, "_clone_failures", fake_failures)
+    monkeypatch.setattr(repair, "clone_failures", fake_failures)
     monkeypatch.setattr(tts, "_render_each", fake_render_each)
     monkeypatch.setattr(translate, "shorten", lambda items, v, s, st=None, g=None: {i: t[:m] for i, _o, t, m in items})
 
-    fell_back = tts._repair_clones(wd, clips, voices, {}, by_id, settings)
+    fell_back = repair.repair_clones(repair.Fitting(wd, clips, voices, {}, by_id, settings))
 
     assert rendered == [
         [(1, "chatterbox (seed+1)"), (2, "chatterbox (seed+1)"), (3, "chatterbox (seed+1)")],
@@ -74,11 +74,11 @@ def test_repair_chain_skips_steps_that_are_off(tmp_path, monkeypatch):
     clips = {1: _clip(seg, voices[1])}
     rendered = []
 
-    monkeypatch.setattr(tts, "_clone_failures", lambda wd_, ids, c, s: {i for i in ids if c[i].voice != "edge"})
+    monkeypatch.setattr(repair, "clone_failures", lambda wd_, ids, c, s: {i for i in ids if c[i].voice != "edge"})
     monkeypatch.setattr(tts, "_render_each", lambda wd_, jobs, slots, s, regenerate=False: (
         rendered.append([v.label for _, v in jobs]) or [_clip(sg, v) for sg, v in jobs]))
 
-    assert tts._repair_clones(wd, clips, voices, {}, {1: seg}, settings) == {1}
+    assert repair.repair_clones(repair.Fitting(wd, clips, voices, {}, {1: seg}, settings)) == {1}
     assert rendered == [["chatterbox (seed+1)"], ["edge"]]
 
 
@@ -126,13 +126,13 @@ def test_quality_check_never_shortens_a_tiny_text(tmp_path, monkeypatch):
     clips = {s.id: _clip(s, voice) for s in segs}
     rendered, asked = [], []
 
-    monkeypatch.setattr(tts, "_clone_failures", lambda wd_, ids, c, s: {i for i in ids if c[i].voice != "edge"})
+    monkeypatch.setattr(repair, "clone_failures", lambda wd_, ids, c, s: {i for i in ids if c[i].voice != "edge"})
     monkeypatch.setattr(tts, "_render_each", lambda wd_, jobs, slots, s, regenerate=False: (
         rendered.append(sorted((sg.id, v.label, sg.text) for sg, v in jobs)) or [_clip(sg, v) for sg, v in jobs]))
     monkeypatch.setattr(translate, "shorten", lambda items, v, s, st=None, g=None: asked.extend(i for i, *_ in items) or
                         {i: t[:m] for i, _o, t, m in items})
 
-    tts._repair_clones(wd, clips, voices, {}, {s.id: s for s in segs}, settings)
+    repair.repair_clones(repair.Fitting(wd, clips, voices, {}, {s.id: s for s in segs}, settings))
     assert asked == [2]  # "Yo" is never sent to be shortened (it came back as "Y")
     assert [(i, label) for i, label, _ in rendered[1]] == [(2, "chatterbox (shortened)")]
     assert (1, "edge", "Yo") in rendered[-1]  # still says "Yo" on the last resort

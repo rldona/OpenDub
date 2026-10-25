@@ -4,7 +4,8 @@ import json
 
 import pytest
 
-from opendub import reference, translate, tts
+from opendub import reference, repair, retouch, translate, tts
+from opendub import voices as voices_mod
 from opendub.config import Settings
 from opendub.models import Segment, load_segments, save_segments
 from opendub.workdir import WorkDir
@@ -26,7 +27,7 @@ def wd(tmp_path, monkeypatch):
     cuts = []
     monkeypatch.setattr(reference, "ffmpeg", lambda *args: cuts.append(args) or open(args[-1], "wb").write(b"ref"))
     monkeypatch.setattr(reference, "mean_f0", lambda path: 120.0)
-    monkeypatch.setattr(tts, "_clone_failures", lambda wd_, ids, clips, s: set())
+    monkeypatch.setattr(repair, "clone_failures", lambda wd_, ids, clips, s: set())
 
     async def no_check(voice):
         return None
@@ -45,11 +46,11 @@ def test_each_speaker_is_cloned_from_their_own_turns_only(wd):
 
 
 def test_stock_voices_follow_gender_and_variant():
-    assert tts.stock_voice("es-ES-AlvaroNeural", "female") == "es-ES-ElviraNeural"
-    assert tts.stock_voice("es-ES-AlvaroNeural", "male") == "es-ES-AlvaroNeural"
-    assert tts.stock_voice("es-MX-JorgeNeural", "female") == "es-MX-DaliaNeural"
-    assert tts.stock_voice("es-ES-ElviraNeural", None) == "es-ES-ElviraNeural"
-    assert tts.gender_of(210.0) == "female" and tts.gender_of(120.0) == "male" and tts.gender_of(None) is None
+    assert voices_mod.stock_voice("es-ES-AlvaroNeural", "female") == "es-ES-ElviraNeural"
+    assert voices_mod.stock_voice("es-ES-AlvaroNeural", "male") == "es-ES-AlvaroNeural"
+    assert voices_mod.stock_voice("es-MX-JorgeNeural", "female") == "es-MX-DaliaNeural"
+    assert voices_mod.stock_voice("es-ES-ElviraNeural", None) == "es-ES-ElviraNeural"
+    assert voices_mod.gender_of(210.0) == "female" and voices_mod.gender_of(120.0) == "male" and voices_mod.gender_of(None) is None
 
 
 def _renderer(log):
@@ -93,16 +94,16 @@ def test_a_speaker_change_is_retouched_like_an_edit(wd, monkeypatch):
     segs = load_segments(wd.translation)
     segs[2].speaker = "A"  # "Thanks." was A's after all
     save_segments(wd.translation, segs)
-    assert tts.pending_edits(wd) == {3}
+    assert retouch.pending_edits(wd) == {3}
     rendered.clear()
-    assert tts.retouch(wd, Settings()) == [3]  # the dub's own voices, whatever settings say
+    assert retouch.retouch(wd, Settings()) == [3]  # the dub's own voices, whatever settings say
     assert rendered == [(3, "chatterbox", "clone_ref_A.wav")]
 
 
 def test_the_last_resort_keeps_the_speakers_gender(wd, monkeypatch):
     rendered = []
     monkeypatch.setattr(tts, "_render_jobs", _renderer(rendered))
-    monkeypatch.setattr(tts, "_clone_failures", lambda wd_, ids, clips, s: {i for i in ids if clips[i].voice != "edge"})
+    monkeypatch.setattr(repair, "clone_failures", lambda wd_, ids, clips, s: {i for i in ids if clips[i].voice != "edge"})
     settings = Settings(tts="clone", engine="chatterbox", multi_speaker=True, shorten=False)
     tts.run(wd, settings)
     final = {c.id: c.voice for c in tts.load_clips(wd)}
@@ -111,7 +112,7 @@ def test_the_last_resort_keeps_the_speakers_gender(wd, monkeypatch):
 
 
 def test_the_translation_caps_each_sentence_at_its_speakers_pace(wd, monkeypatch):
-    monkeypatch.setattr(tts, "speaker_paces", lambda wd_, s, segs: {"A": tts.Pace(10.0), "B": tts.Pace(20.0)})
+    monkeypatch.setattr(voices_mod, "speaker_paces", lambda wd_, s, segs: {"A": tts.Pace(10.0), "B": tts.Pace(20.0)})
     seen = []
 
     def fake_cli(system, prompt, model):
@@ -150,7 +151,7 @@ def test_shortening_knows_who_says_it(monkeypatch):
 def test_one_voice_falls_back_to_a_stock_voice_of_its_gender(wd, monkeypatch, f0, stock):
     monkeypatch.setattr(reference, "reference", lambda wd_: wd_.path / "clone_ref.wav")
     monkeypatch.setattr(reference, "mean_f0", lambda path: f0)
-    voices, _, _, _ = tts._voices(wd, Settings(tts="clone", engine="chatterbox"), SEGMENTS, {})
+    voices, _, _, _ = voices_mod.segment_voices(wd, Settings(tts="clone", engine="chatterbox"), SEGMENTS, {})
     assert {v.stock for v in voices.values()} == {stock}
     assert {v.gender for v in voices.values()} == {None}  # no gender for the prompts with one voice
 
@@ -164,6 +165,6 @@ def test_one_womans_last_resort_is_a_womans_voice(wd, monkeypatch):
 
     monkeypatch.setattr(reference, "reference", cut)
     monkeypatch.setattr(reference, "mean_f0", lambda path: 214.0)
-    monkeypatch.setattr(tts, "_clone_failures", lambda wd_, ids, clips, s: {i for i in ids if clips[i].voice != "edge"})
+    monkeypatch.setattr(repair, "clone_failures", lambda wd_, ids, clips, s: {i for i in ids if clips[i].voice != "edge"})
     tts.run(wd, Settings(tts="clone", engine="chatterbox", shorten=False))
     assert {name for _, engine, name in rendered if engine == "edge"} == {"es-ES-ElviraNeural"}

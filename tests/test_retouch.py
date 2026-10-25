@@ -1,10 +1,10 @@
-"""Retouch: speak again only the edited sentences and the takes asked for (tts.retouch)."""
+"""Retouch: speak again only the edited sentences and the takes asked for (retouch.retouch)."""
 
 import json
 
 import pytest
 
-from opendub import reference, translate, tts
+from opendub import reference, repair, retouch, translate, tts
 from opendub.config import Settings
 from opendub.models import Segment, load_segments, save_segments
 from opendub.workdir import WorkDir
@@ -25,7 +25,7 @@ def wd(tmp_path, monkeypatch):
         return None
 
     monkeypatch.setattr(tts, "_check_voice", no_check)
-    monkeypatch.setattr(tts, "_clone_failures", lambda wd_, ids, clips, s: set())
+    monkeypatch.setattr(repair, "clone_failures", lambda wd_, ids, clips, s: set())
     return wd
 
 
@@ -65,17 +65,17 @@ def test_retouch_speaks_only_the_edits_and_marks_tts_done(wd, monkeypatch):
     monkeypatch.setattr(tts, "_render_jobs", _renderer(rendered))
     settings = Settings(tts="clone", engine="chatterbox")
     tts.run(wd, settings)
-    assert len(rendered) == 4 and tts.pending_edits(wd) == set()
+    assert len(rendered) == 4 and retouch.pending_edits(wd) == set()
 
     _edit(wd, 3, "Frase tres, corregida.")
-    assert tts.pending_edits(wd) == {3}
+    assert retouch.pending_edits(wd) == {3}
     rendered.clear()
-    assert tts.retouch(wd, settings) == [3]
+    assert retouch.retouch(wd, settings) == [3]
     assert rendered == [(3, "Frase tres, corregida.", tts.SEED)]
     index = json.loads(wd.tts_index.read_text())
     assert [c["text"] for c in index["clips"]][2] == "Frase tres, corregida."
     assert index["stats"]["retouched"] == [3] and index["sources"]["3"] == "Frase tres, corregida."
-    assert tts.pending_edits(wd) == set()
+    assert retouch.pending_edits(wd) == set()
 
     # the phase is cached for the current translation: a full run speaks nothing
     rendered.clear()
@@ -89,10 +89,10 @@ def test_another_take_uses_the_next_seed_and_a_full_run_keeps_it(wd, monkeypatch
     settings = Settings(tts="clone", engine="chatterbox")
     tts.run(wd, settings)
     rendered.clear()
-    tts.retouch(wd, settings, [2])
-    tts.retouch(wd, settings, [2])
+    retouch.retouch(wd, settings, [2])
+    retouch.retouch(wd, settings, [2])
     assert rendered == [(2, "Frase 2.", tts.SEED + 1), (2, "Frase 2.", tts.SEED + 2)]
-    assert tts.takes(wd) == {2: tts.SEED + 2}
+    assert retouch.takes(wd) == {2: tts.SEED + 2}
 
     rendered.clear()
     tts.run(wd, settings, force=True)
@@ -108,7 +108,7 @@ def test_hand_edits_are_never_shortened(wd, monkeypatch):
     tts.run(wd, settings)
     long = "Una frase editada a mano que es bastante más larga que su hueco."
     _edit(wd, 2, long)
-    tts.retouch(wd, settings)
+    retouch.retouch(wd, settings)
     assert asked == []  # it doesn't fit, but it is said as written
     clip = next(c for c in tts.load_clips(wd) if c.id == 2)
     assert clip.text == long and clip.tempo == settings.max_tempo and clip.overflow > 0
@@ -123,17 +123,17 @@ def test_retouch_patches_overflow_log_and_drops_mix_lines(wd, monkeypatch):
                                "#3 @12.00s: lasts 4.00s at 1.25x, slot 4.00s (+0.10s) · Frase 3.\n"
                                "#2 delayed 0.10s in the mix\n")
     _edit(wd, 3, "Tres.")
-    tts.retouch(wd, settings)
+    retouch.retouch(wd, settings)
     assert wd.overflow_log.read_text() == "#1 @4.00s: lasts 4.00s at 1.25x, slot 4.00s (+0.10s) · Frase 1.\n"
 
 
 def test_retouch_refuses_what_it_cannot_do(wd, monkeypatch):
     monkeypatch.setattr(tts, "_render_jobs", _renderer([]))
     with pytest.raises(SystemExit):
-        tts.retouch(wd, Settings())  # no dub yet
+        retouch.retouch(wd, Settings())  # no dub yet
     tts.run(wd, Settings())  # edge-tts
     with pytest.raises(SystemExit):
-        tts.retouch(wd, Settings(), [2])  # edge-tts has no takes
+        retouch.retouch(wd, Settings(), [2])  # edge-tts has no takes
     with pytest.raises(SystemExit):
-        tts.retouch(wd, Settings(), [99])
-    assert tts.retouch(wd, Settings()) == []  # nothing pending
+        retouch.retouch(wd, Settings(), [99])
+    assert retouch.retouch(wd, Settings()) == []  # nothing pending

@@ -50,7 +50,7 @@ diarization, since the transcription splits sentences where the speaker changes.
 | Transcription | `transcribe.py`, `segments.py` | Uses YouTube's subtitles when available, faster-whisper otherwise; regroups pieces into sentences with timings, and gives each one a speaker. |
 | Separation | `separate.py` | HTDemucs splits the original voice from the background, which is kept for the mix. |
 | Translation | `translate.py`, `style.py`, `speakers.py` | Claude translates in blocks, each sentence within a character budget set by its voice's pace model, in the video's register, variant and glossary; keeps hand edits and speaker corrections made in the web. Each block is cached by its own inputs. |
-| Voice | `tts.py`, `clone.py`, `indextts.py`, `cosyvoice.py`, `reference.py`, `spoken.py` | See below. |
+| Voice | `tts.py`, `voices.py`, `repair.py`, `retouch.py`, `clone.py`, `indextts.py`, `cosyvoice.py`, `reference.py`, `spoken.py` | See below: `voices.py` gives each sentence its voice (one, or each speaker's), `repair.py` fits and repairs after the first pass, `retouch.py` speaks again only what changed. |
 | Mix | `mix.py` | Places each clip at its timestamp over the background, normalizes the loudness in two passes, writes `output.mp4` and keeps it as a version in `outputs/`. |
 | Exports | `export.py` | A version as subtitles (dubbed or original), an MKV with both audio tracks, or its audio, made on request and kept. |
 | Storage | `storage.py` | What each video takes on disk, and deleting what can be made again (source, stems, raw clips, clips, exports). |

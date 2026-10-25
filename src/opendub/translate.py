@@ -352,14 +352,15 @@ def run(wd: WorkDir, settings: Settings, force: bool = False) -> list[Segment]:
     source_code = (meta.get("language") or "en").split("-")[0]
     style = style_mod.load(settings.work_root, wd.path, settings.style_file)
     target = style_mod.target_name(settings.voice, style.variant)
-    from .tts import Pace, _speaker_genders, multi_speaker, speaker_paces, voice_rate  # lazy: tts imports this module
+    from .tts import Pace, voice_rate  # lazy: tts imports this module
+    from .voices import multi_speaker, speaker_genders, speaker_paces
 
     if settings.keep_translation and wd.has("translate") and wd.translation.exists():
         log.info("Keeping the existing translation (made for another voice's pace, fitted in TTS)")
         return load_segments(wd.translation)
     paces, genders = {}, {}
     if multi_speaker(settings, segments):  # several voices: each sentence capped at its speaker's pace
-        genders = _speaker_genders(wd)
+        genders = speaker_genders(wd)
         paces = ({spk: Pace(settings.chars_per_second) for spk in {s.speaker for s in segments}}
                  if settings.chars_per_second else speaker_paces(wd, settings, segments))
         pace = paces[min(paces)]  # A, who speaks most, for the logs

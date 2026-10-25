@@ -9,6 +9,7 @@ from pathlib import Path
 from . import diarize as diarize_mod
 from . import download as download_mod
 from . import mix as mix_mod
+from . import retouch as retouch_mod
 from . import separate as separate_mod
 from . import style as style_mod
 from . import transcribe as transcribe_mod
@@ -84,7 +85,7 @@ def retouch(url: str, settings: Settings, output: Path | None = None) -> Path:
             with phase("Separation"):
                 separate_mod.run(wd, settings)
         with phase("TTS"):
-            tts_mod.retouch(wd, settings, settings.retouch or ())
+            retouch_mod.retouch(wd, settings, settings.retouch or ())
         with phase("Mix"):
             return mix_mod.run(wd, settings, output=output)
 
