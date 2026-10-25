@@ -22,6 +22,9 @@ from . import media
 from .log import log
 
 MODEL = "chatterbox-multilingual-v3"
+HF_REPO = "ResembleAI/chatterbox"
+HF_REV = "5bb1f6ee58e50c3b8d408bc82a6d3740c2db6e18"  # the weights benchmarked (docs/v2-plan.md)
+T3_MODEL = "v3"
 SAMPLE_RATE = 24000
 QC_MAX_CER = 0.3  # whisper character error rate above which a clip is redone
 # On very short texts one misheard word swings the rate: "Ups, llénalo" failed on a fine clip
@@ -55,8 +58,21 @@ def _load():
             raise SystemExit(f"chatterbox-tts is not installed. {INSTALL_HINT}")
         device = _device()
         log.info(f"Loading {MODEL} ({device})…")
-        _model = ChatterboxMultilingualTTS.from_pretrained(device=device, t3_model="v3")
+        # what from_pretrained does, at a fixed revision instead of its "main"
+        _model = ChatterboxMultilingualTTS.from_local(_checkpoints(), device, t3_model=T3_MODEL)
     return _model
+
+
+def _checkpoints() -> Path:
+    """The Chatterbox files at HF_REV, downloaded once into the Hugging Face cache."""
+    import os
+
+    from chatterbox.mtl_tts import _resolve_multilingual_t3_model
+    from huggingface_hub import snapshot_download
+
+    files = ["ve.pt", _resolve_multilingual_t3_model(T3_MODEL), "s3gen.pt", "grapheme_mtl_merged_expanded_v1.json",
+             "conds.pt", "Cangjie5_TC.json"]
+    return Path(snapshot_download(HF_REPO, revision=HF_REV, allow_patterns=files, token=os.getenv("HF_TOKEN")))
 
 
 def unload() -> None:

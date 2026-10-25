@@ -152,3 +152,32 @@ def test_chatterbox_pool_size_follows_the_gpu(monkeypatch):
     assert clone.pool_size() == 3
     monkeypatch.setenv("OPENDUB_CHATTERBOX_WORKERS", "0")
     assert clone.pool_size() == 1
+
+
+@pytest.mark.parametrize("module_name", ["indextts", "cosyvoice", "diarize"])
+def test_each_install_downloads_the_benchmarked_weights(tmp_path, monkeypatch, module_name):
+    """Pinned to HF_REV, never whatever the model's main branch holds at install time."""
+    import importlib
+    import subprocess
+
+    module = importlib.import_module(f"opendub.{module_name}")
+    calls = []
+    monkeypatch.setattr(subprocess, "run", lambda cmd, **k: calls.append(cmd) or subprocess.CompletedProcess(cmd, 0))
+    module.setup(tmp_path / "home")
+    downloads = [c for c in calls if any("huggingface_hub" in str(a) for a in c)]
+    assert len(downloads) == 1
+    assert "revision=" in downloads[0][2] and downloads[0][-1] == module.HF_REV and len(module.HF_REV) == 40
+
+
+def test_chatterbox_loads_its_weights_at_a_fixed_revision(monkeypatch):
+    pytest.importorskip("chatterbox")
+    import huggingface_hub
+
+    from opendub import clone
+
+    seen = {}
+    monkeypatch.setattr(huggingface_hub, "snapshot_download",
+                        lambda repo, **k: seen.update(repo=repo, **k) or "/tmp/ckpt")
+    assert str(clone._checkpoints()) == "/tmp/ckpt"
+    assert seen["repo"] == clone.HF_REPO and seen["revision"] == clone.HF_REV
+    assert any(f.startswith("t3_") for f in seen["allow_patterns"])

@@ -38,6 +38,7 @@ from .workdir import WorkDir, write_text_atomic
 MODEL = "nemotron-3-diarization"
 HF_REPO = "nvidia/Nemotron-3-Diarization"
 HF_FILE = "Nemotron-3-Diarization.nemo"
+HF_REV = "f667ed73aee57d40cc39428eb768b4fd87a0a29e"  # the checkpoint benchmarked (docs/bench/diarize)
 NEMO_REV = "68a12fc5e469614abd23b25ff9cfcb822aa0be93"  # engines/nemotron/pyproject.toml
 MIN_SPEECH_S = 30.0
 PITCH_SECONDS = 20.0  # of a speaker's longest turns, to measure their pitch
@@ -67,7 +68,8 @@ def setup(home: Path) -> None:
     log.info(f"Downloading {HF_REPO}…")
     subprocess.run(
         [str(python), "-c", "import sys; from huggingface_hub import hf_hub_download; "
-         "hf_hub_download(sys.argv[1], sys.argv[2], local_dir=sys.argv[3])", HF_REPO, HF_FILE, str(model.parent)],
+         "hf_hub_download(sys.argv[1], sys.argv[2], local_dir=sys.argv[3], revision=sys.argv[4])",
+         HF_REPO, HF_FILE, str(model.parent), HF_REV],
         check=True,
     )
     log.info(f"Nemotron 3 Diarization ready in {home}")

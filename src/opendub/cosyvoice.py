@@ -28,6 +28,7 @@ MODEL = "cosyvoice3-0.5b"
 REPO_URL = "https://github.com/FunAudioLLM/CosyVoice.git"
 REPO_REV = "074ca6dc9e80a2f424f1f74b48bdd7d3fea531cc"  # 2026-05-25, the commit benchmarked
 HF_REPO = "FunAudioLLM/Fun-CosyVoice3-0.5B-2512"
+HF_REV = "29e01c4e8d000f4bcd70751be16fa94bf3d85a18"  # the weights benchmarked (docs/v2-plan.md)
 MIN_FACTOR = 0.5  # speed 2.0: the fastest the pipeline asks for
 CALIBRATION_FACTOR = 1.0  # its natural pace is already fast
 ENV_PROJECT = Path(__file__).resolve().parents[2] / "engines" / "cosyvoice"
@@ -61,7 +62,7 @@ def setup(home: Path) -> None:
     log.info(f"Downloading {HF_REPO} weights…")
     subprocess.run(
         [str(python), "-c", "import sys; from huggingface_hub import snapshot_download; "
-         "snapshot_download(sys.argv[1], local_dir=sys.argv[2])", HF_REPO, str(model_dir)],
+         "snapshot_download(sys.argv[1], local_dir=sys.argv[2], revision=sys.argv[3])", HF_REPO, str(model_dir), HF_REV],
         check=True,
     )
     log.info(f"CosyVoice ready in {home}")

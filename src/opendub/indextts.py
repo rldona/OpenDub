@@ -26,6 +26,7 @@ MODEL = "indextts-2.5"
 REPO_URL = "https://github.com/index-tts/index-tts.git"
 REPO_REV = "d9e41aac89fd00b3d71497fddb287b7f24613712"
 HF_REPO = "IndexTeam/IndexTTS-2.5"
+HF_REV = "c39ce5ba981572cb187443877ff559dfb246ce63"  # the checkpoints benchmarked (docs/v2-plan.md)
 MIN_FACTOR = 0.5  # documented lower bound of duration_factor
 FLOOR = 0.7  # default --min-factor: below it, shorten the sentence before compressing further
 # Speaking rate calibrated at this factor: its natural pace is slow (~12 chars/s),
@@ -60,7 +61,7 @@ def setup(home: Path) -> None:
     log.info(f"Downloading {HF_REPO} checkpoints…")
     subprocess.run(
         [str(python), "-c", "import sys; from huggingface_hub import snapshot_download; "
-         "snapshot_download(sys.argv[1], local_dir=sys.argv[2])", HF_REPO, str(checkpoints)],
+         "snapshot_download(sys.argv[1], local_dir=sys.argv[2], revision=sys.argv[3])", HF_REPO, str(checkpoints), HF_REV],
         check=True,
     )
     log.info(f"IndexTTS ready in {home}")
