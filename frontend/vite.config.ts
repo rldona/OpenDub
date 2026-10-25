@@ -11,6 +11,6 @@ export default defineConfig({
   base: "/static/",
   build: { outDir: "../src/opendub/web/static", emptyOutDir: true },
   server: {
-    proxy: Object.fromEntries(["/jobs", "/videos", "/engines", "/status"].map((p) => [p, api])),
+    proxy: Object.fromEntries(["/jobs", "/videos", "/engines", "/status", "^/style$"].map((p) => [p, api])),
   },
 });

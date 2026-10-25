@@ -51,7 +51,7 @@ const en = {
   i_fallback: "edge-tts said “{text}”", i_floor: "Compressed to {f}, below the floor",
   i_overflow: "Doesn't fit: +{s} s", i_abnormal: "Abnormal duration", i_repaired: "Redone: {how}",
   i_delayed: "Delayed in the mix", how_seed: "another seed", how_shortened: "a shorter sentence",
-  how_fixed: "the fixed reference",
+  how_fixed: "the fixed reference", i_glossary: "Glossary: “{term}” should be “{want}”",
 
   redub_title: "Re-dub this video", would_pick: "Would pick {e}: the reference voice is {f0} Hz",
   last_time: "Last time here: {what}", min_n: "{m} min", issues_n: "{n} issues", never_here: "Not used on this video yet",
@@ -79,6 +79,21 @@ const en = {
   prefs_intro: "Saved in this browser.", appearance: "Appearance", theme: "Theme", theme_system: "Like the system",
   theme_dark: "Dark", theme_light: "Light", accent: "Accent color", violet: "Violet", coral: "Coral", lime: "Lime",
   default_tag: "default", new_dubs: "New dubs start with",
+
+  translation_style: "Translation style",
+  translation_style_intro: "For every video, saved in the work folder (work/style.json). A video's own style wins over it.",
+  register: "Address the viewer as", register_auto: "Like the original", register_tu: "tú", register_usted: "usted",
+  variant: "Spanish", variant_auto: "Like the voice", "variant_es-ES": "Spain", variant_latam: "Latin America",
+  auto_from: "Global: {v}", glossary: "Glossary", glossary_hint: "whole words, any case; only the blocks that say a term are translated again",
+  term_source: "Term in the original", term_keep: "Leave as in the original", term_source_n: "Term {n}",
+  term_target_n: "Translation of term {n}", term_remove_n: "Remove term {n}", term_add: "Add a term",
+  term_said: "in this video", term_unsaid: "not said here", glossary_shared: "Also from the global glossary:",
+  style_notes: "Notes for the translator", style_notes_hint: "E.g. a pixel art channel: “frame” stays as “frame”.",
+  style_saved: "Saved. It applies the next time a video is translated.",
+  video_style: "Style of this video", style_summary: "{n} of {total} glossary terms said here",
+  video_style_hint: "Wins over the global style in Preferences.",
+  style_stale: "The style changed since this translation.", style_apply: "Translate and dub again with {e}",
+  add_term: "+ glossary", add_term_hint: "Add to this video's glossary (select a few words first to use them)",
 };
 
 export type Key = keyof typeof en;
@@ -134,7 +149,7 @@ const es: Record<Key, string> = {
   i_fallback: "edge-tts dijo «{text}»", i_floor: "Comprimido a {f}, bajo el suelo",
   i_overflow: "No cabe: +{s} s", i_abnormal: "Duración anómala", i_repaired: "Rehecho: {how}",
   i_delayed: "Retrasado en la mezcla", how_seed: "otra semilla", how_shortened: "una frase más corta",
-  how_fixed: "la referencia fija",
+  how_fixed: "la referencia fija", i_glossary: "Glosario: «{term}» debería ser «{want}»",
 
   redub_title: "Redoblar este vídeo", would_pick: "Elegiría {e}: la voz de referencia es de {f0} Hz",
   last_time: "La última vez aquí: {what}", min_n: "{m} min", issues_n: "{n} avisos", never_here: "Aún no se ha usado en este vídeo",
@@ -162,6 +177,21 @@ const es: Record<Key, string> = {
   prefs_intro: "Se guardan en este navegador.", appearance: "Apariencia", theme: "Tema", theme_system: "Como el sistema",
   theme_dark: "Oscuro", theme_light: "Claro", accent: "Color de acento", violet: "Violeta", coral: "Coral", lime: "Lima",
   default_tag: "por defecto", new_dubs: "Los doblajes nuevos empiezan con",
+
+  translation_style: "Estilo de traducción",
+  translation_style_intro: "Para todos los vídeos, guardado en la carpeta de trabajo (work/style.json). El estilo propio de un vídeo tiene prioridad.",
+  register: "Tratar al espectador de", register_auto: "Como el original", register_tu: "tú", register_usted: "usted",
+  variant: "Español", variant_auto: "Según la voz", "variant_es-ES": "de España", variant_latam: "latinoamericano",
+  auto_from: "Global: {v}", glossary: "Glosario", glossary_hint: "palabras completas, sin distinguir mayúsculas; solo se retraducen los bloques que dicen un término",
+  term_source: "Término en el original", term_keep: "Dejar como en el original", term_source_n: "Término {n}",
+  term_target_n: "Traducción del término {n}", term_remove_n: "Quitar el término {n}", term_add: "Añadir término",
+  term_said: "en este vídeo", term_unsaid: "no aparece", glossary_shared: "También del glosario global:",
+  style_notes: "Notas para el traductor", style_notes_hint: "P. ej. un canal de pixel art: «frame» se queda como «frame».",
+  style_saved: "Guardado. Se aplica la próxima vez que se traduzca un vídeo.",
+  video_style: "Estilo de este vídeo", style_summary: "{n} de {total} términos del glosario aparecen aquí",
+  video_style_hint: "Tiene prioridad sobre el estilo global de Preferencias.",
+  style_stale: "El estilo ha cambiado desde esta traducción.", style_apply: "Retraducir y doblar con {e}",
+  add_term: "+ glosario", add_term_hint: "Añadir al glosario de este vídeo (selecciona antes unas palabras para usarlas)",
 };
 
 export type Lang = "en" | "es";

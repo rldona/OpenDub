@@ -63,7 +63,31 @@ export interface Translation {
   needs_regeneration: boolean;
 }
 
-export type IssueKind = "fallback" | "floor" | "overflow" | "abnormal" | "repaired" | "delayed";
+export type IssueKind = "fallback" | "floor" | "overflow" | "abnormal" | "glossary" | "repaired" | "delayed";
+
+export type Register = "auto" | "tu" | "usted";
+export type Variant = "auto" | "es-ES" | "latam";
+
+export interface Term {
+  source: string;
+  target: string; // empty: kept as in the original
+}
+
+/** style.json: how a translation reads (src/opendub/style.py). */
+export interface Style {
+  register: Register;
+  variant: Variant;
+  terms: Term[];
+  notes: string;
+}
+
+export interface VideoStyle {
+  video: Style;
+  global: Style;
+  applied: Style;
+  used: string[]; // glossary terms the video says
+  stale: boolean; // the style changed since the translation was made
+}
 
 export interface Issue {
   id: number;
@@ -154,6 +178,11 @@ export const api = {
   translation: (id: string) => call<Translation>(`/videos/${id}/translation`),
   saveTranslation: (id: string, edits: { id: number; text: string }[]) =>
     call<Translation>(`/videos/${id}/translation`, { method: "PUT", body: JSON.stringify(edits) }),
+  style: () => call<Style>("/style"),
+  saveStyle: (style: Style) => call<Style>("/style", { method: "PUT", body: JSON.stringify(style) }),
+  videoStyle: (id: string) => call<VideoStyle>(`/videos/${id}/style`),
+  saveVideoStyle: (id: string, style: Style) =>
+    call<VideoStyle>(`/videos/${id}/style`, { method: "PUT", body: JSON.stringify(style) }),
   version: (id: string, version: string) =>
     call<VersionDetail>(`/videos/${id}/versions/${encodeURIComponent(version)}`),
   deleteVersion: (id: string, version: string) =>

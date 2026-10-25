@@ -1,8 +1,10 @@
+import { useEffect, useState } from "react";
 import { useEngines } from "../App";
-import type { EngineChoice } from "../api";
+import { api, type EngineChoice, type Style } from "../api";
 import { ENGINES } from "../catalog";
 import { Logo } from "../components";
 import { usePrefs, type Accent, type Theme } from "../prefs";
+import { cleanStyle, sameStyle, StyleEditor } from "./StyleEditor";
 
 const ACCENTS: { id: Accent; color: string }[] = [
   { id: "violet", color: "#8b7cf6" }, { id: "coral", color: "#ff7a59" }, { id: "lime", color: "#c6f05a" },
@@ -88,6 +90,48 @@ export function Preferences() {
           </label>
         </div>
       </section>
+
+      <GlobalStyle />
     </div>
+  );
+}
+
+/** work/style.json: on the server, for every video (unlike the rest of this page). */
+function GlobalStyle() {
+  const { t } = usePrefs();
+  const [saved, setSaved] = useState<Style | null>(null);
+  const [draft, setDraft] = useState<Style | null>(null);
+  const [note, setNote] = useState<string | null>(null);
+  useEffect(() => {
+    api.style().then((s) => { setSaved(s); setDraft(s); }).catch((e) => setNote((e as Error).message));
+  }, []);
+  const changed = !!saved && !!draft && !sameStyle(saved, draft);
+
+  async function save() {
+    try {
+      const s = await api.saveStyle(cleanStyle(draft!));
+      setSaved(s);
+      setDraft(s);
+      setNote(t("style_saved"));
+    } catch (err) {
+      setNote((err as Error).message);
+    }
+  }
+
+  return (
+    <section className="card stack" aria-labelledby="style" style={{ gap: 16 }}>
+      <div>
+        <h2 id="style">{t("translation_style")}</h2>
+        <p className="small muted" style={{ margin: "4px 0 0" }}>{t("translation_style_intro")}</p>
+      </div>
+      {draft ? <StyleEditor idPrefix="global" value={draft} onChange={(s) => { setDraft(s); setNote(null); }} /> : <p className="muted">…</p>}
+      <div className="spread">
+        <span className="small muted" role="status">{note}</span>
+        <div className="row" style={{ gap: 8 }}>
+          <button type="button" className="btn" disabled={!changed} onClick={() => { setDraft(saved); setNote(null); }}>{t("discard")}</button>
+          <button type="button" className="btn primary" disabled={!changed} onClick={() => void save()}>{t("save")}</button>
+        </div>
+      </div>
+    </section>
   );
 }

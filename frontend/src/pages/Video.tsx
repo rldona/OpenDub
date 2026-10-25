@@ -1,12 +1,14 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { api, media, type Issue, type Translation, type Video, type VersionDetail } from "../api";
+import { api, media, redub, type Engine, type Issue, type Style, type Translation, type Video, type VersionDetail, type VideoStyle } from "../api";
 import { engineShort } from "../catalog";
 import { PlayIcon, StatusBadge } from "../components";
 import { duration, seconds, when } from "../format";
 import type { Key } from "../i18n";
 import { useJobs } from "../job";
 import { usePrefs } from "../prefs";
+import { useDefaultOptions } from "./Library";
 import { RedubDialog } from "./RedubDialog";
+import { cleanStyle, sameStyle, StyleEditor } from "./StyleEditor";
 
 type Filter = "all" | "issues" | "edited";
 
@@ -23,6 +25,10 @@ export function issueText(issue: Issue, t: (k: Key, v?: Record<string, string | 
       return t("i_abnormal");
     case "delayed":
       return t("i_delayed");
+    case "glossary": {
+      const m = /"(.+?)" → "(.*)"/.exec(issue.message);
+      return t("i_glossary", { term: m?.[1] ?? "?", want: m?.[2] ?? "?" });
+    }
     case "repaired": {
       const how = issue.message.includes("seed+1") ? t("how_seed") : issue.message.includes("shortened")
         ? t("how_shortened") : issue.message.includes("fixed reference") ? t("how_fixed") : issue.message.split(": ").pop()!;
@@ -47,12 +53,23 @@ export function VideoPage({ id }: { id: string }) {
   const [note, setNote] = useState<string | null>(null);
   const [dialog, setDialog] = useState(false);
   const [time, setTime] = useState(0);
+  const [styleInfo, setStyleInfo] = useState<VideoStyle | null>(null);
+  const [styleDraft, setStyleDraft] = useState<Style | null>(null);
+  const [styleOpen, setStyleOpen] = useState(false);
+  const [styleNote, setStyleNote] = useState<string | null>(null);
+  const [focusTerm, setFocusTerm] = useState(0);
+  const [issuesStamp, setIssuesStamp] = useState(0); // bumped when a style change may change the issues
   const player = useRef<HTMLVideoElement>(null);
+  const defaults = useDefaultOptions();
+  const { refresh } = useJobs();
 
   const load = useCallback(async () => {
     const v = await api.video(id).catch(() => null);
     setVideo(v);
     if (v) setTranslation(await api.translation(id).catch(() => null));
+    const s = v ? await api.videoStyle(id).catch(() => null) : null;
+    setStyleInfo(s);
+    setStyleDraft(s?.video ?? null);
   }, [id]);
   useEffect(() => {
     void load();
@@ -66,7 +83,7 @@ export function VideoPage({ id }: { id: string }) {
       return;
     }
     api.version(id, selected ?? "latest").then(setDetail).catch(() => setDetail(null));
-  }, [id, video, versions, selected]);
+  }, [id, video, versions, selected, issuesStamp]);
 
   const busy = !!job && job.id === id && (job.status === "running" || job.status === "queued");
   const issuesById = useMemo(() => {
@@ -115,6 +132,39 @@ export function VideoPage({ id }: { id: string }) {
       setVersion(null);
     } catch (err) {
       alert((err as Error).message);
+    }
+  }
+
+  const styleChanged = !!styleInfo && !!styleDraft && !sameStyle(styleInfo.video, styleDraft);
+  async function saveStyle() {
+    try {
+      const s = await api.saveVideoStyle(id, cleanStyle(styleDraft!));
+      setStyleInfo(s);
+      setStyleDraft(s.video);
+      setStyleNote(t("style_saved"));
+      setIssuesStamp((n) => n + 1);
+    } catch (err) {
+      setStyleNote((err as Error).message);
+    }
+  }
+
+  /** Opens the style card with a new glossary term: the text selected in that original, if any. */
+  function addTerm(selection: string) {
+    if (!styleDraft) return;
+    setStyleDraft({ ...styleDraft, terms: [...styleDraft.terms, { source: selection.trim(), target: "" }] });
+    setStyleOpen(true);
+    setFocusTerm((n) => n + 1);
+  }
+
+  async function applyStyle() {
+    const engine = video!.engine;
+    const voice = engine && engine !== "edge" ? { tts: "clone" as const, engine: engine as Engine } : { tts: "edge" as const };
+    try {
+      await redub(id, defaults, { ...voice, keep_translation: false });
+      refresh();
+      void load();
+    } catch (err) {
+      setStyleNote((err as Error).message);
     }
   }
 
@@ -215,6 +265,42 @@ export function VideoPage({ id }: { id: string }) {
         )}
       </div>
 
+      {styleInfo && styleDraft && (
+        <section className="card stack" aria-labelledby="video-style" style={{ padding: 16, gap: 14 }}>
+          <div className="spread">
+            <h2 id="video-style" style={{ fontSize: 15 }}>
+              <button type="button" className="link-btn" aria-expanded={styleOpen} onClick={() => setStyleOpen(!styleOpen)}>
+                {styleOpen ? "▾" : "▸"} {t("video_style")}
+              </button>{" "}
+              <span className="small faint" style={{ fontWeight: 400 }}>
+                · {t("style_summary", { n: styleInfo.used.length, total: styleInfo.applied.terms.length })}
+              </span>
+            </h2>
+            {styleInfo.stale && !busy && (
+              <span className="row" style={{ gap: 8 }}>
+                <span className="small warn-text">{t("style_stale")}</span>
+                {video.engine && <button type="button" className="btn primary" onClick={() => void applyStyle()}>
+                  {t("style_apply", { e: engineShort(video.engine) })}</button>}
+              </span>
+            )}
+          </div>
+          {styleOpen && (
+            <>
+              <StyleEditor idPrefix="video" value={styleDraft} inherited={styleInfo.global} used={styleInfo.used}
+                focusLast={focusTerm} onChange={(s) => { setStyleDraft(s); setStyleNote(null); }} />
+              <div className="spread">
+                <span className="small muted" role="status">{styleNote ?? t("video_style_hint")}</span>
+                <div className="row" style={{ gap: 8 }}>
+                  <button type="button" className="btn" disabled={!styleChanged}
+                    onClick={() => { setStyleDraft(styleInfo.video); setStyleNote(null); }}>{t("discard")}</button>
+                  <button type="button" className="btn primary" disabled={!styleChanged || busy} onClick={() => void saveStyle()}>{t("save")}</button>
+                </div>
+              </div>
+            </>
+          )}
+        </section>
+      )}
+
       {translation && (
         <section className="stack" aria-labelledby="translation" style={{ gap: 12 }}>
           <div className="spread">
@@ -245,7 +331,22 @@ export function VideoPage({ id }: { id: string }) {
                   return (
                     <tr key={s.id} className={over ? "over" : undefined}>
                       <td className="small faint">{s.id}<br />{duration(s.start)}{s.edited && <span title={t("edited")} aria-label={t("edited")} style={{ color: "var(--accent-text)" }}> ✎</span>}</td>
-                      <td className="muted">{s.original}</td>
+                      <td className="muted">
+                        {s.original}
+                        {styleDraft && !busy && (
+                          <button type="button" className="link-btn small add-term" title={t("add_term_hint")}
+                            // read the selection before the click collapses it
+                            onMouseDown={(e) => {
+                              e.preventDefault();
+                              const sel = window.getSelection();
+                              const inside = sel && sel.anchorNode && e.currentTarget.parentElement?.contains(sel.anchorNode);
+                              addTerm(inside ? sel.toString() : "");
+                            }}
+                            onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); addTerm(""); } }}>
+                            {t("add_term")}
+                          </button>
+                        )}
+                      </td>
                       <td className="text">
                         <label>
                           <span className="sr-only">{t("spanish_n", { n: s.id })}</span>

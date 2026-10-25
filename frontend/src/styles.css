@@ -215,3 +215,11 @@ code.cmd { flex: 1; min-width: 0; padding: 8px 10px; border-radius: 8px; backgro
 .swatch-card { display: flex; flex-direction: column; gap: 10px; padding: 14px; border-radius: 12px; border: 1px solid var(--border-strong); background: var(--bg); cursor: pointer; }
 .swatch-card:has(input:checked) { border: 2px solid var(--accent); background: var(--accent-soft); padding: 13px; }
 .swatch-card .bar { height: 8px; border-radius: 4px; }
+
+/* translation style */
+.link-btn { background: none; border: 0; padding: 0; font: inherit; color: inherit; cursor: pointer; }
+.link-btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 4px; }
+.add-term { display: block; margin-top: 4px; color: var(--accent-text); opacity: 0; }
+tr:hover .add-term, .add-term:focus-visible { opacity: 1; }
+@media (hover: none) { .add-term { opacity: 1; } }
+.mark-glossary { background: var(--accent); }
