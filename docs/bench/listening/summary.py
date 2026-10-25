@@ -2,8 +2,9 @@
 
     uv run python docs/bench/listening/summary.py [name …]
 
-Per session and engine: the mean note of each criterion and how often it was
-preferred. Only fragments with their answer revealed count.
+Per session and source (engine, version or another tool): the mean note of each
+criterion (one overall note, or naturalness, meaning and sync in earlier sessions)
+and how often it was preferred. Only fragments with their answer revealed count.
 """
 
 from __future__ import annotations
@@ -18,12 +19,13 @@ CRITERIA = ("naturalness", "meaning", "sync")
 
 def summarize(data: dict) -> dict:
     revealed = data.get("revealed") or {}
-    engines = (data["a"], data["b"])
-    notes = {e: {c: [] for c in CRITERIA} for e in engines}
+    engines = tuple(data.get("sources") or (data["a"], data["b"]))  # sessions with two dubs had "a" and "b"
+    criteria = tuple(data.get("criteria") or CRITERIA)  # an overall note, or the three of earlier sessions
+    notes = {e: {c: [] for c in criteria} for e in engines}
     prefer = {e: 0 for e in (*engines, "same")}
     for answer in revealed.values():
         for engine, ratings in answer["ratings"].items():
-            for c in CRITERIA:
+            for c in criteria:
                 notes[engine][c].append(ratings[c])
         prefer[answer["prefer"]] = prefer.get(answer["prefer"], 0) + 1
     means = {e: {c: round(sum(v) / len(v), 2) if v else None for c, v in notes[e].items()} for e in engines}
