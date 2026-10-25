@@ -37,6 +37,13 @@ class Settings:
             os.environ.get("OPENDUB_COSYVOICE_DIR") or Path.home() / ".local/share/opendub/cosyvoice"
         )
     )
+    nemotron_dir: Path = field(  # Nemotron 3 Diarization (its own venv), see `setup-engine nemotron`
+        default_factory=lambda: Path(
+            os.environ.get("OPENDUB_NEMOTRON_DIR") or Path.home() / ".local/share/opendub/nemotron"
+        )
+    )
+    # Several voices: tell who speaks each sentence (diarization) and give each speaker their own voice
+    multi_speaker: bool = False
     # Reuse the existing translation even if it was made for another voice's speaking rate
     # (e.g. to dub the same video with another engine); what no longer fits is fitted in TTS
     keep_translation: bool = False

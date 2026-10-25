@@ -20,6 +20,7 @@ DEPENDS: dict[str, list[str]] = {
     "translate": ["transcribe"],
     "tts": ["translate"],
     "separate": ["download"],
+    "diarize": ["separate"],  # transcribe reads it with --multi-speaker (its params record which)
     "mix": ["tts", "separate"],
 }
 
@@ -57,6 +58,7 @@ class WorkDir:
     translation = property(lambda self: self.path / "translation.json")
     tts_dir = property(lambda self: self.path / "tts")
     tts_index = property(lambda self: self.path / "tts.json")
+    diarization = property(lambda self: self.path / "diarization.json")  # who speaks when (--multi-speaker)
     vocals = property(lambda self: self.path / "stems" / "vocals.wav")
     background = property(lambda self: self.path / "stems" / "background.wav")
     dub = property(lambda self: self.path / "dub.wav")

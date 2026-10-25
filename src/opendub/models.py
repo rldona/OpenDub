@@ -13,6 +13,7 @@ class Segment:
     start: float  # seconds
     end: float
     text: str
+    speaker: str | None = None  # A, B, C… with --multi-speaker (diarize.py); None: the one voice
 
     @property
     def duration(self) -> float:
@@ -20,10 +21,9 @@ class Segment:
 
 
 def save_segments(path: Path, segments: list[Segment]) -> None:
-    path.write_text(
-        json.dumps([asdict(s) for s in segments], ensure_ascii=False, indent=2),
-        encoding="utf-8",
-    )
+    # without "speaker" when there is none, so single-voice files stay as they were
+    rows = [{k: v for k, v in asdict(s).items() if k != "speaker" or v is not None} for s in segments]
+    path.write_text(json.dumps(rows, ensure_ascii=False, indent=2), encoding="utf-8")
 
 
 def load_segments(path: Path) -> list[Segment]:

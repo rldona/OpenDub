@@ -2,9 +2,9 @@ from opendub.workdir import WorkDir, dependents
 
 
 def test_dependents_follow_the_phase_graph():
-    assert dependents("download") == {"transcribe", "translate", "tts", "separate", "mix"}
+    assert dependents("download") == {"transcribe", "translate", "tts", "separate", "diarize", "mix"}
     assert dependents("tts") == {"mix"}
-    assert dependents("separate") == {"mix"}
+    assert dependents("separate") == {"diarize", "mix"}
     assert dependents("mix") == set()
 
 

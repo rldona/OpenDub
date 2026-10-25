@@ -21,6 +21,7 @@ class Piece:
     start: float
     end: float
     text: str
+    speaker: str | None = None  # with diarization turns (regroup)
 
 
 _NOISE = re.compile(r"\[[^\]]*\]|\([^)]*\)|♪+|>>")
@@ -117,7 +118,7 @@ def normalize(pieces: list[Piece]) -> list[Piece]:
             continue
         if out and out[-1].end > p.start:
             out[-1].end = max(out[-1].start, p.start)
-        out.append(Piece(p.start, max(p.end, p.start), text))
+        out.append(Piece(p.start, max(p.end, p.start), text, p.speaker))
     return out
 
 
@@ -133,7 +134,7 @@ def split_sentences(pieces: list[Piece]) -> list[Piece]:
         t = p.start
         for s in parts:
             dur = (p.end - p.start) * len(s) / total
-            out.append(Piece(t, t + dur, s))
+            out.append(Piece(t, t + dur, s, p.speaker))
             t += dur
     return out
 
@@ -153,6 +154,54 @@ def _closes(group: list[Piece]) -> bool:
     return bool(_SENTENCE_END.search(group[-1].text))
 
 
+def _speaker(group: list[Piece]) -> str | None:
+    """Who says most of a group (by time), or None without diarization."""
+    talk: dict[str | None, float] = {}
+    for p in group:
+        talk[p.speaker] = talk.get(p.speaker, 0.0) + max(p.end - p.start, 0.01)
+    return max(talk, key=talk.get) if talk else None
+
+
+def _assign_speakers(pieces: list[Piece], turns: list) -> None:
+    """Give each piece the speaker with the most time in it; one nobody speaks in (a word
+    between turns) keeps the previous piece's speaker."""
+    from .diarize import speaker_at
+
+    last = None
+    for p in pieces:
+        found = speaker_at(turns, p.start, max(p.end, p.start + 0.01))
+        p.speaker = found or last
+        last = p.speaker
+    first = next((p.speaker for p in pieces if p.speaker), None)
+    for p in pieces:
+        if p.speaker is None:
+            p.speaker = first
+        else:
+            break
+    _smooth_speakers(pieces)
+
+
+# In quick exchanges the diarizer gives a word or two to the other person ("Yep," C |
+# "we had" B | "some audio issues…" C): such a blip between the same speaker's words
+# is theirs, or it splits one sentence into fragments.
+BLIP_WORDS = 2
+BLIP_S = 0.8
+
+
+def _smooth_speakers(pieces: list[Piece]) -> None:
+    runs: list[list[Piece]] = []
+    for p in pieces:
+        if runs and runs[-1][-1].speaker == p.speaker:
+            runs[-1].append(p)
+        else:
+            runs.append([p])
+    for before, run, after in zip(runs, runs[1:], runs[2:]):
+        short = _words(run) <= BLIP_WORDS and run[-1].end - run[0].start < BLIP_S
+        if short and before[-1].speaker == after[0].speaker:
+            for p in run:
+                p.speaker = before[-1].speaker
+
+
 def join_fragments(groups: list[list[Piece]], max_dur: float = 12.0) -> list[list[Piece]]:
     """Join a short fragment to the sentence it belongs to, across a pause.
 
@@ -161,7 +210,8 @@ def join_fragments(groups: list[list[Piece]], max_dur: float = 12.0) -> list[lis
     than MAX_JOIN_GAP of pause, nor into a group longer than max_dur.
     """
     def fits(a: list[Piece], b: list[Piece]) -> bool:
-        return b[0].start - a[-1].end <= MAX_JOIN_GAP and b[-1].end - a[0].start <= max_dur
+        return (b[0].start - a[-1].end <= MAX_JOIN_GAP and b[-1].end - a[0].start <= max_dur
+                and _speaker(a) == _speaker(b))  # never one person's words into another's sentence
 
     out: list[list[Piece]] = []
     i = 0
@@ -179,13 +229,24 @@ def join_fragments(groups: list[list[Piece]], max_dur: float = 12.0) -> list[lis
 
 
 def regroup(
-    pieces: list[Piece], max_dur: float = 12.0, max_gap: float = 0.7, min_dur: float = 1.0
+    pieces: list[Piece], max_dur: float = 12.0, max_gap: float = 0.7, min_dur: float = 1.0,
+    turns: list | None = None,
 ) -> list[Segment]:
-    """Join pieces into sentences: break at sentence ends, long pauses or past max_dur."""
+    """Join pieces into sentences: break at sentence ends, long pauses or past max_dur.
+
+    With diarization `turns` ([start, end, speaker]), also where the speaker changes:
+    each sentence is one person's, and says whose. Word-level pieces (whisper,
+    auto-generated subtitles) split exactly there; a manual subtitle cue goes to
+    whoever says most of it.
+    """
+    pieces = split_sentences(normalize(pieces))
+    if turns:
+        _assign_speakers(pieces, turns)
     groups: list[list[Piece]] = []
     cur: list[Piece] = []
-    for p in split_sentences(normalize(pieces)):
-        if cur and (p.start - cur[-1].end > max_gap or p.end - cur[0].start > max_dur):
+    for p in pieces:
+        if cur and (p.start - cur[-1].end > max_gap or p.end - cur[0].start > max_dur
+                    or (turns and p.speaker != cur[-1].speaker)):
             groups.append(cur)
             cur = []
         cur.append(p)
@@ -202,6 +263,7 @@ def regroup(
             start=round(g[0].start, 3),
             end=round(g[-1].end, 3),
             text=" ".join(p.text for p in g),
+            speaker=_speaker(g) if turns else None,
         )
         for i, g in enumerate(groups, start=1)
     ]

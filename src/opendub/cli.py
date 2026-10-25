@@ -74,6 +74,14 @@ CloneRef = Annotated[
     Path | None,
     typer.Option("--clone-ref", help="Fixed Spanish reference recording for cloned clips that fail the quality check"),
 ]
+MultiSpeaker = Annotated[
+    bool,
+    typer.Option(
+        "--multi-speaker",
+        help="Several voices: tell who speaks each sentence (NVIDIA Nemotron 3 Diarization, "
+        "`setup-engine nemotron`) and give each speaker their own voice",
+    ),
+]
 StyleFile = Annotated[
     Path | None,
     typer.Option(
@@ -161,12 +169,15 @@ def transcribe(
     work: WorkRoot = Path("work"),
     subs: Subs = "manual",
     whisper_model: WhisperModel = "small",
+    multi_speaker: MultiSpeaker = False,
     force: Force = False,
 ) -> None:
-    """Get timestamped segments (subtitles or whisper). Requires `download`."""
-    settings = Settings(work_root=work, subs=subs, whisper_model=whisper_model)
+    """Get timestamped segments (subtitles or whisper). Requires `download` (and `diarize` with --multi-speaker)."""
+    settings = Settings(work_root=work, subs=subs, whisper_model=whisper_model, multi_speaker=multi_speaker)
     wd = _setup(url, settings)
     _require(wd, "download")
+    if multi_speaker:
+        _require(wd, "diarize")
     with phase("Transcription"):
         transcribe_mod.run(wd, settings, force=force)
 
@@ -248,6 +259,22 @@ def separate(
     _require(wd, "download")
     with phase("Separation"):
         separate_mod.run(wd, settings, force=force)
+
+
+@app.command()
+def diarize(
+    url: Url,
+    work: WorkRoot = Path("work"),
+    force: Force = False,
+) -> None:
+    """Tell who speaks when, for --multi-speaker (Nemotron 3 Diarization). Requires `separate`."""
+    from . import diarize as diarize_mod
+
+    settings = Settings(work_root=work)
+    wd = _setup(url, settings)
+    _require(wd, "separate")
+    with phase("Separation"):
+        diarize_mod.run(wd, settings, force=force)
 
 
 @app.command()
@@ -381,22 +408,24 @@ def setup_indextts(
 
 @app.command("setup-engine")
 def setup_engine(
-    name: Annotated[str, typer.Argument(help="indextts or cosyvoice")],
+    name: Annotated[str, typer.Argument(help="indextts, cosyvoice or nemotron (diarization, for --multi-speaker)")],
     path: Annotated[
         Path | None,
         typer.Option("--path", help="Install folder (default: $OPENDUB_<NAME>_DIR or "
                      "~/.local/share/opendub/<name>)"),
     ] = None,
 ) -> None:
-    """Install a cloning engine that runs in its own venv: its repo, the venv and the weights."""
-    from . import cosyvoice, indextts
+    """Install an engine that runs in its own venv: its code, the venv and the weights."""
+    from . import cosyvoice, diarize, indextts
 
     if name == "indextts":
         indextts.setup(path or Settings().indextts_dir)
     elif name == "cosyvoice":
         cosyvoice.setup(path or Settings().cosyvoice_dir)
+    elif name == "nemotron":
+        diarize.setup(path or Settings().nemotron_dir)
     else:
-        raise typer.BadParameter("the engines with their own venv are indextts and cosyvoice")
+        raise typer.BadParameter("the engines with their own venv are indextts, cosyvoice and nemotron")
 
 
 @app.command()
@@ -415,6 +444,7 @@ def dub(
     min_factor: MinFactor = 0.7,
     clone_ref: CloneRef = None,
     keep_translation: KeepTranslation = False,
+    multi_speaker: MultiSpeaker = False,
     style: StyleFile = None,
     batch_size: BatchSize = 30,
     chars_per_second: CharsPerSecond = None,
@@ -439,7 +469,7 @@ def dub(
         work_root=work, source_lang=source_lang, max_height=max_height,
         subs=subs, whisper_model=whisper_model, backend=backend, claude_model=model,
         voice=voice, tts=tts, engine=engine, min_factor=min_factor, clone_ref=clone_ref,
-        keep_translation=keep_translation, style_file=style, batch_size=batch_size, chars_per_second=chars_per_second, rate=rate,
+        keep_translation=keep_translation, multi_speaker=multi_speaker, style_file=style, batch_size=batch_size, chars_per_second=chars_per_second, rate=rate,
         min_tempo=min_tempo, shorten=shorten, max_tempo=max_tempo,
         bg_volume_db=bg_volume, mute_original=mute_original,
         separate=separate, separator=separator, music_volume_db=music_volume,

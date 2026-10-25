@@ -14,7 +14,7 @@ from .config import Settings
 from .log import Progress, console, log
 from .models import Segment, load_segments, save_segments
 from .segments import Piece, parse_subtitles, regroup
-from .workdir import WorkDir
+from .workdir import WorkDir, params_hash
 
 
 def _choose_source(meta: dict[str, Any], subs_mode: str) -> str:
@@ -124,7 +124,15 @@ def run(wd: WorkDir, settings: Settings, force: bool = False) -> list[Segment]:
     # --force cuts them again
     legacy = dict(params)
     params["segments"] = 2
-    if not force and (wd.is_done("transcribe", params) or wd.is_done("transcribe", legacy)) and wd.segments.exists():
+    turns = None
+    if settings.multi_speaker:
+        if not wd.diarization.exists():
+            raise SystemExit("--multi-speaker needs the diarization: run `diarize` first (or use `dub`)")
+        turns = json.loads(wd.diarization.read_text(encoding="utf-8"))["turns"]
+        params["speakers"] = params_hash({"turns": turns})  # sentences split where the speaker changes
+        legacy = None
+    cached = wd.is_done("transcribe", params) or (legacy is not None and wd.is_done("transcribe", legacy))
+    if not force and cached and wd.segments.exists():
         log.info("Transcription cached, skipping")
         return load_segments(wd.segments)
 
@@ -138,7 +146,7 @@ def run(wd: WorkDir, settings: Settings, force: bool = False) -> list[Segment]:
         log.info(f"Using {source} subtitles: {path.name}")
         pieces = parse_subtitles(path)
 
-    segments = regroup(pieces)
+    segments = regroup(pieces, turns=turns)
     if not segments:
         raise SystemExit("No text segments were obtained")
     save_segments(wd.segments, segments)
@@ -147,5 +155,10 @@ def run(wd: WorkDir, settings: Settings, force: bool = False) -> list[Segment]:
         f"{len(pieces)} pieces → {len(segments)} segments · "
         f"mean duration {sum(durs) / len(durs):.1f}s, max {max(durs):.1f}s"
     )
+    if turns:
+        per = {}
+        for seg in segments:
+            per[seg.speaker] = per.get(seg.speaker, 0) + 1
+        log.info("Sentences per speaker: " + ", ".join(f"{k} {v}" for k, v in sorted(per.items(), key=str)))
     wd.mark_done("transcribe", params)
     return segments

@@ -1,0 +1,33 @@
+# The venv OpenDub's diarization runs in (`opendub setup-engine nemotron`).
+#
+# NVIDIA Nemotron 3 Diarization needs NeMo newer than its last PyPI release
+# (3.0.0, 2026-08-07, can't build its rope attention), so NeMo comes from a
+# pinned commit of its repository: the one benchmarked in docs/bench/diarize
+# (docs/v2-plan.md, 2026-10-25) on an RTX 5080 (sm_120).
+[project]
+name = "opendub-nemotron-env"
+version = "0"
+requires-python = ">=3.12,<3.13"
+dependencies = [
+    # 2026-10-25: 2.8.0+cu128, as the voice engines' venvs
+    "torch==2.8.0",
+    "torchaudio==2.8.0",
+    # 2026-10-25: NVIDIA-NeMo/Speech main, the first with Nemotron 3 Diarization
+    "nemo-toolkit[asr] @ git+https://github.com/NVIDIA-NeMo/Speech.git@68a12fc5e469614abd23b25ff9cfcb822aa0be93",
+    "huggingface_hub",
+]
+
+[tool.uv]
+package = false
+# Linux with an NVIDIA GPU only (the model card's platform). NeMo's own pyproject sends torch
+# to the CPU index on other systems, which would clash with the CUDA index in a universal lock
+environments = ["sys_platform == 'linux'"]
+
+[tool.uv.sources]
+torch = [{ index = "pytorch-cu128" }]
+torchaudio = [{ index = "pytorch-cu128" }]
+
+[[tool.uv.index]]
+name = "pytorch-cu128"
+url = "https://download.pytorch.org/whl/cu128"
+explicit = true

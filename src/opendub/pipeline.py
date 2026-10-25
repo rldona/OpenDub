@@ -6,6 +6,7 @@ import gc
 import sys
 from pathlib import Path
 
+from . import diarize as diarize_mod
 from . import download as download_mod
 from . import mix as mix_mod
 from . import separate as separate_mod
@@ -33,7 +34,9 @@ def dub(url: str, settings: Settings, output: Path | None = None, force: bool = 
     """download → transcription → (separation) → translation → TTS → mix; each phase is cached.
 
     Separation runs before translation with a cloned voice, since its speaking
-    rate (measured from the separated vocals) caps the translation length.
+    rate (measured from the separated vocals) caps the translation length. With
+    several voices it runs first, with the diarization (inside the same phase),
+    since the transcription splits sentences where the speaker changes.
     """
     if settings.retouch is not None:
         return retouch(url, settings, output)
@@ -43,9 +46,13 @@ def dub(url: str, settings: Settings, output: Path | None = None, force: bool = 
         wd.invalidate_from("download")
     with phase("Download"):
         download_mod.run(url, wd, settings)
+    if settings.multi_speaker:
+        with phase("Separation"):
+            separate_mod.run(wd, settings)
+            diarize_mod.run(wd, settings)
     with phase("Transcription"):
         transcribe_mod.run(wd, settings)
-    if settings.separate or settings.tts != "edge":
+    if (settings.separate or settings.tts != "edge") and not settings.multi_speaker:
         with phase("Separation"):
             separate_mod.run(wd, settings)
     with phase("Translation"):
