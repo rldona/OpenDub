@@ -140,8 +140,13 @@ def outputs(wd: WorkDir) -> list[dict[str, Any]]:
             "engine": m[2],
             "date": made.isoformat(timespec="seconds"),
             "current": wd.output.exists() and video.samefile(wd.output),
+            "_mtime": video.stat().st_mtime_ns,
         })
-    found.sort(key=lambda o: o["date"], reverse=True)
+    # versions are named to the second: two in the same second (or legacy ones with no date)
+    # go latest first, then by when their file was written
+    found.sort(key=lambda o: (o["date"], o["current"], o["_mtime"]), reverse=True)
+    for o in found:
+        del o["_mtime"]
     for o in found:
         version = None if o["current"] else o["version"]
         o["issues"] = len(issues(wd, version))
