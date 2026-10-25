@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import os
 from datetime import datetime
 from pathlib import Path
 from typing import Any
@@ -23,6 +24,17 @@ DEPENDS: dict[str, list[str]] = {
     "diarize": ["separate"],  # transcribe reads it with --multi-speaker (its params record which)
     "mix": ["tts", "separate"],
 }
+
+
+def write_text_atomic(path: Path, text: str) -> None:
+    """Write a file so that nobody ever reads it half written: a process killed while saving
+    leaves the previous version. A temporary file next to it, then os.replace."""
+    tmp = path.with_name(f".{path.name}.{os.getpid()}.tmp")
+    try:
+        tmp.write_text(text, encoding="utf-8")
+        os.replace(tmp, path)
+    finally:
+        tmp.unlink(missing_ok=True)
 
 
 def dependents(step: str) -> set[str]:
@@ -76,7 +88,7 @@ class WorkDir:
         return {}
 
     def _write(self, data: dict[str, Any]) -> None:
-        self.manifest_path.write_text(json.dumps(data, indent=2))
+        write_text_atomic(self.manifest_path, json.dumps(data, indent=2))
 
     def is_done(self, step: str, params: dict[str, Any]) -> bool:
         entry = self._read().get(step)

@@ -22,7 +22,7 @@ from dataclasses import replace
 from typing import Any
 
 from .models import Segment, load_segments, save_segments
-from .workdir import WorkDir
+from .workdir import WorkDir, write_text_atomic
 
 FILE = "speakers.json"
 
@@ -34,7 +34,7 @@ def load(wd: WorkDir) -> dict[str, Any]:
 
 
 def _save(wd: WorkDir, data: dict[str, Any]) -> None:
-    (wd.path / FILE).write_text(json.dumps(data, ensure_ascii=False, indent=1), encoding="utf-8")
+    write_text_atomic((wd.path / FILE), json.dumps(data, ensure_ascii=False, indent=1))
 
 
 def apply(wd: WorkDir, segments: list[Segment]) -> list[Segment]:

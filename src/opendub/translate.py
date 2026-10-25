@@ -22,7 +22,7 @@ from . import style as style_mod
 from .config import Settings
 from .log import Progress, console, log
 from .models import Segment, load_segments, save_segments
-from .workdir import WorkDir, params_hash
+from .workdir import WorkDir, params_hash, write_text_atomic
 
 CONTEXT_SEGMENTS = 5
 MAX_ATTEMPTS = 3
@@ -336,7 +336,7 @@ def keep_edits(wd: WorkDir, originals: list[Segment], result: list[Segment], pac
         log.warning(f"Hand-edited sentence(s) probably too long for this voice: {long}")
     if dropped:
         log.warning(f"Dropped hand edits of sentence(s) whose original changed: {dropped}")
-    wd.translation_edits.write_text(json.dumps(kept, ensure_ascii=False, indent=1), encoding="utf-8")
+    write_text_atomic(wd.translation_edits, json.dumps(kept, ensure_ascii=False, indent=1))
     return out
 
 
@@ -428,15 +428,15 @@ def run(wd: WorkDir, settings: Settings, force: bool = False) -> list[Segment]:
                 got, cost = _ask(system, prompt, [s.id for s, _ in block], settings)
                 asked += 1
                 total_cost += cost
-                path.write_text(json.dumps(got, ensure_ascii=False, indent=1), encoding="utf-8")
+                write_text_atomic(path, json.dumps(got, ensure_ascii=False, indent=1))
             translated.update(got)
             progress.advance(task)
 
     result = keep_edits(wd, segments, [replace(s, text=translated[s.id]) for s in segments], pace)
     save_segments(wd.translation, result)
     # so the web can tell when the style changed since (and the video needs translating again)
-    wd.translation_style.write_text(json.dumps(style_mod.snapshot(style, [s.text for s in segments]),
-                                               ensure_ascii=False), encoding="utf-8")
+    write_text_atomic(wd.translation_style,
+                      json.dumps(style_mod.snapshot(style, [s.text for s in segments]), ensure_ascii=False))
 
     over = [
         (s, slot) for s, slot in zip(result, slots) if len(s.text) > paces.get(s.speaker, pace).max_chars(slot) * 1.25

@@ -23,6 +23,7 @@ from pathlib import Path
 from typing import Any
 
 from .log import log
+from .workdir import write_text_atomic
 
 FILE = "style.json"
 REGISTERS = ("auto", "tu", "usted")
@@ -90,7 +91,7 @@ def write(path: Path, style: Style) -> None:
     if style.empty:
         path.unlink(missing_ok=True)
     else:
-        path.write_text(json.dumps(style.to_json(), ensure_ascii=False, indent=1), encoding="utf-8")
+        write_text_atomic(path, json.dumps(style.to_json(), ensure_ascii=False, indent=1))
 
 
 def merge(base: Style, over: Style) -> Style:

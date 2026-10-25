@@ -6,6 +6,8 @@ import json
 from dataclasses import asdict, dataclass
 from pathlib import Path
 
+from .workdir import write_text_atomic
+
 
 @dataclass
 class Segment:
@@ -23,7 +25,7 @@ class Segment:
 def save_segments(path: Path, segments: list[Segment]) -> None:
     # without "speaker" when there is none, so single-voice files stay as they were
     rows = [{k: v for k, v in asdict(s).items() if k != "speaker" or v is not None} for s in segments]
-    path.write_text(json.dumps(rows, ensure_ascii=False, indent=2), encoding="utf-8")
+    write_text_atomic(path, json.dumps(rows, ensure_ascii=False, indent=2))
 
 
 def load_segments(path: Path) -> list[Segment]:

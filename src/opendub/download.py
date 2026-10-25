@@ -14,7 +14,7 @@ from .config import Settings
 from .log import Progress, console, log
 from . import media
 from .media import ffmpeg, probe
-from .workdir import WorkDir
+from .workdir import WorkDir, write_text_atomic
 
 media.adopt_ytdlp()  # its ffmpeg children, too, stay out of the web server's Ctrl+C
 
@@ -177,7 +177,7 @@ def run(url: str, wd: WorkDir, settings: Settings, force: bool = False) -> dict[
         "language": lang,
         "subs": subs,
     }
-    wd.meta.write_text(json.dumps(meta, ensure_ascii=False, indent=2), encoding="utf-8")
+    write_text_atomic(wd.meta, json.dumps(meta, ensure_ascii=False, indent=2))
     thumbnail(wd)
     wd.mark_done("download", params)
     return meta

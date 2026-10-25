@@ -38,7 +38,7 @@ from .log import Progress, console, log
 from .media import ffmpeg
 from .models import Segment, load_segments
 from .spoken import spell_numbers
-from .workdir import WorkDir
+from .workdir import WorkDir, write_text_atomic
 
 SAMPLE_RATE = 24000
 CONCURRENCY = 4
@@ -335,7 +335,7 @@ def speaking_rate(work_root: Path, voice: str, rate: str) -> float:
 
     samples = _calibrate(Settings(work_root=work_root), Voice("edge", voice, rate), CALIBRATION_SENTENCES)
     rates[key] = round(sum(c for c, _ in samples) / sum(s for _, s in samples), 2)
-    cache.write_text(json.dumps(rates, indent=1))
+    write_text_atomic(cache, json.dumps(rates, indent=1))
     log.info(f"Calibrated rate for {voice} ({rate}): {rates[key]} chars/s")
     return rates[key]
 
@@ -354,7 +354,7 @@ def cloned_speaking_rate(settings: Settings, voice: Voice) -> Pace:
     if key not in rates:
         samples = _calibrate(settings, replace(voice, factor=factor, seed=SEED), CALIBRATION_SENTENCES + CALIBRATION_EXTRA)
         rates[key] = asdict(fit_pace(samples))
-        cache.write_text(json.dumps(rates, indent=1))
+        write_text_atomic(cache, json.dumps(rates, indent=1))
         log.info(f"Calibrated the cloned voice ({voice.engine}): {rates[key]['overhead']} s per clip "
                  f"+ {rates[key]['cps']} chars/s")
     return Pace(**rates[key])
@@ -1006,7 +1006,7 @@ def run(wd: WorkDir, settings: Settings, force: bool = False) -> list[Clip]:
         if isinstance(index, dict) and index.get("engine_choice") != choice:
             # same clips, chosen another way (e.g. --engine auto landing on the same engine)
             index["engine_choice"] = choice
-            wd.tts_index.write_text(json.dumps(index, ensure_ascii=False, indent=1), encoding="utf-8")
+            write_text_atomic(wd.tts_index, json.dumps(index, ensure_ascii=False, indent=1))
         return load_clips(wd)
 
     started = time.monotonic()
@@ -1040,7 +1040,7 @@ def run(wd: WorkDir, settings: Settings, force: bool = False) -> list[Clip]:
     if by_speaker:  # several voices: who each clip was spoken as, and how each speaker speaks
         index["speakers"] = {str(s.id): s.speaker for s in segments}
         index["speaker_voices"] = _describe(by_speaker)
-    wd.tts_index.write_text(json.dumps(index, ensure_ascii=False, indent=1), encoding="utf-8")
+    write_text_atomic(wd.tts_index, json.dumps(index, ensure_ascii=False, indent=1))
     with wd.overflow_log.open("w", encoding="utf-8") as f:
         for c in result:
             f.writelines(_issue_lines(c, still_bad, fell_back, below_floor, settings.min_factor))
@@ -1123,7 +1123,7 @@ def retouch(wd: WorkDir, settings: Settings, new_takes: list[int] | tuple[int, .
         index["speakers"] = {str(s.id): s.speaker for s in segments}
         index["speaker_voices"] = _describe(by_speaker)
     index["stats"] = {"seconds": round(time.monotonic() - started, 1), "shortened": n_short, "retouched": ids}
-    wd.tts_index.write_text(json.dumps(index, ensure_ascii=False, indent=1), encoding="utf-8")
+    write_text_atomic(wd.tts_index, json.dumps(index, ensure_ascii=False, indent=1))
     # the other clips keep their lines; the mix writes its "delayed" lines again
     kept = []
     if wd.overflow_log.exists():
@@ -1136,7 +1136,7 @@ def retouch(wd: WorkDir, settings: Settings, new_takes: list[int] | tuple[int, .
         f.writelines(kept)
         for i in ids:
             f.writelines(_issue_lines(clips[i], still_bad, fell_back, below_floor, settings.min_factor))
-    (wd.path / "takes.json").write_text(json.dumps({str(k): v for k, v in sorted(seeds.items())}), encoding="utf-8")
+    write_text_atomic((wd.path / "takes.json"), json.dumps({str(k): v for k, v in sorted(seeds.items())}))
 
     fits = sum(1 for i in ids if clips[i].overflow == 0)
     log.info(f"Retouched {len(ids)} segment(s) in {time.monotonic() - started:.1f}s · fit: {fits} · "

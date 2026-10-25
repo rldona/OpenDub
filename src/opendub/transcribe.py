@@ -14,7 +14,7 @@ from .config import Settings
 from .log import Progress, console, log
 from .models import Segment, load_segments, save_segments
 from .segments import Piece, parse_subtitles, regroup
-from .workdir import WorkDir, params_hash
+from .workdir import WorkDir, params_hash, write_text_atomic
 
 
 def _choose_source(meta: dict[str, Any], subs_mode: str) -> str:
@@ -140,7 +140,7 @@ def run(wd: WorkDir, settings: Settings, force: bool = False) -> list[Segment]:
         pieces, detected = _whisper(wd, settings.whisper_model, meta.get("language"))
         if not meta.get("language"):
             meta["language"] = detected
-            wd.meta.write_text(json.dumps(meta, ensure_ascii=False, indent=2), encoding="utf-8")
+            write_text_atomic(wd.meta, json.dumps(meta, ensure_ascii=False, indent=2))
     else:
         path = wd.path / meta["subs"][source]
         log.info(f"Using {source} subtitles: {path.name}")

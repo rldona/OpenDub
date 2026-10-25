@@ -17,7 +17,7 @@ from typing import Any
 from .. import style, translate, tts
 from ..config import Settings
 from ..models import load_segments, save_segments
-from ..workdir import WorkDir
+from ..workdir import WorkDir, write_text_atomic
 from .jobs import ACTIVE, VIDEO_ID, JobManager
 
 # overflow.log lines (see tts.run and mix.run)
@@ -288,7 +288,7 @@ def save_translation(wd: WorkDir, edits: list[dict[str, Any]]) -> None:
         # remembered so a translation made again (e.g. for another engine) keeps them (translate.keep_edits)
         kept[str(edit["id"])] = {"source": source.get(edit["id"]), "text": edit["text"].strip()}
     save_segments(wd.translation, segments)
-    wd.translation_edits.write_text(json.dumps(kept, ensure_ascii=False, indent=1), encoding="utf-8")
+    write_text_atomic(wd.translation_edits, json.dumps(kept, ensure_ascii=False, indent=1))
     wd.invalidate_from("tts")
 
 

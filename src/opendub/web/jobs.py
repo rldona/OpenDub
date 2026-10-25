@@ -26,6 +26,7 @@ from .. import pipeline
 from ..config import Settings
 from ..download import video_id
 from ..log import log, plain, subscribe
+from ..workdir import write_text_atomic
 
 VIDEO_ID = re.compile(r"[\w-]{11}")
 ACTIVE = ("queued", "running")
@@ -121,7 +122,7 @@ class JobManager:
     def _save(self, job: Job) -> None:
         path = self._job_file(job.id)
         path.parent.mkdir(parents=True, exist_ok=True)
-        path.write_text(json.dumps(job.summary(), ensure_ascii=False, indent=1), encoding="utf-8")
+        write_text_atomic(path, json.dumps(job.summary(), ensure_ascii=False, indent=1))
 
     def saved(self, vid: str) -> dict[str, Any] | None:
         """job.json of a video: the options and outcome of its last job."""
@@ -134,7 +135,7 @@ class JobManager:
             data = json.loads(path.read_text(encoding="utf-8"))
             if data.get("status") in ACTIVE:
                 data.update(status="error", error="Interrupted: the server stopped before it finished")
-                path.write_text(json.dumps(data, ensure_ascii=False, indent=1), encoding="utf-8")
+                write_text_atomic(path, json.dumps(data, ensure_ascii=False, indent=1))
 
     # --- queue -------------------------------------------------------------
     def submit(self, options: JobOptions) -> Job:

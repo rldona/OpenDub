@@ -33,7 +33,7 @@ from . import media
 from .config import Settings
 from .log import log
 from .media import ffmpeg
-from .workdir import WorkDir
+from .workdir import WorkDir, write_text_atomic
 
 MODEL = "nemotron-3-diarization"
 HF_REPO = "nvidia/Nemotron-3-Diarization"
@@ -155,7 +155,7 @@ def run(wd: WorkDir, settings: Settings, force: bool = False) -> dict:
     speakers = {s: {"seconds": t, "f0_hz": _pitch(wd.vocals, turns, s)} for s, t in kept.items()}
     data = {"model": MODEL, "turns": turns, "speakers": speakers, "dropped": dropped,
             "seconds": raw.get("seconds"), "device": raw.get("device")}
-    wd.diarization.write_text(json.dumps(data, indent=1), encoding="utf-8")
+    write_text_atomic(wd.diarization, json.dumps(data, indent=1))
     described = ", ".join(f"{s} {v['seconds'] / 60:.1f} min ({v['f0_hz'] or '?'} Hz)" for s, v in speakers.items())
     log.info(f"{len(speakers)} speaker(s): {described} · {raw.get('seconds')}s on {raw.get('device')}")
     if dropped:
