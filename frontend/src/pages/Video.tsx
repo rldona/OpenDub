@@ -10,6 +10,7 @@ import { useDefaultOptions } from "./Library";
 import { RedubDialog } from "./RedubDialog";
 import { SpeakersCard, speakerName } from "./Speakers";
 import { StorageCard } from "./Storage";
+import { retouchQueue } from "../retouch";
 import { cleanStyle, sameStyle, StyleEditor } from "./StyleEditor";
 
 type Filter = "all" | "issues" | "edited";
@@ -152,7 +153,7 @@ export function VideoPage({ id }: { id: string }) {
   const pending = translation?.pending ?? [];
   const clipsGone = translation?.clips_available === false; // deleted to save space: no retouch until re-dubbed
   const cloned = !!video.engine && video.engine !== "edge" && !clipsGone;
-  const toRetouch = clipsGone ? [] : [...new Set([...pending, ...takes])].sort((a, b) => a - b);
+  const toRetouch = retouchQueue(pending, takes, clipsGone);
 
   async function retouch() {
     try {

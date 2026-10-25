@@ -34,7 +34,7 @@ export interface LiveJob {
   phaseFrac: Partial<Record<Phase, number>>;
 }
 
-interface JobEvent {
+export interface JobEvent {
   type: "status" | "phase" | "progress" | "log";
   t: number;
   status?: Status;
@@ -49,7 +49,7 @@ interface JobEvent {
   message?: string;
 }
 
-function newJob(summary: JobSummary): LiveJob {
+export function newJob(summary: JobSummary): LiveJob {
   return {
     id: summary.id, title: null, status: summary.status, error: summary.error, engine: summary.options.engine,
     phases: {}, active: null, task: null, logs: [], startedAt: null, finishedAt: null, segments: null,
@@ -57,7 +57,8 @@ function newJob(summary: JobSummary): LiveJob {
   };
 }
 
-function apply(job: LiveJob, e: JobEvent): LiveJob {
+/** A job after one more of its server events (pure: tested in job.test.ts). */
+export function apply(job: LiveJob, e: JobEvent): LiveJob {
   const j: LiveJob = { ...job, phases: { ...job.phases }, phaseFrac: { ...job.phaseFrac } };
   if (e.type === "status" && e.status) {
     j.status = e.status;
