@@ -1,5 +1,5 @@
 [project]
-name = "opentranslator"
+name = "opendub"
 version = "0.1.0"
 description = "Dub YouTube videos into Spanish with a synthetic voice"
 readme = "README.md"
@@ -23,7 +23,7 @@ separate = [
     "demucs>=4.1.0; sys_platform == 'linux'",
     "torch>=2.7; sys_platform == 'linux'",
 ]
-# Local web frontend: `opentranslator web`
+# Local web frontend: `opendub web`
 web = [
     "fastapi>=0.115",
     "uvicorn>=0.30",
@@ -36,7 +36,7 @@ clone = [
 ]
 
 [project.scripts]
-opentranslator = "opentranslator.cli:app"
+opendub = "opendub.cli:app"
 
 [build-system]
 requires = ["hatchling"]

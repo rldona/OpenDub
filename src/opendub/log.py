@@ -28,7 +28,7 @@ logging.basicConfig(
     datefmt="%H:%M:%S",
     handlers=[RichHandler(console=console, show_path=False, markup=True)],
 )
-log = logging.getLogger("opentranslator")
+log = logging.getLogger("opendub")
 # Explicit: basicConfig does nothing if something configured logging first (pytest, uvicorn)
 log.setLevel(logging.INFO)
 for noisy in ("httpx", "httpx2", "huggingface_hub", "filelock"):

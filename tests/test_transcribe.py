@@ -1,7 +1,7 @@
 import sys
 import types
 
-from opentranslator import transcribe
+from opendub import transcribe
 
 
 def _fake_ctranslate2(monkeypatch, gpus: int) -> None:

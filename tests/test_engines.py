@@ -1,7 +1,7 @@
 """Engines in their own venv: the shared JSON-lines client, CosyVoice's wiring, --keep-translation.
 
 The engines themselves only run in test_cosyvoice_smoke, which is skipped unless
-CosyVoice is installed and OPENTRANSLATOR_SMOKE=1 (it takes the GPU for ~30 s).
+CosyVoice is installed and OPENDUB_SMOKE=1 (it takes the GPU for ~30 s).
 """
 
 import json
@@ -12,10 +12,10 @@ from pathlib import Path
 
 import pytest
 
-from opentranslator import cosyvoice, engines, tts
-from opentranslator.config import Settings
-from opentranslator.models import Segment, save_segments
-from opentranslator.workdir import WorkDir
+from opendub import cosyvoice, engines, tts
+from opendub.config import Settings
+from opendub.models import Segment, save_segments
+from opendub.workdir import WorkDir
 
 FAKE_WORKER = '''
 import json, sys
@@ -80,7 +80,7 @@ def test_cosyvoice_not_installed_says_how_to_install(tmp_path):
 
 
 def test_keep_translation_reuses_another_engines_translation(tmp_path, monkeypatch):
-    from opentranslator import translate
+    from opendub import translate
 
     wd = WorkDir(tmp_path, "vid")
     wd.meta.write_text(json.dumps({"language": "en"}))
@@ -101,8 +101,8 @@ def test_keep_translation_reuses_another_engines_translation(tmp_path, monkeypat
         translate.run(wd, Settings(tts="clone", engine="cosyvoice", work_root=tmp_path))
 
 
-@pytest.mark.skipif(not (os.environ.get("OPENTRANSLATOR_SMOKE") and cosyvoice.installed(Settings().cosyvoice_dir)),
-                    reason="CosyVoice not installed, or OPENTRANSLATOR_SMOKE not set")
+@pytest.mark.skipif(not (os.environ.get("OPENDUB_SMOKE") and cosyvoice.installed(Settings().cosyvoice_dir)),
+                    reason="CosyVoice not installed, or OPENDUB_SMOKE not set")
 def test_cosyvoice_smoke(tmp_path):
     """The real worker: one sentence at its natural pace and at 0.7, as 24 kHz 16-bit PCM."""
     ref = next(Path("work").glob("*/clone_ref.wav"), None)

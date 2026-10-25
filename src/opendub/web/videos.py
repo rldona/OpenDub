@@ -48,8 +48,8 @@ def engines(settings: Settings | None = None) -> list[dict[str, Any]]:
     }
     setup = {
         "chatterbox": "uv sync --extra clone",
-        "indextts": "uv run opentranslator setup-engine indextts",
-        "cosyvoice": "uv run opentranslator setup-engine cosyvoice",
+        "indextts": "uv run opendub setup-engine indextts",
+        "cosyvoice": "uv run opendub setup-engine cosyvoice",
     }
     auto_missing = [e for e in ("chatterbox", "indextts") if not ready[e]]
     out = [{"id": "auto", "name": "Automatic", "installed": not auto_missing,

@@ -51,13 +51,13 @@ how many clips fit without atempo, and the same CER, p_es, ECAPA and stability.
 
 | Script | Runs in | Writes |
 |---|---|---|
-| `prep.py` | OpenTranslator's env | references and the edge-tts baseline |
+| `prep.py` | OpenDub's env | references and the edge-tts baseline |
 | `gen_qwen.py` | a venv with `qwen-tts` | `audio/out/qwen3` |
 | `gen_chatterbox.py v3\|es_es` | a venv with `chatterbox-tts` (GitHub commit 5de7a54) | `audio/out/chatterbox_*` |
 | `gen_indextts.py` | the IndexTTS venv (`setup-indextts`), from its repo | `audio/out/indextts`, `audio/fit/indextts` |
-| `alt_refs.py` | OpenTranslator's env | alternative references of one speaker (8–12 s, continuous, least music) |
+| `alt_refs.py` | OpenDub's env | alternative references of one speaker (8–12 s, continuous, least music) |
 | `gen_alt_refs.py` | the IndexTTS venv | one clip set per alternative reference |
-| `ref_texts.py` | OpenTranslator's env | transcripts of the dub references (`audio/fit/*_clone_ref.txt`) |
+| `ref_texts.py` | OpenDub's env | transcripts of the dub references (`audio/fit/*_clone_ref.txt`) |
 | `gen_cosyvoice.py` | a CosyVoice venv, from its repo | `audio/out/cosyvoice3`, `audio/fit/cosyvoice3` |
 | `gen_voxcpm.py` | a venv with `voxcpm` | `audio/out/voxcpm2`, `audio/fit/voxcpm2` |
 | `gen_fish.py` | a fish-speech venv, from its repo | `audio/out/fish_s2` (does not fit in 16 GB) |
@@ -67,7 +67,7 @@ and says how it speaks one sentence (and whether it has a native speed control,
 which (B) then uses like IndexTTS's `duration_factor`). The venvs used for them,
 with PyTorch 2.8 + CUDA 12.8, are made by `setup.sh` scripts under
 `work/_bench/<engine>/`; install them with `uv pip install --no-config`, or the
-overrides in OpenTranslator's `pyproject.toml` leak into them.
+overrides in OpenDub's `pyproject.toml` leak into them.
 
 ## Audio
 

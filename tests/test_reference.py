@@ -4,8 +4,8 @@ import wave
 import numpy as np
 import pytest
 
-from opentranslator import reference
-from opentranslator.models import Segment
+from opendub import reference
+from opendub.models import Segment
 
 
 def test_pick_reference_prefers_window_with_most_speech():

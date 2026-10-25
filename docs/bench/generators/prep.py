@@ -1,6 +1,6 @@
 """Cut the reference clips from vocals.wav and synthesize the fixed Spanish reference.
 
-Run with OpenTranslator's env (edge-tts), after `dub` on both videos:
+Run with OpenDub's env (edge-tts), after `dub` on both videos:
     uv run python docs/bench/generators/prep.py work
 """
 import asyncio

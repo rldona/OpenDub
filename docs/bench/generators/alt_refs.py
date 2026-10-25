@@ -12,8 +12,8 @@ from pathlib import Path
 
 import numpy as np
 
-from opentranslator import reference
-from opentranslator.models import load_segments
+from opendub import reference
+from opendub.models import load_segments
 
 wd, out = Path(sys.argv[1]), Path(sys.argv[2])
 count = int(sys.argv[3]) if len(sys.argv) > 3 else 3

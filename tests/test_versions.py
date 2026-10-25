@@ -1,10 +1,10 @@
 """One dub kept per engine, and hand edits surviving a translation made again."""
 import json
 
-from opentranslator import mix, translate
-from opentranslator.models import Segment, load_segments, save_segments
-from opentranslator.tts import Pace
-from opentranslator.workdir import WorkDir
+from opendub import mix, translate
+from opendub.models import Segment, load_segments, save_segments
+from opendub.tts import Pace
+from opendub.workdir import WorkDir
 
 
 def _dub(wd, engine, content):
@@ -48,7 +48,7 @@ def test_web_saves_edits_and_lists_versions(tmp_path):
     pytest.importorskip("fastapi")
     from fastapi.testclient import TestClient
 
-    from opentranslator.web.app import create_app
+    from opendub.web.app import create_app
 
     work = tmp_path / "work"
     wd = WorkDir(work, "17kBVfGjI8c")

@@ -5,9 +5,9 @@ import wave
 import pytest
 from dataclasses import replace
 
-from opentranslator import tts
-from opentranslator.config import Settings
-from opentranslator.models import Segment
+from opendub import tts
+from opendub.config import Settings
+from opendub.models import Segment
 
 
 @pytest.mark.parametrize(
@@ -71,7 +71,7 @@ def test_check_rate_rejects_bad_values(rate):
 
 
 def test_raw_cache_key_depends_on_rate(tmp_path):
-    from opentranslator.workdir import WorkDir
+    from opendub.workdir import WorkDir
 
     wd = WorkDir(tmp_path, "vid")
     a = tts._raw_path(wd, tts.Voice("edge", "es-ES-AlvaroNeural", "+0%"), "Hola.")
@@ -81,7 +81,7 @@ def test_raw_cache_key_depends_on_rate(tmp_path):
 
 
 def test_raw_cache_key_of_cloned_voice_depends_on_reference_and_seed(tmp_path):
-    from opentranslator.workdir import WorkDir
+    from opendub.workdir import WorkDir
 
     wd = WorkDir(tmp_path, "vid")
     ref_a, ref_b = tmp_path / "a.wav", tmp_path / "b.wav"
@@ -120,9 +120,9 @@ def test_suspicious_flags_empty_and_too_fast_clips():
 def test_run_shortens_clips_that_do_not_fit(tmp_path, monkeypatch):
     import json as _json
 
-    from opentranslator import translate
-    from opentranslator.models import save_segments
-    from opentranslator.workdir import WorkDir
+    from opendub import translate
+    from opendub.models import save_segments
+    from opendub.workdir import WorkDir
 
     wd = WorkDir(tmp_path, "vid")
     wd.meta.write_text(_json.dumps({"duration": 6.0}))  # 2nd segment's slot: 3 s

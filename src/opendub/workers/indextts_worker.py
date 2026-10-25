@@ -1,7 +1,7 @@
-"""IndexTTS worker: runs inside IndexTTS's own venv (Python 3.11), not OpenTranslator's.
+"""IndexTTS worker: runs inside IndexTTS's own venv (Python 3.11), not OpenDub's.
 
 It must stay self-contained (standard library, torch and indextts only), since
-OpenTranslator is not installed in that venv. Protocol, one JSON object per line:
+OpenDub is not installed in that venv. Protocol, one JSON object per line:
 
     worker → {"ready": true, "device": "...", "accel": true, "load_s": 12.3}
     client → {"id": 1, "text": "...", "ref": "/abs/ref.wav", "out": "/abs/out.wav",

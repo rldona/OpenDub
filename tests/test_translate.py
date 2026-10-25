@@ -2,11 +2,11 @@ import json
 
 import pytest
 
-from opentranslator import translate
-from opentranslator.config import Settings
-from opentranslator.models import Segment, load_segments, save_segments
-from opentranslator.tts import Pace
-from opentranslator.workdir import WorkDir
+from opendub import translate
+from opendub.config import Settings
+from opendub.models import Segment, load_segments, save_segments
+from opendub.tts import Pace
+from opendub.workdir import WorkDir
 
 
 def _segments(n: int) -> list[Segment]:
@@ -119,7 +119,7 @@ def test_shorten_drops_garbled_versions(monkeypatch):
 
 
 def test_run_uses_calibrated_rate_when_not_given(wd, monkeypatch):
-    from opentranslator import tts
+    from opendub import tts
 
     monkeypatch.setattr(tts, "speaking_rate", lambda root, voice, rate: 20.0)
     prompts = []

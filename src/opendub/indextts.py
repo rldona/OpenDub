@@ -1,7 +1,7 @@
 """IndexTTS-2.5 engine (`--tts indextts`), run as a separate process in its own venv.
 
 IndexTTS pins Python 3.11, torch 2.8 and transformers 4.52, which can't share a
-venv with the rest of OpenTranslator. `setup-indextts` installs it (a pinned
+venv with the rest of OpenDub. `setup-indextts` installs it (a pinned
 commit of its repo, its own uv venv and the checkpoints) under
 Settings.indextts_dir, and synthesis goes through workers/indextts_worker.py,
 which talks JSON lines over stdin/stdout (engines.py).
@@ -31,7 +31,7 @@ FLOOR = 0.7  # default --min-factor: below it, shorten the sentence before compr
 # Speaking rate calibrated at this factor: its natural pace is slow (~12 chars/s),
 # and 0.85 sounds as natural, so translations are not cut more than needed
 CALIBRATION_FACTOR = 0.85
-SETUP_HINT = "Install it with: uv run opentranslator setup-engine indextts"
+SETUP_HINT = "Install it with: uv run opendub setup-engine indextts"
 WORKER = engines.WORKERS_DIR / "indextts_worker.py"
 
 

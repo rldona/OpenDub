@@ -1,4 +1,4 @@
-from opentranslator.workdir import WorkDir, dependents
+from opendub.workdir import WorkDir, dependents
 
 
 def test_dependents_follow_the_phase_graph():

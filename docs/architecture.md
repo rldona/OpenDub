@@ -1,13 +1,13 @@
 # Architecture
 
 How the pieces fit together to dub a video. Each box links to the module that
-implements it under `src/opentranslator/`.
+implements it under `src/opendub/`.
 
 ## Pipeline
 
 ```mermaid
 flowchart TD
-    cli["CLI<br/>opentranslator dub"] --> dub
+    cli["CLI<br/>opendub dub"] --> dub
     web["Web<br/>FastAPI + SSE, one job at a time"] --> dub
     dub["pipeline.dub()"] --> download
 

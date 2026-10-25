@@ -273,7 +273,7 @@ def web(
         import webbrowser
 
         threading.Timer(1.0, webbrowser.open, args=(url,)).start()
-    log.info(f"OpenTranslator web on [bold]{url}[/] (Ctrl+C to stop)")
+    log.info(f"OpenDub web on [bold]{url}[/] (Ctrl+C to stop)")
     serve(create_app(work), port)
 
 
@@ -281,7 +281,7 @@ def web(
 def setup_indextts(
     path: Annotated[
         Path | None,
-        typer.Option("--path", help="Install folder (default: $OPENTRANSLATOR_INDEXTTS_DIR or ~/.local/share/opentranslator/indextts)"),
+        typer.Option("--path", help="Install folder (default: $OPENDUB_INDEXTTS_DIR or ~/.local/share/opendub/indextts)"),
     ] = None,
 ) -> None:
     """Install IndexTTS-2.5 for --engine indextts (same as `setup-engine indextts`)."""
@@ -295,8 +295,8 @@ def setup_engine(
     name: Annotated[str, typer.Argument(help="indextts or cosyvoice")],
     path: Annotated[
         Path | None,
-        typer.Option("--path", help="Install folder (default: $OPENTRANSLATOR_<NAME>_DIR or "
-                     "~/.local/share/opentranslator/<name>)"),
+        typer.Option("--path", help="Install folder (default: $OPENDUB_<NAME>_DIR or "
+                     "~/.local/share/opendub/<name>)"),
     ] = None,
 ) -> None:
     """Install a cloning engine that runs in its own venv: its repo, the venv and the weights."""

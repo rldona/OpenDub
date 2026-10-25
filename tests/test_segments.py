@@ -1,6 +1,6 @@
 import json
 
-from opentranslator.segments import Piece, clean_text, parse_json3, parse_vtt, regroup
+from opendub.segments import Piece, clean_text, parse_json3, parse_vtt, regroup
 
 
 def test_clean_text_removes_noise():

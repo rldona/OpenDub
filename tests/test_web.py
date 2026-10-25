@@ -9,8 +9,8 @@ import pytest
 pytest.importorskip("fastapi")
 from fastapi.testclient import TestClient  # noqa: E402
 
-from opentranslator.log import Progress, log, phase  # noqa: E402
-from opentranslator.web.app import create_app  # noqa: E402
+from opendub.log import Progress, log, phase  # noqa: E402
+from opendub.web.app import create_app  # noqa: E402
 
 VID, VID2 = "17kBVfGjI8c", "rwF-X5STYks"
 
@@ -47,7 +47,7 @@ class FakePipeline:
 @pytest.fixture(autouse=True)
 def engines_installed(monkeypatch):
     """Every cloning engine counts as installed, whatever this machine has (see test_engines_*)."""
-    from opentranslator.web import videos
+    from opendub.web import videos
 
     real = videos.engines
     monkeypatch.setattr(videos, "engines", lambda settings=None: [
@@ -170,8 +170,8 @@ def test_index_page_is_served(tmp_path):
 # --- videos, translation, clips with problems ---------------------------------
 def make_video(root, vid=VID, engine="edge"):
     """A work folder as a finished dub leaves it."""
-    from opentranslator.models import Segment, save_segments
-    from opentranslator.workdir import WorkDir
+    from opendub.models import Segment, save_segments
+    from opendub.workdir import WorkDir
 
     wd = WorkDir(root, vid)
     wd.meta.write_text(json.dumps({"id": vid, "title": "How do earthquakes happen?", "duration": 155}))
@@ -218,7 +218,7 @@ def test_videos_list_status_and_media(tmp_path):
 
 
 def test_missing_thumbnail_is_fetched_once(tmp_path, monkeypatch):
-    from opentranslator import download
+    from opendub import download
 
     c = client(tmp_path, FakePipeline())
     wd = make_video(tmp_path / "work")
@@ -256,8 +256,8 @@ def test_translation_shows_slots_and_limits(tmp_path):
 
 
 def test_saving_the_translation_invalidates_tts_and_mix_only(tmp_path):
-    from opentranslator.models import load_segments
-    from opentranslator.workdir import WorkDir
+    from opendub.models import load_segments
+    from opendub.workdir import WorkDir
 
     fake = FakePipeline()
     c = client(tmp_path, fake)
@@ -298,7 +298,7 @@ def test_issues_list_overflow_fallback_repairs_and_delays(tmp_path):
 
 
 def test_models_are_released_after_each_job(tmp_path, monkeypatch):
-    from opentranslator import pipeline
+    from opendub import pipeline
 
     released = []
     monkeypatch.setattr(pipeline, "release_models", lambda: released.append(1))
@@ -314,7 +314,7 @@ def test_models_are_released_after_each_job(tmp_path, monkeypatch):
 def test_first_ctrl_c_only_warns_while_a_dub_runs():
     from types import SimpleNamespace
 
-    from opentranslator.web.app import ExitGuard
+    from opendub.web.app import ExitGuard
 
     jobs = []
     now = [100.0]
@@ -332,7 +332,7 @@ def test_first_ctrl_c_only_warns_while_a_dub_runs():
 def test_media_run_behaves_like_subprocess_run():
     import subprocess
 
-    from opentranslator import media
+    from opendub import media
 
     r = media.run(["sh", "-c", "cat; echo err >&2"], input="hola", capture_output=True, text=True)
     assert (r.returncode, r.stdout, r.stderr) == (0, "hola", "err\n")
@@ -348,7 +348,7 @@ def test_ytdlp_children_join_the_web_server_session_rules(monkeypatch):
     import os
     import subprocess
 
-    from opentranslator import download, media  # noqa: F401  (download adopts yt-dlp's Popen)
+    from opendub import download, media  # noqa: F401  (download adopts yt-dlp's Popen)
     from yt_dlp.utils import Popen as YtdlpPopen
 
     monkeypatch.setattr(media, "CHILD_SESSION", True)
@@ -363,9 +363,9 @@ def test_ytdlp_children_join_the_web_server_session_rules(monkeypatch):
 
 
 def test_engines_say_which_are_installed_and_how(tmp_path, monkeypatch, engines_installed):
-    from opentranslator import cosyvoice, indextts
-    from opentranslator.config import Settings
-    from opentranslator.web import videos
+    from opendub import cosyvoice, indextts
+    from opendub.config import Settings
+    from opendub.web import videos
 
     nowhere = Settings(indextts_dir=tmp_path / "ix", cosyvoice_dir=tmp_path / "cv")
     listed = {e["id"]: e for e in engines_installed(nowhere)}

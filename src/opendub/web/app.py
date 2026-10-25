@@ -1,4 +1,4 @@
-"""Local web frontend for OpenTranslator (FastAPI): `opentranslator web`.
+"""Local web frontend for OpenDub (FastAPI): `opendub web`.
 
 Only meant for this computer: it listens on 127.0.0.1 and only answers requests
 addressed to localhost (no DNS rebinding). It drives the existing pipeline and
@@ -54,7 +54,7 @@ def create_app(work_root: Path = Path("work"), runner: Runner | None = None,
     work_root = work_root.resolve()
     work_root.mkdir(parents=True, exist_ok=True)
     manager = JobManager(work_root, runner) if runner else JobManager(work_root)
-    app = FastAPI(title="OpenTranslator", docs_url=None, redoc_url=None)
+    app = FastAPI(title="OpenDub", docs_url=None, redoc_url=None)
     app.add_middleware(TrustedHostMiddleware, allowed_hosts=list(allowed_hosts))
     app.state.manager = manager
 

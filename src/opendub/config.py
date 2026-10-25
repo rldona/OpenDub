@@ -29,12 +29,12 @@ class Settings:
     clone_ref: Path | None = None  # fixed reference for cloned clips that fail the quality check
     indextts_dir: Path = field(  # IndexTTS install (its own venv), see `setup-indextts`
         default_factory=lambda: Path(
-            os.environ.get("OPENTRANSLATOR_INDEXTTS_DIR") or Path.home() / ".local/share/opentranslator/indextts"
+            os.environ.get("OPENDUB_INDEXTTS_DIR") or Path.home() / ".local/share/opendub/indextts"
         )
     )
     cosyvoice_dir: Path = field(  # CosyVoice install (its own venv), see `setup-engine cosyvoice`
         default_factory=lambda: Path(
-            os.environ.get("OPENTRANSLATOR_COSYVOICE_DIR") or Path.home() / ".local/share/opentranslator/cosyvoice"
+            os.environ.get("OPENDUB_COSYVOICE_DIR") or Path.home() / ".local/share/opendub/cosyvoice"
         )
     )
     # Reuse the existing translation even if it was made for another voice's speaking rate

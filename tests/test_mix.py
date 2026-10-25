@@ -2,8 +2,8 @@ import wave
 
 import numpy as np
 
-from opentranslator import mix
-from opentranslator.tts import SAMPLE_RATE, Clip
+from opendub import mix
+from opendub.tts import SAMPLE_RATE, Clip
 
 
 def _clip(id, start, duration):
@@ -46,7 +46,7 @@ def test_compose_places_audio_and_cuts_at_end(tmp_path):
 
 
 def test_filter_graph_cases(tmp_path):
-    from opentranslator.config import Settings
+    from opendub.config import Settings
 
     bg = tmp_path / "background.wav"
     inputs, graph = mix.filter_graph(Settings(bg_volume_db=-15), bg)

@@ -1,7 +1,7 @@
-"""CosyVoice worker: runs inside CosyVoice's own venv (Python 3.11), not OpenTranslator's.
+"""CosyVoice worker: runs inside CosyVoice's own venv (Python 3.11), not OpenDub's.
 
 It must stay self-contained (standard library, torch, soundfile and CosyVoice's
-repo only), since OpenTranslator is not installed in that venv. It runs with
+repo only), since OpenDub is not installed in that venv. It runs with
 the CosyVoice repo as its working directory. Protocol, one JSON object per line:
 
     worker → {"ready": true, "device": "...", "load_s": 9.0, "sample_rate": 24000}

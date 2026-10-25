@@ -1,13 +1,13 @@
 """Transcripts of the dub references (audio/fit/<video>_clone_ref.wav), for engines that need one.
 
 Fish S2 Pro and CosyVoice 3 condition on the reference's text as well as its audio.
-Run in OpenTranslator's env: uv run docs/bench/generators/ref_texts.py
+Run in OpenDub's env: uv run docs/bench/generators/ref_texts.py
 """
 from pathlib import Path
 
 from faster_whisper import WhisperModel
 
-from opentranslator.transcribe import _load_cuda_libs, _load_wav, whisper_device
+from opendub.transcribe import _load_cuda_libs, _load_wav, whisper_device
 
 FIT = Path(__file__).resolve().parent.parent / "audio" / "fit"
 

@@ -31,7 +31,7 @@ HF_REPO = "FunAudioLLM/Fun-CosyVoice3-0.5B-2512"
 MIN_FACTOR = 0.5  # speed 2.0: the fastest the pipeline asks for
 CALIBRATION_FACTOR = 1.0  # its natural pace is already fast
 ENV_PROJECT = Path(__file__).resolve().parents[2] / "engines" / "cosyvoice"
-SETUP_HINT = "Install it with: uv run opentranslator setup-engine cosyvoice"
+SETUP_HINT = "Install it with: uv run opendub setup-engine cosyvoice"
 WORKER = engines.WORKERS_DIR / "cosyvoice_worker.py"
 
 

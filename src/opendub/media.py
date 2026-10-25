@@ -55,7 +55,7 @@ def adopt_ytdlp() -> None:
     from yt_dlp.utils import _utils
 
     cls = _utils.Popen
-    if getattr(cls, "_opentranslator_adopted", False):
+    if getattr(cls, "_opendub_adopted", False):
         return
     original = cls.__init__
 
@@ -66,7 +66,7 @@ def adopt_ytdlp() -> None:
             _children.add(self)
 
     cls.__init__ = __init__
-    cls._opentranslator_adopted = True
+    cls._opendub_adopted = True
 
 
 def stop_children() -> None:

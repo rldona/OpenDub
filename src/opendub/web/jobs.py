@@ -2,7 +2,7 @@
 
 One worker thread runs the jobs in order (the GPU can't run two TTS phases at
 once). While a job runs, the pipeline's own reports reach it untouched: log
-records through a handler on the `opentranslator` logger, and phase and
+records through a handler on the `opendub` logger, and phase and
 progress events through log.subscribe(). Every event is kept in the job, so a
 page that reconnects replays it from the start or from the last id it saw.
 The job's options and final state are saved in work/<id>/job.json.

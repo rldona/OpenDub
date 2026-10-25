@@ -1,7 +1,7 @@
 """Cloning engines that run as a separate process in their own venv (IndexTTS, CosyVoice).
 
 Their pins (Python, torch, transformers…) can't share a venv with the rest of
-OpenTranslator, so each one has a worker script (workers/<engine>_worker.py) run
+OpenDub, so each one has a worker script (workers/<engine>_worker.py) run
 with its venv's python. The worker loads the model once and speaks JSON lines
 over stdin/stdout:
 

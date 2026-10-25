@@ -84,7 +84,7 @@ today, voice cloning (the most uncertain part) last.
   slower than Chatterbox after atempo (13.7 vs 14.8 chars/s).
 - It runs in its own venv (Python 3.11, torch 2.8, transformers 4.52, pinned by
   its repo) as a separate process speaking JSON lines over stdin/stdout
-  (`workers/indextts_worker.py`), installed with `opentranslator
+  (`workers/indextts_worker.py`), installed with `opendub
   setup-indextts` from a pinned commit of its repo.
 - **License: bilibili Model Use License Agreement** (not OSI-approved; governed
   by the laws of the People's Republic of China). It grants a worldwide,

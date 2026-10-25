@@ -1,7 +1,7 @@
 import pytest
 
-from opentranslator import clone
-from opentranslator.spoken import spell_numbers
+from opendub import clone
+from opendub.spoken import spell_numbers
 
 
 @pytest.mark.parametrize("text, said", [

@@ -1,7 +1,7 @@
 import numpy as np
 import pytest
 
-from opentranslator import separate
+from opendub import separate
 
 
 def test_resolve_backend(monkeypatch):

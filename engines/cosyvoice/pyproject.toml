@@ -1,13 +1,13 @@
-# The venv OpenTranslator's CosyVoice worker runs in (`opentranslator setup-engine cosyvoice`).
+# The venv OpenDub's CosyVoice worker runs in (`opendub setup-engine cosyvoice`).
 #
 # CosyVoice is not a pip package: its code is a pinned commit of its repo
-# (src/opentranslator/cosyvoice.py: REPO_REV), put on sys.path by the worker, and
+# (src/opendub/cosyvoice.py: REPO_REV), put on sys.path by the worker, and
 # these are the dependencies its inference needs. Its requirements.txt pins
 # torch 2.3.1 (CUDA 12.1, no RTX 50-series kernels) and carries training and
 # serving packages; the versions below were checked on an RTX 5080 (sm_120)
 # with the benchmark in docs/bench (docs/v2-plan.md, 2026-10-25).
 [project]
-name = "opentranslator-cosyvoice-env"
+name = "opendub-cosyvoice-env"
 version = "0"
 requires-python = ">=3.11,<3.12"
 dependencies = [

@@ -1,4 +1,4 @@
-# OpenTranslator
+# OpenDub
 
 A personal tool that dubs YouTube videos into Spanish with a synthetic voice,
 kept in sync with the original.
@@ -51,12 +51,12 @@ The other two cloning engines, IndexTTS-2.5 (`--engine indextts`) and
 CosyVoice 3 (`--engine cosyvoice`), pin their own Python and PyTorch, so each
 lives in a separate venv and runs as a separate process. `setup-engine` clones a
 pinned commit of its repo, creates that venv and downloads the weights into
-`~/.local/share/opentranslator/<engine>` (or `$OPENTRANSLATOR_INDEXTTS_DIR`,
-`$OPENTRANSLATOR_COSYVOICE_DIR`):
+`~/.local/share/opendub/<engine>` (or `$OPENDUB_INDEXTTS_DIR`,
+`$OPENDUB_COSYVOICE_DIR`):
 
 ```bash
-uv run opentranslator setup-engine indextts   # ~5 GB, plus ~5 GB of auxiliary models on the first run
-uv run opentranslator setup-engine cosyvoice  # ~9 GB
+uv run opendub setup-engine indextts   # ~5 GB, plus ~5 GB of auxiliary models on the first run
+uv run opendub setup-engine cosyvoice  # ~9 GB
 ```
 
 IndexTTS's venv comes from its repo's own lockfile, plus flash-attn for its
@@ -79,7 +79,7 @@ There are two ways to translate:
 ## Usage
 
 ```bash
-uv run opentranslator dub "https://www.youtube.com/watch?v=rwF-X5STYks" -o dubbed.mp4
+uv run opendub dub "https://www.youtube.com/watch?v=rwF-X5STYks" -o dubbed.mp4
 ```
 
 Common `dub` options:
@@ -110,7 +110,7 @@ Common `dub` options:
 Each phase can also run on its own: `download`, `transcribe`, `translate`, `tts`,
 `separate` and `mix` (all accept the URL or the video id). `separate` only needs
 `download`, so it can run at any point before `mix --separate`. Run
-`uv run opentranslator <phase> --help` to see its options.
+`uv run opendub <phase> --help` to see its options.
 
 ## Web frontend
 
@@ -129,7 +129,7 @@ benchmark, and marks the ones not installed, with the command that installs them
 
 ```bash
 uv sync --extra web          # plus --extra separate --extra clone for cloned voices
-uv run opentranslator web    # http://127.0.0.1:8000, opens the browser
+uv run opendub web    # http://127.0.0.1:8000, opens the browser
 ```
 
 It only listens on 127.0.0.1 and runs one job at a time (the others wait in

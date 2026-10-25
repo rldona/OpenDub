@@ -1,4 +1,4 @@
-"""The full dub pipeline, shared by `opentranslator dub` and the web frontend."""
+"""The full dub pipeline, shared by `opendub dub` and the web frontend."""
 
 from __future__ import annotations
 

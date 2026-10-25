@@ -3,10 +3,10 @@ from dataclasses import replace
 
 import pytest
 
-from opentranslator import indextts, tts
-from opentranslator.config import Settings
-from opentranslator.models import Segment
-from opentranslator.workdir import WorkDir
+from opendub import indextts, tts
+from opendub.config import Settings
+from opendub.models import Segment
+from opendub.workdir import WorkDir
 
 
 def test_fit_factor_scales_to_slot_with_margin_and_floor():
@@ -83,8 +83,8 @@ def test_native_factor_is_predicted_and_corrected_within_the_floor(tmp_path, mon
 def test_native_shortens_before_going_below_the_floor(tmp_path, monkeypatch, shortening_helps, engine):
     import json as _json
 
-    from opentranslator import reference, translate
-    from opentranslator.models import save_segments
+    from opendub import reference, translate
+    from opendub.models import save_segments
 
     wd = WorkDir(tmp_path, "vid")
     wd.meta.write_text(_json.dumps({"duration": 20.0}))
@@ -132,7 +132,7 @@ def test_worker_reports_missing_install(tmp_path):
 
 
 def test_engine_auto_picks_by_reference_pitch(tmp_path, monkeypatch):
-    from opentranslator import reference
+    from opendub import reference
 
     ref = tmp_path / "ref.wav"
     settings = Settings(tts="clone", engine="auto")

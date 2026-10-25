@@ -3,10 +3,10 @@ from dataclasses import replace
 
 import pytest
 
-from opentranslator import clone, reference, tts
-from opentranslator.config import Settings
-from opentranslator.models import Segment, save_segments
-from opentranslator.workdir import WorkDir
+from opendub import clone, reference, tts
+from opendub.config import Settings
+from opendub.models import Segment, save_segments
+from opendub.workdir import WorkDir
 
 
 def test_cer_ignores_case_and_punctuation():
@@ -21,7 +21,7 @@ def _clip(seg: Segment, voice: tts.Voice) -> tts.Clip:
 
 
 def test_repair_chain_keeps_the_cloned_voice_as_long_as_possible(tmp_path, monkeypatch):
-    from opentranslator import translate
+    from opendub import translate
 
     wd = WorkDir(tmp_path, "vid")
     segs = [Segment(i, i * 10.0, i * 10.0 + 3, f"Frase número {i} del vídeo.") for i in (1, 2, 3)]
