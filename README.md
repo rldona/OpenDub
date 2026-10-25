@@ -246,6 +246,23 @@ to find the link. The token changes on every start, so old links stop working;
 anyone with a current link can use OpenDub on this computer, so share it only with
 your own devices. There is no mode open to the network without the token.
 
+### Starting the web page on its own
+
+Optional, on Linux: [docs/systemd/opendub-web.service](docs/systemd/opendub-web.service)
+is a systemd user service that starts `opendub web` with your session and brings it
+back if it crashes. Copy it, set `WorkingDirectory` to your checkout, and enable it:
+
+```bash
+cp docs/systemd/opendub-web.service ~/.config/systemd/user/
+systemctl --user daemon-reload
+systemctl --user enable --now opendub-web
+```
+
+Its log is in `journalctl --user -u opendub-web` (with `--lan`, the links with the
+token are there too). `systemctl --user stop opendub-web` stops it like a Ctrl+C: a
+dub that is running is cut short and goes on from its cache when dubbed again. To
+keep it running when you log out: `loginctl enable-linger`.
+
 The page is a React 19 + TypeScript app in [frontend/](frontend/), built with
 Vite into `src/opendub/web/static/`, which is committed: running it needs no
 Node, only changing it does (Node 22+):

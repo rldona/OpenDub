@@ -1,0 +1,31 @@
+# OpenDub's web page as a systemd user service: `opendub web` starts with your session
+# and comes back if it crashes. Optional; see the README ("Starting the web page on its own").
+#
+# Copy to ~/.config/systemd/user/opendub-web.service and set WorkingDirectory to your
+# OpenDub checkout (the work/ folder is created there). %h is your home directory.
+
+[Unit]
+Description=OpenDub web page (http://127.0.0.1:8000)
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+Type=simple
+WorkingDirectory=%h/OpenDub
+# a user service gets a short PATH: uv and the claude CLI usually live in ~/.local/bin
+Environment=PATH=%h/.local/bin:/usr/local/bin:/usr/bin:/bin
+Environment=PYTHONUNBUFFERED=1
+# add --lan to reach it from other devices: the links with the token go to the journal
+ExecStart=%h/.local/bin/uv run --frozen opendub web --no-browser
+Restart=on-failure
+RestartSec=5
+# stopping it is a Ctrl+C: with a dub running the server only warns, and after
+# TimeoutStopSec the whole service (engines and ffmpeg included) is killed. The dub
+# is marked interrupted and dubbing it again goes on from its cache
+KillSignal=SIGINT
+TimeoutStopSec=10
+# how a Ctrl+C ends it: a stop, not a failure
+SuccessExitStatus=130
+
+[Install]
+WantedBy=default.target
