@@ -535,6 +535,55 @@ Es el requisito de entrada de la ejecución 3 (§7.2). Sesión `vs-others` de
 argumento real», con estos límites. Volver a plantear si se buscan usuarios es decisión
 del propietario. La ejecución 3 puede empezar.
 
+## 9. Escucha comparativa en vídeos más difíciles (T-26, 2026-10-26)
+
+**Montaje:**
+- Sesión `vs-others-long` con las mismas tres fuentes, una nota global y la
+  preferencia.
+- Dos tramos de 150 s, porque ElevenLabs solo se dobló en esos tramos:
+  - `VD6xJq8NguY`, 263–413 s: voz continua con música, 8 fragmentos;
+  - el pódcast `R4zlpwwEpnY`, 484–634 s: los dos presentadores con 10 cambios de turno,
+    8 fragmentos.
+- La réplica del enfoque de acelerar dio a cada línea la voz de su hablante, como hace
+  Subtitle Edit con *Find voices in video and clone*. ElevenLabs usó su propia detección
+  de hablantes.
+
+| Vídeo | OpenDub | Réplica de acelerar | ElevenLabs | Preferido |
+|---|---|---|---|---|
+| `VD6xJq8NguY` (música) | **3,38** | 2,38 | 2,75 | OpenDub 5, réplica 2, igual 1 |
+| `R4zlpwwEpnY` (dos voces) | 2,75 | **3,12** | 2,75 | **réplica 4**, OpenDub 3, ElevenLabs 1 |
+| Los dos | 3,06 | 2,75 | 2,75 | OpenDub 8, réplica 6, ElevenLabs 1, igual 1 |
+
+**Lectura:**
+- **Con música y voz continua, OpenDub gana con claridad**, como en los vídeos cortos.
+- **En el pódcast pierde frente a la réplica.** La causa está medida y no es el enfoque,
+  sino un defecto concreto:
+  - El clon de la presentadora (B) habla a 17,8 caracteres/s. La presentadora original
+    habla a 15,6 caracteres/s (en inglés).
+  - Su ritmo estaba bien calibrado: 18,2 caracteres/s. Pero OpenDub solo limita la
+    longitud por arriba: nada pide a la traducción llenar el hueco y la voz nunca se
+    ralentiza.
+  - Resultado: sus frases acaban antes. En el tramo, la voz de OpenDub llena el 80 % del
+    tiempo que habla el original, la réplica el 86 % y en el vídeo con música OpenDub el
+    95 %. 14 de los 22 clips cubren menos del 80 % de su hueco y dejan silencios en mitad
+    de la conversación.
+  - Los fragmentos en que OpenDub sacó un 2 (f11–f13) son los de ella.
+  - La voz del presentador (A) llena el 97 % y no tiene el problema.
+  - La réplica, con la misma voz B, rellena más porque su traducción literal es un 14 %
+    más larga.
+- **ElevenLabs** queda en 2,75 en los dos vídeos: mejor que en los cortos (2,0), por
+  debajo de OpenDub con música e igual que OpenDub en el pódcast.
+
+**Consecuencias:**
+- La premisa se sostiene donde hay que comprimir (música, ritmo continuo).
+- Falta la otra mitad del ajuste: **llenar el hueco cuando sobra**. Pasa al roadmap como
+  T-36. La decisión sobre varias voces por defecto en la CLI espera a ese arreglo, porque
+  en el pódcast el defecto pesa más que el hecho de tener varias voces.
+
+**Límites:** como en el §8, un solo oyente, dos tramos de 150 s y una réplica en lugar
+del programa real. Además, el defecto del pódcast se diagnosticó **después** de oír, a
+partir de las notas.
+
 ## Anexo · Fuentes
 
 Todas consultadas el 2026-10-25; entre paréntesis, la fecha propia de la página cuando la

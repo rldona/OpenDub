@@ -59,6 +59,7 @@ Estas decisiones son del propietario, todas del 2026-10-25:
 | | T-33 Reducir la lista de mypy | P2 | S | G-024 |
 | | T-34 Subtítulos con hablante (ASS y WebVTT) | P3 | S | Backlog 12 |
 | | T-35 LAN: redes de confianza y token persistente opcional | P3 | S | Pendiente 6 |
+| 1 · Medir lo que falta (nuevo) | T-36 Llenar el hueco cuando sobra | **P1** | M | T-26 (§9 de la auditoría 2) |
 
 **Sin ticket, por ser decisiones del propietario:**
 - Usuarios: se revisa tras T-26.
@@ -68,9 +69,9 @@ Estas decisiones son del propietario, todas del 2026-10-25:
   varias voces de T-26.
 
 **Orden sugerido:**
-1. T-27 antes que T-28: su juez de fidelidad es lo que valida Ollama frente a Sonnet.
-2. T-26 en paralelo, porque no toca código y solo usa las herramientas que ya existen.
-   Su resultado puede reordenar la fase 3.
+1. T-26 y T-27 están hechos. T-36, que salió de T-26, va primero: es un defecto de
+   calidad audible.
+2. T-27 antes que T-28: su juez de fidelidad es lo que valida Ollama frente a Sonnet.
 3. T-32 y T-33 cuando haya un hueco: no dependen de nada.
 
 ---
@@ -121,6 +122,29 @@ Estas decisiones son del propietario, todas del 2026-10-25:
   - `docs/bench/fidelity.py` y sus resultados por vídeo y por modelo traductor, sin
     frases, como `shortening.py`.
   - Una sección en `docs/bench/README.md`.
+
+### T-36 · Llenar el hueco cuando sobra (P1, M)
+
+- **Origen:** T-26
+  ([03-competencia.md §9](03-competencia.md#9-escucha-comparativa-en-vídeos-más-difíciles-t-26-2026-10-26)).
+  En el pódcast, el clon de una voz rápida acaba sus frases antes que el original y deja
+  silencios en mitad de la conversación. Ahí OpenDub perdió frente a la réplica de
+  acelerar.
+- **Medida que falta:** cuánto del tiempo de habla del original llena la voz doblada.
+  - Va por vídeo y por hablante en `dub_metrics.py`, junto a la deriva.
+  - En el tramo del pódcast: el hablante A llena el 97 % y la hablante B el 77 %.
+- **Opciones, a decidir con esa medida y una escucha:**
+  1. **En la traducción:** pedir una longitud objetivo cercana al presupuesto (por
+     ejemplo, el 85–100 %) y no solo un máximo, cuando el hablante habla más despacio
+     que su clon.
+  2. **En la voz:** permitir una ralentización ligera (`atempo` hasta 0,9) a un clip que
+     cubra menos del 80 % de su hueco.
+  3. **Las dos**, la 1 primero, por ser la que suena más natural.
+- **Aceptación:**
+  - En el pódcast, la voz B llena al menos el 90 % sin pasar del hueco.
+  - Una sesión a ciegas frente a la versión actual en los tramos de T-26.
+  - Los vídeos que ya llenaban (la música, la voz A) no empeoran en `dub_metrics.py`.
+- **Antes de** decidir varias voces por defecto en la CLI.
 
 ## Fase 2 · Traducir sin depender de la suscripción
 
