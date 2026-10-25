@@ -122,8 +122,11 @@ the translation segment by segment (original, Spanish, slot and characters
 against the limit Claude got), lets you edit it and regenerate only the voice
 and the mix, and lists the clips with problems with a player for each.
 **Regenerate with another engine** dubs the same video with another engine on
-the same translation (only the voice and the mix run); each engine's dub is
-kept (`outputs/<engine>.mp4`) and the player switches between them. The engine
+the same translation (only the voice and the mix run). Every dub made is kept
+(`outputs/<date>-<engine>.mp4`, with its `tts.json` and `overflow.log`), whatever
+the engine and however many times the video is dubbed again: the player switches
+between them, and older ones can be deleted (the latest stays: the issues listed
+are its). Long videos take ~100 MB per version. The engine
 selector shows each engine's license and what it stood out for in the
 benchmark, and marks the ones not installed, with the command that installs them.
 

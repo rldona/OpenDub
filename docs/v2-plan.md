@@ -232,6 +232,14 @@ today, voice cloning (the most uncertain part) last.
   reference, cross-lingual CosyVoice sometimes runs away on that sentence
   (29–42 s of near-random syllables), depending on the seed, with "IA" or
   "ia". Left to the quality check.
+- 28-minute video, both engines on the same translation (made for CosyVoice's
+  pace, so longer sentences than IndexTTS's own would have been), every Phase D
+  improvement on: voice phase 438.8 s with CosyVoice, 431.5 s with IndexTTS
+  (accelerated). The same time: CosyVoice redoes far less (4 sentences
+  shortened, 4 below the floor, 3 clips redone and 1 on edge-tts, against 36,
+  13 and 18 with 3 sped up), but IndexTTS generates faster per clip (RTF 0.28 vs
+  0.34). The drop from the earlier 17.2 minutes with IndexTTS is Phase D's
+  acceleration and quality-check speed-up, not the engine.
 
 ## Phase D — Speed
 - Where the time goes, on a 28-minute video with IndexTTS: download 0.2 min,

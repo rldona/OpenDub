@@ -11,9 +11,11 @@ from __future__ import annotations
 
 import json
 import os
+import re
 import shutil
 import wave
 from dataclasses import dataclass
+from datetime import datetime
 from pathlib import Path
 
 import numpy as np
@@ -103,27 +105,34 @@ def filter_graph(settings: Settings, background: Path) -> tuple[list[str], str]:
 
 
 def archive(wd: WorkDir) -> Path | None:
-    """Keep this dub as outputs/<engine>.mp4 (with its tts.json), next to the ones made with other engines.
+    """Keep this dub as outputs/<date>-<engine>.mp4 (with its tts.json and overflow.log).
 
-    output.mp4 is always the latest dub; dubbing the video again with another
-    engine no longer loses the previous one. A hard link: no extra disk space.
+    output.mp4 is always the latest dub; every dub made is kept next to it, from
+    any engine and however many times the video is dubbed again (VERSION names
+    them). A hard link: no extra disk space while it is also output.mp4.
     """
     if not (wd.output.exists() and wd.tts_index.exists()):
         return None
+    wd.outputs_dir.mkdir(exist_ok=True)
+    for kept in wd.outputs_dir.glob("*.mp4"):
+        if kept.samefile(wd.output):  # this mix is already kept (a cached run)
+            return kept
     index = json.loads(wd.tts_index.read_text(encoding="utf-8"))
     engine = (index.get("engine") if isinstance(index, dict) else None) or "edge"
-    wd.outputs_dir.mkdir(exist_ok=True)
-    video = wd.outputs_dir / f"{engine}.mp4"
-    if not (video.exists() and video.samefile(wd.output)):
-        video.unlink(missing_ok=True)
-        try:
-            os.link(wd.output, video)
-        except OSError:  # no hard links on this filesystem
-            shutil.copyfile(wd.output, video)
-    shutil.copyfile(wd.tts_index, wd.outputs_dir / f"{engine}.tts.json")
+    stem = f"{datetime.now():%Y%m%d-%H%M%S}-{engine}"
+    video = wd.outputs_dir / f"{stem}.mp4"
+    try:
+        os.link(wd.output, video)
+    except OSError:  # no hard links on this filesystem
+        shutil.copyfile(wd.output, video)
+    shutil.copyfile(wd.tts_index, wd.outputs_dir / f"{stem}.tts.json")
     if wd.overflow_log.exists():
-        shutil.copyfile(wd.overflow_log, wd.outputs_dir / f"{engine}.overflow.log")
+        shutil.copyfile(wd.overflow_log, wd.outputs_dir / f"{stem}.overflow.log")
     return video
+
+
+# outputs/<YYYYmmdd-HHMMSS>-<engine>.mp4; dubs kept before every version was (one per engine) are <engine>.mp4
+VERSION = re.compile(r"(?:(\d{8}-\d{6})-)?([a-z]+)")
 
 
 def run(wd: WorkDir, settings: Settings, force: bool = False, output: Path | None = None) -> Path:

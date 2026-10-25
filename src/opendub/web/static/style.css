@@ -127,6 +127,7 @@ video { width: 100%; border-radius: 12px; background: #000; display: block; }
 @keyframes flash { from { background: var(--accent-soft); } }
 .versions { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; margin-top: 8px; }
 .versions button { padding: 4px 10px; font-size: 13px; }
+.versions button.danger { color: var(--danger); }
 .edited { color: var(--accent); }
 .other-engine { margin-top: 14px; }
 .other-engine .row { flex-wrap: wrap; }

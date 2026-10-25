@@ -122,17 +122,37 @@ def summary(wd: WorkDir, manager: JobManager) -> dict[str, Any]:
 
 
 def outputs(wd: WorkDir) -> list[dict[str, Any]]:
-    """The dubs kept per engine (mix.archive), newest first, and which one output.mp4 is."""
+    """Every dub kept (mix.archive), newest first: version id, engine, date, and which one output.mp4 is."""
+    from ..mix import VERSION
+
     if not wd.outputs_dir.exists():
         return []
     found = []
     for video in wd.outputs_dir.glob("*.mp4"):
+        if not (m := VERSION.fullmatch(video.stem)):
+            continue
+        made = datetime.strptime(m[1], "%Y%m%d-%H%M%S") if m[1] else datetime.fromtimestamp(video.stat().st_mtime)
         found.append({
-            "engine": video.stem,
-            "date": datetime.fromtimestamp(video.stat().st_mtime).isoformat(timespec="seconds"),
+            "version": video.stem,
+            "engine": m[2],
+            "date": made.isoformat(timespec="seconds"),
             "current": wd.output.exists() and video.samefile(wd.output),
         })
     return sorted(found, key=lambda o: o["date"], reverse=True)
+
+
+def delete_output(wd: WorkDir, version: str) -> None:
+    """Delete a kept dub (its video, tts.json and overflow.log). Not the latest one: output.mp4,
+    tts.json and the issues on the video's page belong to it."""
+    from ..mix import VERSION
+
+    video = wd.outputs_dir / f"{version}.mp4"
+    if not VERSION.fullmatch(version) or not video.exists():
+        raise LookupError(version)
+    if wd.output.exists() and video.samefile(wd.output):
+        raise ValueError("the latest dub can't be deleted")
+    for suffix in (".mp4", ".tts.json", ".overflow.log"):
+        (wd.outputs_dir / f"{version}{suffix}").unlink(missing_ok=True)
 
 
 def list_videos(work_root: Path, manager: JobManager) -> list[dict[str, Any]]:

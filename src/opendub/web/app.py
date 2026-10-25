@@ -18,7 +18,7 @@ from fastapi.responses import FileResponse, StreamingResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 
-from .. import download
+from .. import download, mix
 from ..workdir import WorkDir
 from . import videos
 from .jobs import ACTIVE, VIDEO_ID, JobManager, JobOptions, Runner
@@ -162,14 +162,26 @@ def create_app(work_root: Path = Path("work"), runner: Runner | None = None,
         return FileResponse(wd.output, media_type="video/mp4", filename=f"{vid}.es.mp4",
                             content_disposition_type="inline")
 
-    @app.get("/videos/{vid}/outputs/{engine}.mp4")
-    def output_version(vid: str, engine: str) -> FileResponse:
-        """The dub made with a given engine (kept by mix.archive), with Range support."""
+    @app.delete("/videos/{vid}/outputs/{version}")
+    def delete_version(vid: str, version: str) -> dict:
+        """Delete one of the kept dubs; the latest one stays (output.mp4 and the page's issues are its)."""
         wd = folder(vid)
-        path = wd.outputs_dir / f"{engine}.mp4"
-        if not re.fullmatch(r"[a-z]+", engine) or not path.exists():
-            raise HTTPException(404, "No dub with that engine")
-        return FileResponse(path, media_type="video/mp4", filename=f"{vid}.es.{engine}.mp4",
+        try:
+            videos.delete_output(wd, version)
+        except LookupError:
+            raise HTTPException(404, "No such dub")
+        except ValueError as e:
+            raise HTTPException(409, str(e))
+        return {"outputs": videos.outputs(wd)}
+
+    @app.get("/videos/{vid}/outputs/{version}.mp4")
+    def output_version(vid: str, version: str) -> FileResponse:
+        """One of the dubs kept by mix.archive (videos.outputs lists them), with Range support."""
+        wd = folder(vid)
+        path = wd.outputs_dir / f"{version}.mp4"
+        if not mix.VERSION.fullmatch(version) or not path.exists():
+            raise HTTPException(404, "No such dub")
+        return FileResponse(path, media_type="video/mp4", filename=f"{vid}.es.{version}.mp4",
                             content_disposition_type="inline")
 
     @app.get("/videos/{vid}/translation")

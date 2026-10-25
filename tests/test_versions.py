@@ -1,4 +1,4 @@
-"""One dub kept per engine, and hand edits surviving a translation made again."""
+"""Every dub kept as a version, and hand edits surviving a translation made again."""
 import json
 
 from opendub import mix, translate
@@ -15,16 +15,28 @@ def _dub(wd, engine, content):
     return mix.archive(wd)
 
 
-def test_each_engine_keeps_its_own_dub(tmp_path):
+def test_every_dub_is_kept(tmp_path, monkeypatch):
+    from datetime import datetime
+
+    times = iter(datetime(2026, 10, 25, 11, m) for m in range(10))
+
+    class Clock(datetime):
+        @classmethod
+        def now(cls, tz=None):
+            return next(times)
+
+    monkeypatch.setattr(mix, "datetime", Clock)
     wd = WorkDir(tmp_path, "vid")
     first = _dub(wd, "chatterbox", b"chatterbox dub")
-    assert first == wd.outputs_dir / "chatterbox.mp4" and first.samefile(wd.output)  # hard link, no copy
+    assert first == wd.outputs_dir / "20261025-110000-chatterbox.mp4" and first.samefile(wd.output)  # hard link
+    assert mix.archive(wd) == first  # a cached mix is not kept twice
     _dub(wd, "indextts", b"indextts dub")
-    assert (wd.outputs_dir / "chatterbox.mp4").read_bytes() == b"chatterbox dub"  # untouched by the new mix
-    assert (wd.outputs_dir / "indextts.mp4").read_bytes() == b"indextts dub" == wd.output.read_bytes()
-    assert (wd.outputs_dir / "indextts.tts.json").exists()
-    _dub(wd, "chatterbox", b"chatterbox again")
-    assert (wd.outputs_dir / "chatterbox.mp4").read_bytes() == b"chatterbox again"
+    _dub(wd, "chatterbox", b"chatterbox again")  # the same engine again: the first one stays
+    kept = {p.name: p.read_bytes() for p in wd.outputs_dir.glob("*.mp4")}
+    assert kept == {"20261025-110000-chatterbox.mp4": b"chatterbox dub", "20261025-110100-indextts.mp4": b"indextts dub",
+                    "20261025-110200-chatterbox.mp4": b"chatterbox again"}
+    assert (wd.outputs_dir / "20261025-110100-indextts.tts.json").exists()
+    assert wd.output.read_bytes() == b"chatterbox again"
 
 
 def test_hand_edits_survive_a_new_translation(tmp_path):
@@ -62,9 +74,35 @@ def test_web_saves_edits_and_lists_versions(tmp_path):
     c.put("/videos/17kBVfGjI8c/translation", json=[{"id": 1, "text": "¡Hola!"}])
     assert json.loads(wd.translation_edits.read_text()) == {"1": {"source": "Hello.", "text": "¡Hola!"}}
     assert c.get("/videos/17kBVfGjI8c/translation").json()["segments"][0]["edited"] is True
+    (wd.outputs_dir / "cosyvoice.mp4").write_bytes(b"o" * 64)  # kept before versions had dates (one per engine)
     versions = c.get("/videos/17kBVfGjI8c").json()["outputs"]
-    assert {v["engine"] for v in versions} == {"chatterbox", "indextts"}
+    assert sorted(v["engine"] for v in versions) == ["chatterbox", "cosyvoice", "indextts"]
     assert [v["engine"] for v in versions if v["current"]] == ["indextts"]
-    r = c.get("/videos/17kBVfGjI8c/outputs/chatterbox.mp4", headers={"Range": "bytes=0-9"})
+    chatterbox = next(v["version"] for v in versions if v["engine"] == "chatterbox")
+    r = c.get(f"/videos/17kBVfGjI8c/outputs/{chatterbox}.mp4", headers={"Range": "bytes=0-9"})
     assert r.status_code == 206 and r.content == b"c" * 10
+    assert c.get("/videos/17kBVfGjI8c/outputs/cosyvoice.mp4").content == b"o" * 64
     assert c.get("/videos/17kBVfGjI8c/outputs/..%2Fmeta.mp4").status_code == 404
+
+
+def test_web_deletes_old_versions_but_not_the_latest(tmp_path):
+    import pytest
+
+    pytest.importorskip("fastapi")
+    from fastapi.testclient import TestClient
+
+    from opendub.web.app import create_app
+
+    work = tmp_path / "work"
+    wd = WorkDir(work, "17kBVfGjI8c")
+    wd.meta.write_text(json.dumps({"title": "t", "duration": 10}))
+    old = _dub(wd, "chatterbox", b"c" * 64)
+    wd.overflow_log.write_text("x")
+    latest = _dub(wd, "indextts", b"i" * 64)
+    c = TestClient(create_app(work, runner=lambda url, s: None, allowed_hosts=("testserver",)))
+    assert c.delete(f"/videos/17kBVfGjI8c/outputs/{latest.stem}").status_code == 409
+    r = c.delete(f"/videos/17kBVfGjI8c/outputs/{old.stem}")
+    assert r.status_code == 200 and [v["version"] for v in r.json()["outputs"]] == [latest.stem]
+    assert not any(wd.outputs_dir.glob(f"{old.stem}.*")) and wd.output.read_bytes() == b"i" * 64
+    assert c.delete(f"/videos/17kBVfGjI8c/outputs/{old.stem}").status_code == 404
+    assert c.delete("/videos/17kBVfGjI8c/outputs/..%2Fmeta").status_code == 404

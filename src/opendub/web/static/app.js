@@ -34,6 +34,7 @@ const STRINGS = {
     not_installed: "not installed", install_hint: "{e} is not installed: {cmd}",
     regen_engine: "Regenerate with another engine",
     regen_engine_hint: "Keeps this translation: only the voice and the mix are redone.",
+    delete_version: "Delete this version", confirm_delete: "Delete the {e} dub of {d}? This can't be undone.",
   },
   es: {
     preferences: "Preferencias", language: "Idioma", dub: "Doblar", voice: "Voz", voice_clone: "Clonada",
@@ -68,6 +69,7 @@ const STRINGS = {
     not_installed: "sin instalar", install_hint: "{e} no está instalado: {cmd}",
     regen_engine: "Regenerar con otro motor",
     regen_engine_hint: "Conserva esta traducción: solo se rehacen la voz y la mezcla.",
+    delete_version: "Borrar esta versión", confirm_delete: "¿Borrar el doblaje con {e} del {d}? No se puede deshacer.",
   },
 };
 
@@ -497,19 +499,22 @@ function renderDetail() {
   if (video.engine) info.push(t("engine_label", { e: video.engine }));
   if (video.reference_f0_hz) info.push(t("ref_f0", { f0: Math.round(video.reference_f0_hz) }));
   if (video.clips) info.push(t("clips", { n: video.clips }), t("sped_up", { n: video.sped_up }), t("shortened", { n: video.shortened }));
-  // one dub per engine is kept (outputs/<engine>.mp4): pick which one to watch
+  // every dub made is kept (outputs/<date>-<engine>.mp4): pick which one to watch
   const versions = video.outputs || [];
-  const version = detail.version && versions.some((o) => o.engine === detail.version) ? detail.version : null;
+  const version = detail.version && versions.some((o) => o.version === detail.version) ? detail.version : null;
   const src = version ? `/videos/${id}/outputs/${version}.mp4` : `/videos/${id}/output.mp4`;
   const picker = versions.length > 1
     ? el("div", { class: "versions", role: "group", "aria-label": t("version") },
         el("span", { class: "muted small" }, t("version")),
         versions.map((o) => {
-          const active = version ? o.engine === version : o.current;
+          const active = version ? o.version === version : o.current;
           return el("button", { type: "button", class: active ? "primary" : "", "aria-pressed": String(active),
-            onclick: () => { detail.version = o.current ? null : o.engine; renderDetail(); } },
-            o.engine + (o.current ? ` (${t("latest")})` : ""));
-        }))
+            title: when(o.date), onclick: () => { detail.version = o.current ? null : o.version; renderDetail(); } },
+            `${o.engine} · ${when(o.date)}` + (o.current ? ` (${t("latest")})` : ""));
+        }),
+        // an older version can be deleted; the latest is output.mp4 and the issues below are its
+        version ? el("button", { type: "button", class: "ghost danger", onclick: () => deleteVersion(version) },
+          t("delete_version")) : null)
     : null;
   const head = el("div", { class: "detail-head" },
     video.status === "done"
@@ -602,8 +607,21 @@ async function saveEdits() {
   }
 }
 
+async function deleteVersion(version) {
+  const o = detail.video.outputs.find((v) => v.version === version);
+  if (!o || !confirm(t("confirm_delete", { e: o.engine, d: when(o.date) }))) return;
+  try {
+    const r = await api(`/videos/${detail.id}/outputs/${encodeURIComponent(version)}`, { method: "DELETE" });
+    detail.video.outputs = r.outputs;
+    detail.version = null;
+    renderDetail();
+  } catch (err) {
+    alert(err.message);
+  }
+}
+
 function otherEngine(video) {
-  // same video, same translation, another engine: only TTS and the mix run (outputs/<engine>.mp4 keeps each)
+  // same video, same translation, another engine: only TTS and the mix run (every dub stays in outputs/)
   const select = el("select", { "aria-label": t("engine") });
   const current = engineList.find((e) => e.id !== "auto" && e.id !== video.engine && e.installed);
   fillEngines(select, current ? current.id : undefined);
