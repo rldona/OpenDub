@@ -18,7 +18,7 @@ export interface Prefs {
 
 const KEY = "opendub.prefs";
 const DEFAULTS: Prefs = {
-  lang: "en", theme: "system", accent: "violet", tts: "clone", engine: "auto", separate: true, bgVolume: 0,
+  lang: "en", theme: "system", accent: "violet", tts: "clone", engine: "chatterbox", separate: true, bgVolume: 0,
   voice: "es-ES-AlvaroNeural",
 };
 

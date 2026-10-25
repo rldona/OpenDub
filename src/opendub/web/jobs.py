@@ -36,7 +36,7 @@ class JobOptions:
     url: str
     separate: bool = True  # keep the music: mix over the separated background
     tts: str = "clone"  # edge | clone
-    engine: str = "auto"  # chatterbox | indextts | cosyvoice | auto
+    engine: str = "chatterbox"  # chatterbox | indextts | cosyvoice | auto (experimental)
     voice: str = "es-ES-AlvaroNeural"  # edge-tts voice (also the cloned voice's last resort)
     bg_volume: float = 0.0  # dB of the background: the separated one, or the original audio
     keep_translation: bool = False  # another engine on the same translation: only TTS and mix are redone
