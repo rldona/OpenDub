@@ -628,7 +628,7 @@ def _needs_shortening(clip: Clip, voice: Voice) -> bool:
 
 def _below_floor(
     wd: WorkDir, clips: dict[int, Clip], voices: dict[int, Voice], slots: dict[int, float],
-    by_id: dict[int, Segment], settings: Settings,
+    by_id: dict[int, Segment], settings: Settings, only: set[int] | None = None,
 ) -> set[int]:
     """Last step for native-duration clips that don't fit even shortened: compress below --min-factor.
 
@@ -639,6 +639,8 @@ def _below_floor(
 
     jobs = []
     for c in clips.values():
+        if only is not None and c.id not in only:
+            continue
         v = voices[c.id]
         if native_duration(v.engine) and c.raw_duration > c.slot:
             factor = engines.fit_factor(c.raw_duration, c.slot, c.factor, floor=min_factor(v.engine))
@@ -653,13 +655,19 @@ def _below_floor(
 def _shorten_overflows(
     wd: WorkDir, clips: dict[int, Clip], originals: dict[int, str], slots: dict[int, float],
     by_id: dict[int, Segment], settings: Settings, voices: dict[int, Voice],
+    only: set[int] | None = None, fixed: set[int] = frozenset(),
 ) -> int:
-    """Re-translate and re-synthesize clips that do not fit. Return how many were shortened."""
+    """Re-translate and re-synthesize clips that do not fit. Return how many were shortened.
+
+    `only`: just these clips (a retouch). `fixed`: hand-edited texts, never rewritten:
+    they are compressed (duration factor, atempo) as far as that goes instead.
+    """
     from . import translate  # lazy import: translate also imports this module
 
     shortened = set()
     for round_ in range(1, SHORTEN_ROUNDS + 1):
-        bad = [c for c in clips.values() if _needs_shortening(c, voices[c.id]) and not tiny(c.text)]
+        bad = [c for c in clips.values() if (only is None or c.id in only) and c.id not in fixed
+               and _needs_shortening(c, voices[c.id]) and not tiny(c.text)]
         if not bad:
             break
         log.info(f"Shortening round {round_}: {len(bad)} sentence(s) do not fit, asking for shorter versions…")
@@ -688,17 +696,20 @@ def _clone_failures(wd: WorkDir, ids: set[int], clips: dict[int, Clip], settings
 
 def _repair_clones(
     wd: WorkDir, clips: dict[int, Clip], voices: dict[int, Voice], slots: dict[int, float],
-    by_id: dict[int, Segment], settings: Settings,
+    by_id: dict[int, Segment], settings: Settings, only: set[int] | None = None, fixed: set[int] = frozenset(),
 ) -> set[int]:
     """Redo the cloned clips that fail the quality check without switching voices mid-video.
 
     Fallback chain, each step only for the clips the previous one could not fix:
     another seed → a sentence shortened by Claude → the fixed reference
     (--clone-ref) → edge-tts. Returns the ids that ended up with edge-tts.
+
+    `only`: check just these clips (a retouch), judged against the whole video's
+    speed. `fixed`: hand-edited texts, which skip the shorter-sentence step.
     """
     from . import translate  # lazy import: translate also imports this module
 
-    bad = _clone_failures(wd, set(clips), clips, settings)
+    bad = _clone_failures(wd, set(clips) if only is None else only, clips, settings)
     steps = ["another seed", "a shorter sentence", "the fixed reference", "edge-tts"]
     for step in steps:
         if not bad:
@@ -715,7 +726,7 @@ def _repair_clones(
         elif step == "a shorter sentence":
             originals = {s.id: s.text for s in load_segments(wd.segments)}
             items = [(i, originals[i], texts[i], max(int(len(texts[i]) * 0.85), 1)) for i in sorted(bad)
-                     if not tiny(texts[i])]
+                     if not tiny(texts[i]) and i not in fixed]
             if not items:
                 continue
             st = style.load(settings.work_root, wd.path, settings.style_file)
@@ -726,7 +737,7 @@ def _repair_clones(
                                      label=f"{voices[i].engine} (fixed reference)") for i in bad}
         else:
             new_voices = {i: Voice.edge(settings) for i in bad}
-        redo = set(new_voices)  # a tiny text skips the shorter-sentence step and goes on as it is
+        redo = set(new_voices)  # a tiny or hand-edited text skips the shorter-sentence step as it is
         jobs = [(replace(by_id[i], text=texts[i]), new_voices[i]) for i in sorted(redo)]
         for clip in _render_each(wd, jobs, slots, settings):
             clips[clip.id] = clip
@@ -737,13 +748,46 @@ def _repair_clones(
     return set()
 
 
-def run(wd: WorkDir, settings: Settings, force: bool = False) -> list[Clip]:
+def takes(wd: WorkDir) -> dict[int, int]:
+    """The seed each sentence asked for another take was last spoken with (takes.json)."""
+    path = wd.path / "takes.json"
+    return {int(k): v for k, v in json.loads(path.read_text(encoding="utf-8")).items()} if path.exists() else {}
+
+
+def hand_edited(wd: WorkDir) -> set[int]:
+    """Sentences edited from the web: their text is never rewritten shorter."""
+    if not wd.translation_edits.exists():
+        return set()
+    return {int(k) for k in json.loads(wd.translation_edits.read_text(encoding="utf-8"))}
+
+
+def _index(wd: WorkDir) -> dict:
+    data = json.loads(wd.tts_index.read_text(encoding="utf-8"))
+    return {"engine": None, "clips": data} if isinstance(data, list) else data
+
+
+def pending_edits(wd: WorkDir) -> set[int]:
+    """Sentences whose translation changed since the latest dub: what a retouch speaks again.
+
+    tts.json keeps the translation each clip was made from ("sources"); dubs made
+    before it did compare the hand edits with what their clips say.
+    """
+    if not (wd.tts_index.exists() and wd.translation.exists()):
+        return set()
+    index = _index(wd)
+    texts = {s.id: s.text for s in load_segments(wd.translation)}
+    sources = index.get("sources")
+    if sources is not None:
+        return {i for i, text in texts.items() if sources.get(str(i)) != text}
+    said = {c["id"]: c.get("text") for c in index.get("clips") or []}
+    return {i for i in hand_edited(wd) if i in texts and texts[i] != said.get(i)}
+
+
+def _params(settings: Settings, segments: list[Segment], engine: str, ref: Path | None,
+            seeds: dict[int, int]) -> dict:
+    """What a TTS run depends on: the cache key of the phase."""
     from . import clone
 
-    segments = load_segments(wd.translation)
-    cloned = settings.tts == "clone"
-    ref = reference.reference(wd) if cloned else None
-    engine = resolve_engine(settings, ref)  # also validates --tts and --engine
     params = {
         "voice": settings.voice,
         "rate": check_rate(settings.rate),
@@ -752,7 +796,7 @@ def run(wd: WorkDir, settings: Settings, force: bool = False) -> list[Clip]:
         "shorten": settings.claude_model if settings.shorten else None,
         "texts": [(s.id, s.start, s.text) for s in segments],
     }
-    if cloned:
+    if ref is not None:
         if settings.clone_ref and not settings.clone_ref.exists():
             raise SystemExit(f"--clone-ref {settings.clone_ref} does not exist")
         params |= {
@@ -762,6 +806,62 @@ def run(wd: WorkDir, settings: Settings, force: bool = False) -> list[Clip]:
         }
         if native_duration(engine):
             params["min_factor"] = settings.min_factor
+    if seeds:  # only then: dubs without takes keep their cache
+        params["takes"] = sorted(seeds.items())
+    return params
+
+
+def _issue_lines(c: Clip, still_bad: set[int], fell_back: set[int], below_floor: set[int], floor: float) -> list[str]:
+    """overflow.log lines of one clip (web/videos.py parses them)."""
+    lines = []
+    if c.overflow > 0:
+        lines.append(f"#{c.id} @{c.start:.2f}s: lasts {c.duration:.2f}s at {c.tempo}x, slot {c.slot:.2f}s "
+                     f"(+{c.overflow:.2f}s) · {c.text}\n")
+    if c.id in still_bad:
+        lines.append(f"#{c.id} @{c.start:.2f}s: abnormal duration after regenerating ({c.raw_duration:.2f}s) · {c.text}\n")
+    if c.id in fell_back:
+        lines.append(f"#{c.id} @{c.start:.2f}s: cloned voice failed the quality check, used edge-tts · {c.text}\n")
+    if c.id in below_floor:
+        lines.append(f"#{c.id} @{c.start:.2f}s: did not fit even shortened, duration factor {c.factor:.2f} "
+                     f"below the {floor:.2f} floor · {c.text}\n")
+    return lines
+
+
+def _fit(
+    wd: WorkDir, clips: dict[int, Clip], voices: dict[int, Voice], slots: dict[int, float],
+    by_id: dict[int, Segment], settings: Settings, engine: str, only: set[int] | None = None,
+) -> tuple[set[int], set[int], int, set[int]]:
+    """Quality check, shortening and the floor, after the first pass: (fell back to edge-tts,
+    still abnormal, how many shortened, below the floor). `only`: just these clips (a retouch)."""
+    fixed = hand_edited(wd)
+    fell_back: set[int] = set()
+    if engine != "edge":
+        fell_back = _repair_clones(wd, clips, voices, slots, by_id, settings, only, fixed)
+    else:
+        # Quality check: regenerate clips with abnormal duration once
+        bad_qc = [c for c in suspicious(list(clips.values())) if only is None or c.id in only]
+        if bad_qc:
+            log.warning(f"Quality check: {len(bad_qc)} clip(s) with abnormal duration, regenerating…")
+            segs = [replace(by_id[c.id], text=c.text) for c in bad_qc]
+            for clip in _render(wd, segs, slots, settings, voices[bad_qc[0].id], regenerate=True):
+                clips[clip.id] = clip
+    still_bad = {c.id for c in suspicious(list(clips.values())) if only is None or c.id in only}
+
+    n_short = 0
+    if settings.shorten:
+        originals = {s.id: s.text for s in load_segments(wd.segments)}
+        n_short = _shorten_overflows(wd, clips, originals, slots, by_id, settings, voices, only, fixed)
+    below_floor = _below_floor(wd, clips, voices, slots, by_id, settings, only) if native_duration(engine) else set()
+    return fell_back, still_bad, n_short, below_floor
+
+
+def run(wd: WorkDir, settings: Settings, force: bool = False) -> list[Clip]:
+    segments = load_segments(wd.translation)
+    cloned = settings.tts == "clone"
+    ref = reference.reference(wd) if cloned else None
+    engine = resolve_engine(settings, ref)  # also validates --tts and --engine
+    seeds = takes(wd) if cloned else {}
+    params = _params(settings, segments, engine, ref, seeds)
     ref_f0 = reference.mean_f0(ref) if cloned else None
     choice = None
     if cloned:
@@ -792,30 +892,13 @@ def run(wd: WorkDir, settings: Settings, force: bool = False) -> list[Clip]:
     slots = {s.id: slot for s, slot in zip(segments, _slots(segments, meta.get("duration")))}
     by_id = {s.id: s for s in segments}
     voice = Voice.clone(settings, ref) if cloned else Voice.edge(settings)
-    voices = {s.id: voice for s in segments}
+    voices = {s.id: replace(voice, seed=seeds.get(s.id, SEED)) for s in segments}
     if not cloned:
         log.info(f"Voice {settings.voice} ({settings.rate}) · {len(segments)} segments")
-    jobs = [(s, voice) for s in segments]
+    jobs = [(s, voices[s.id]) for s in segments]
     clips = {c.id: c for c in _render_each(wd, jobs, slots, settings, regenerate=force)}
-
-    fell_back: set[int] = set()
-    if cloned:
-        fell_back = _repair_clones(wd, clips, voices, slots, by_id, settings)
-    else:
-        # Quality check: regenerate clips with abnormal duration once
-        bad_qc = suspicious(list(clips.values()))
-        if bad_qc:
-            log.warning(f"Quality check: {len(bad_qc)} clip(s) with abnormal duration, regenerating…")
-            segs = [replace(by_id[c.id], text=c.text) for c in bad_qc]
-            for clip in _render(wd, segs, slots, settings, voice, regenerate=True):
-                clips[clip.id] = clip
-    still_bad = {c.id for c in suspicious(list(clips.values()))}
-
-    n_short = 0
-    if settings.shorten:
-        originals = {s.id: s.text for s in load_segments(wd.segments)}
-        n_short = _shorten_overflows(wd, clips, originals, slots, by_id, settings, voices)
-    below_floor = _below_floor(wd, clips, voices, slots, by_id, settings) if native_duration(engine) else set()
+    fell_back, still_bad, n_short, below_floor = _fit(wd, clips, voices, slots, by_id, settings,
+                                                      engine if cloned else "edge")
 
     result = [clips[s.id] for s in segments]
     index = {
@@ -826,24 +909,15 @@ def run(wd: WorkDir, settings: Settings, force: bool = False) -> list[Clip]:
         # shown per version in the web: how long the voice took and what it took to fit it
         "stats": {"seconds": round(time.monotonic() - started, 1), "shortened": n_short},
         "clips": [asdict(c) for c in result],
+        # the translation each clip was made from: what a retouch compares edits with
+        "sources": {str(s.id): s.text for s in segments},
     }
     wd.tts_index.write_text(json.dumps(index, ensure_ascii=False, indent=1), encoding="utf-8")
-    overflows = [c for c in result if c.overflow > 0]
     with wd.overflow_log.open("w", encoding="utf-8") as f:
         for c in result:
-            if c.overflow > 0:
-                f.write(
-                    f"#{c.id} @{c.start:.2f}s: lasts {c.duration:.2f}s at {c.tempo}x, slot {c.slot:.2f}s "
-                    f"(+{c.overflow:.2f}s) · {c.text}\n"
-                )
-            if c.id in still_bad:
-                f.write(f"#{c.id} @{c.start:.2f}s: abnormal duration after regenerating ({c.raw_duration:.2f}s) · {c.text}\n")
-            if c.id in fell_back:
-                f.write(f"#{c.id} @{c.start:.2f}s: cloned voice failed the quality check, used edge-tts · {c.text}\n")
-            if c.id in below_floor:
-                f.write(f"#{c.id} @{c.start:.2f}s: did not fit even shortened, duration factor {c.factor:.2f} "
-                        f"below the {settings.min_factor:.2f} floor · {c.text}\n")
+            f.writelines(_issue_lines(c, still_bad, fell_back, below_floor, settings.min_factor))
 
+    overflows = [c for c in result if c.overflow > 0]
     sped = sum(1 for c in result if c.tempo > 1.0)
     chars_per_s = sum(len(c.text) for c in result) / sum(c.raw_duration for c in result)
     log.info(
@@ -864,3 +938,77 @@ def run(wd: WorkDir, settings: Settings, force: bool = False) -> list[Clip]:
     log.info(f"Measured speaking rate: {chars_per_s:.1f} chars/s")
     wd.mark_done("tts", params)
     return result
+
+
+def retouch(wd: WorkDir, settings: Settings, new_takes: list[int] | tuple[int, ...] = ()) -> list[int]:
+    """Speak again only some sentences of the latest dub; returns their ids.
+
+    The sentences whose translation changed since the dub (pending_edits), and
+    `new_takes`: the same text with the next seed (another take of a cloned voice).
+    Each goes through the same fitting and quality check as a full run, judged
+    against the whole video, then tts.json and overflow.log are patched and the
+    TTS phase is marked done for the current translation: a later full run finds
+    it cached. The engine is the dub's own, whatever `settings` says.
+    """
+    if not (wd.tts_index.exists() and wd.translation.exists()):
+        raise SystemExit("Nothing to retouch: this video has no dub yet")
+    index = _index(wd)
+    engine = index.get("engine") or "edge"
+    cloned = engine != "edge"
+    settings = replace(settings, tts="clone" if cloned else "edge", engine=engine if cloned else settings.engine)
+    segments = load_segments(wd.translation)
+    clips = {c.id: c for c in load_clips(wd)}
+    unknown = sorted(set(new_takes) - set(clips))
+    if unknown:
+        raise SystemExit(f"No segment {unknown[0]} in this dub")
+    if not cloned and new_takes:
+        raise SystemExit("Another take needs a cloned voice: edge-tts always says a text the same way")
+
+    edits = pending_edits(wd)
+    seeds = takes(wd)
+    for i in new_takes:
+        seeds[i] = seeds.get(i, SEED) + 1
+    ids = sorted(edits | set(new_takes))
+    if not ids:
+        log.info("Nothing to retouch: no edited sentence and no take asked for")
+        return []
+    log.info(f"Retouch with {engine}: {len(ids)} segment(s) · edited {len(edits)} · new takes {len(new_takes)}")
+
+    started = time.monotonic()
+    ref = reference.reference(wd) if cloned else None
+    asyncio.run(_check_voice(settings.voice))
+    (wd.tts_dir / "raw").mkdir(parents=True, exist_ok=True)
+    meta = json.loads(wd.meta.read_text(encoding="utf-8"))
+    slots = {s.id: slot for s, slot in zip(segments, _slots(segments, meta.get("duration")))}
+    translated = {s.id: s for s in segments}
+    # an edit speaks the new translation; a take, what the clip said (maybe a shortened version that fit)
+    by_id = {i: replace(translated[i], text=translated[i].text if i in edits else clips[i].text) for i in ids}
+    base = Voice.clone(settings, ref) if cloned else Voice.edge(settings)
+    voices = {i: replace(base, seed=seeds.get(i, SEED)) for i in clips}
+    for clip in _render_each(wd, [(by_id[i], voices[i]) for i in ids], slots, settings):
+        clips[clip.id] = clip
+    fell_back, still_bad, n_short, below_floor = _fit(wd, clips, voices, slots, by_id, settings, engine, set(ids))
+
+    index["clips"] = [asdict(clips[s.id]) for s in segments]
+    index["sources"] = {str(s.id): s.text for s in segments}  # every pending edit is spoken now
+    index["stats"] = {"seconds": round(time.monotonic() - started, 1), "shortened": n_short, "retouched": ids}
+    wd.tts_index.write_text(json.dumps(index, ensure_ascii=False, indent=1), encoding="utf-8")
+    # the other clips keep their lines; the mix writes its "delayed" lines again
+    kept = []
+    if wd.overflow_log.exists():
+        for line in wd.overflow_log.read_text(encoding="utf-8").splitlines(keepends=True):
+            m = re.match(r"#(\d+) (@|delayed)", line)
+            if m and (int(m[1]) in ids or m[2] == "delayed"):
+                continue
+            kept.append(line)
+    with wd.overflow_log.open("w", encoding="utf-8") as f:
+        f.writelines(kept)
+        for i in ids:
+            f.writelines(_issue_lines(clips[i], still_bad, fell_back, below_floor, settings.min_factor))
+    (wd.path / "takes.json").write_text(json.dumps({str(k): v for k, v in sorted(seeds.items())}), encoding="utf-8")
+
+    fits = sum(1 for i in ids if clips[i].overflow == 0)
+    log.info(f"Retouched {len(ids)} segment(s) in {time.monotonic() - started:.1f}s · fit: {fits} · "
+             f"shortened: {n_short} · fell back to edge-tts: {len(fell_back)}")
+    wd.mark_done("tts", _params(settings, segments, engine, ref, seeds if cloned else {}))
+    return ids

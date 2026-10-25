@@ -143,7 +143,10 @@ def outputs(wd: WorkDir) -> list[dict[str, Any]]:
         })
     found.sort(key=lambda o: o["date"], reverse=True)
     for o in found:
-        o["issues"] = len(issues(wd, None if o["current"] else o["version"]))
+        version = None if o["current"] else o["version"]
+        o["issues"] = len(issues(wd, version))
+        # a retouch: how many sentences it spoke again over the dub before it
+        o["retouched"] = len((_version_sources(wd, version)[0].get("stats") or {}).get("retouched") or [])
     return found
 
 
@@ -172,6 +175,7 @@ def version_detail(wd: WorkDir, version: str) -> dict[str, Any]:
             "below_floor": sum(1 for i in found if i["kind"] == "floor"),
             "redone": sum(1 for i in found if i["kind"] == "repaired"),
             "edge": sum(1 for c in clips if c.get("voice") == "edge") if engine != "edge" else 0,
+            "retouched": stats.get("retouched") or [],
         },
         "issues": found,
         "clips": [{k: c.get(k) for k in ("id", "start", "slot", "raw_duration", "tempo", "factor", "voice", "text")}
@@ -234,7 +238,26 @@ def translation(wd: WorkDir, manager: JobManager) -> dict[str, Any] | None:
             "edited": str(seg.id) in edited,
         })
     return {"segments": segments, "chars_per_second": pace.cps if pace else None,
-            "needs_regeneration": not (wd.has("tts") and wd.has("mix"))}
+            "needs_regeneration": not (wd.has("tts") and wd.has("mix")),
+            # edited since the latest dub: what a retouch speaks again
+            "pending": sorted(tts.pending_edits(wd)) if wd.output.exists() else []}
+
+
+def dub_engine(wd: WorkDir) -> str:
+    return (_tts_index(wd) or {}).get("engine") or "edge"
+
+
+def retouchable(wd: WorkDir, takes: list[int]) -> list[int]:
+    """What a retouch with these takes would speak again. LookupError: no dub, or no such segment."""
+    if not (wd.output.exists() and wd.tts_index.exists()):
+        raise LookupError()
+    ids = {c["id"] for c in (_tts_index(wd) or {}).get("clips") or []}
+    unknown = sorted(set(takes) - ids)
+    if unknown:
+        raise LookupError(f"No segment {unknown[0]} in this dub")
+    if takes and dub_engine(wd) == "edge":
+        raise LookupError("Another take needs a cloned voice: edge-tts always says a text the same way")
+    return sorted(tts.pending_edits(wd) | set(takes))
 
 
 def save_translation(wd: WorkDir, edits: list[dict[str, Any]]) -> None:

@@ -38,6 +38,10 @@ class JobRequest(BaseModel):
     keep_translation: bool = False
 
 
+class RetouchRequest(BaseModel):
+    takes: list[int] = []  # sentences to speak again with another take; edited ones always are
+
+
 class SegmentEdit(BaseModel):
     id: int
     text: str = Field(min_length=1)
@@ -214,6 +218,30 @@ def create_app(work_root: Path = Path("work"), runner: Runner | None = None,
         except KeyError as e:
             raise HTTPException(422, f"No segment {e.args[0]}") from e
         return videos.translation(wd, manager)
+
+    @app.post("/videos/{vid}/retouch")
+    def retouch(vid: str, req: RetouchRequest) -> dict:
+        """Queue a retouch of the latest dub: its edited sentences and the takes asked for."""
+        wd = folder(vid)
+        job = manager.get(vid)
+        if job and job.status in ACTIVE:
+            raise HTTPException(409, "This video is being dubbed; retouch it when the job ends")
+        try:
+            pending = videos.retouchable(wd, req.takes)
+        except LookupError as e:
+            raise HTTPException(404 if not e.args else 422, str(e.args[0]) if e.args else "No dub yet") from e
+        if not pending:
+            raise HTTPException(422, "Nothing to retouch: no edited sentence and no take asked for")
+        saved = (manager.saved(vid) or {}).get("options") or {}
+        fields = {f for f in JobOptions.__dataclass_fields__} - {"url", "retouch"}
+        options = JobOptions(url=vid, **{k: v for k, v in saved.items() if k in fields}, retouch=sorted(set(req.takes)))
+        engine = videos.dub_engine(wd)
+        if engine != "edge":
+            info = next(e for e in videos.engines() if e["id"] == engine)
+            if not info["installed"]:
+                raise HTTPException(422, f"{info['name']} is not installed. Install it with: {info['setup']}")
+        job = manager.submit(options)
+        return {"id": job.id, **job.summary(), "segments": pending}
 
     @app.get("/style")
     def get_style() -> dict:

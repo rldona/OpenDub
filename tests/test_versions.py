@@ -144,7 +144,7 @@ def test_each_version_has_its_own_issues_and_numbers(tmp_path):
     latest = c.get("/videos/17kBVfGjI8c/versions/latest").json()
     assert latest["current"] and latest["engine"] == "indextts"
     assert latest["stats"] == {"clips": 2, "voice_seconds": 42.5, "sped_up": 1, "shortened": 3, "below_floor": 1,
-                               "redone": 0, "edge": 0}
+                               "redone": 0, "edge": 0, "retouched": []}
     older = c.get(f"/videos/17kBVfGjI8c/versions/{old.stem}").json()
     assert not older["current"] and older["stats"]["edge"] == 1 and older["stats"]["redone"] == 1
     assert {i["kind"] for i in older["issues"]} == {"fallback", "repaired"}

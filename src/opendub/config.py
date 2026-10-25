@@ -42,6 +42,8 @@ class Settings:
     keep_translation: bool = False
     # Extra style.json (register, variant, glossary, notes) over work/style.json and the video's own
     style_file: Path | None = None
+    # A retouch instead of a dub: speak again the edited sentences and these new takes, then mix
+    retouch: tuple[int, ...] | None = None
     rate: str = "-10%"  # native edge-tts rate (more negative = slower)
     min_tempo: float = 1.0  # < 1 allows slowing down short clips to fill their slot
     max_tempo: float = 1.25

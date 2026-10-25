@@ -445,3 +445,35 @@ def test_style_global_and_per_video_and_glossary_issues(tmp_path):
     assert c.get(f"/videos/{VID}/style").json()["stale"] is False
     c.put(f"/videos/{VID}/style", json={})
     assert not (wd.path / style.FILE).exists()
+
+
+def test_retouch_queues_a_job_with_the_last_options(tmp_path):
+    fake = FakePipeline()
+    c = client(tmp_path, fake)
+    wd = make_video(tmp_path / "work", engine="chatterbox")
+    (wd.path / "job.json").write_text(json.dumps({"id": VID, "status": "done", "error": None, "options": {
+        "url": VID, "separate": True, "tts": "clone", "engine": "chatterbox", "voice": "es-ES-AlvaroNeural",
+        "bg_volume": -3.0, "keep_translation": True}}))
+    assert c.post(f"/videos/{VID}/retouch", json={}).status_code == 422  # nothing edited, no take
+    assert c.post(f"/videos/{VID}/retouch", json={"takes": [99]}).status_code == 422
+    assert c.post("/videos/AAAAAAAAAAA/retouch", json={}).status_code == 404
+
+    c.put(f"/videos/{VID}/translation", json=[{"id": 1, "text": "Los terremotos son habituales."}])
+    assert c.get(f"/videos/{VID}/translation").json()["pending"] == [1]
+    r = c.post(f"/videos/{VID}/retouch", json={"takes": [3, 3]})
+    assert r.status_code == 200 and r.json()["segments"] == [1, 3]
+    wait_status(c, VID)
+    _, settings = fake.runs[-1]
+    assert settings.retouch == (3,) and settings.music_volume_db == -3.0 and settings.engine == "chatterbox"
+
+    # a plain dub afterwards is not a retouch, even though job.json remembers one
+    c.post("/jobs", json={"url": VID})
+    wait_status(c, VID)
+    assert fake.runs[-1][1].retouch is None
+
+
+def test_retouch_needs_a_cloned_voice_for_takes(tmp_path):
+    c = client(tmp_path, FakePipeline())
+    make_video(tmp_path / "work", engine="edge")
+    r = c.post(f"/videos/{VID}/retouch", json={"takes": [2]})
+    assert r.status_code == 422 and "cloned voice" in r.json()["detail"]

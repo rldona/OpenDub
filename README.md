@@ -145,6 +145,21 @@ video never says changes nothing. Shortened sentences keep the glossary too. A
 sentence whose spoken text doesn't use a term its original says is listed as a
 `glossary` issue on the web page, except hand edits.
 
+### Retouching a few sentences
+
+```bash
+uv run opendub retouch KS837a-TFRc --take 12 --take 40 --separate
+```
+
+`retouch` speaks again, with the dub's own engine, the sentences whose
+translation changed since the latest dub (hand edits in `translation.json` or
+from the web) and each `--take`, then mixes a new version. Each goes through
+the same fitting and quality check as a full dub, judged against the whole
+video. The chosen takes are remembered in `takes.json`, so a later full dub
+keeps them, and the TTS phase stays cached for the new translation. Hand-edited
+sentences are never rewritten shorter, in a retouch or a full dub: what doesn't
+fit is compressed as far as the engine allows and reported.
+
 ## Web frontend
 
 A local dashboard to dub without the command line, in English or Spanish, dark
@@ -159,8 +174,10 @@ or light, with a choice of accent color (Preferences):
   (voice time, sped up, shortened, below the floor, redone, edge-tts) and its
   own issues; older ones can be deleted (the latest stays). The translation,
   segment by segment, shows each issue of the version you watch next to its
-  sentence, filters to those or to hand edits, and saves edits for the next
-  dub. **Re-dub…** picks the engine (with what it did last time on that video)
+  sentence, filters to those or to hand edits, and saves edits. **Regenerate**
+  speaks again only the edited sentences and those marked for **another take**
+  (the same text, the next seed of the cloned voice), then mixes a new version:
+  ~30–40 s on a 19-minute video instead of a whole TTS phase. **Re-dub…** picks the engine (with what it did last time on that video)
   and keeps the translation by default, so only the voice and the mix run.
 - **Compare**: two versions side by side, playing in sync, heard one at a
   time (A/B keys), with how each one fitted and the segments where they differ.
@@ -201,6 +218,7 @@ but neither the translation nor the separation).
 | `video.mp4`, `audio.wav`, `subs.*` | Download |
 | `segments.json` | Original sentences with timestamps |
 | `translation.json` | Translation (you can edit it by hand and rerun `tts`) |
+| `takes.json` | The seed of each sentence given another take (retouch) |
 | `style.json`, `translation.style.json` | The video's own translation style, and the one its translation was made with |
 | `translate_blocks/` | Each translated block, cached by its own inputs |
 | `tts/`, `tts.json` | One clip per sentence, with its tempo, duration and spoken text (shortened if needed) |

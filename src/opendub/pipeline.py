@@ -35,6 +35,8 @@ def dub(url: str, settings: Settings, output: Path | None = None, force: bool = 
     Separation runs before translation with a cloned voice, since its speaking
     rate (measured from the separated vocals) caps the translation length.
     """
+    if settings.retouch is not None:
+        return retouch(url, settings, output)
     wd = workdir(url, settings)
     settings = style_mod.with_variant_voice(settings, style_mod.load(settings.work_root, wd.path, settings.style_file))
     if force:
@@ -50,6 +52,17 @@ def dub(url: str, settings: Settings, output: Path | None = None, force: bool = 
         translate_mod.run(wd, settings)
     with phase("TTS"):
         tts_mod.run(wd, settings)
+    with phase("Mix"):
+        return mix_mod.run(wd, settings, output=output)
+
+
+def retouch(url: str, settings: Settings, output: Path | None = None) -> Path:
+    """Speak again only the edited sentences and the new takes of the latest dub, then mix:
+    a new version, in seconds instead of a whole TTS phase."""
+    wd = workdir(url, settings)
+    settings = style_mod.with_variant_voice(settings, style_mod.load(settings.work_root, wd.path, settings.style_file))
+    with phase("TTS"):
+        tts_mod.retouch(wd, settings, settings.retouch or ())
     with phase("Mix"):
         return mix_mod.run(wd, settings, output=output)
 

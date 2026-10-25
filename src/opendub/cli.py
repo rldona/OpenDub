@@ -275,6 +275,42 @@ def mix(
 
 
 @app.command()
+def retouch(
+    url: Url,
+    work: WorkRoot = Path("work"),
+    take: Annotated[
+        list[int] | None,
+        typer.Option("--take", help="Segment id to speak again with another take (repeat it for several)"),
+    ] = None,
+    clone_ref: CloneRef = None,
+    min_factor: MinFactor = 0.7,
+    whisper_model: WhisperModel = "small",
+    voice: Voice = "es-ES-AlvaroNeural",
+    rate: Rate = "-10%",
+    max_tempo: MaxTempo = 1.25,
+    shorten: Shorten = True,
+    backend: Backend = "cli",
+    model: ClaudeModel = "claude-sonnet-5-5",
+    bg_volume: BgVolume = -15.0,
+    mute_original: MuteOriginal = False,
+    separate: Separate = False,
+    music_volume: MusicVolume = 0.0,
+    output: Output = None,
+) -> None:
+    """Speak again the sentences edited since the latest dub (and any --take), then mix a new version.
+
+    With the dub's own engine. Hand-edited sentences are never shortened. Requires a dub.
+    """
+    settings = Settings(
+        work_root=work, clone_ref=clone_ref, min_factor=min_factor, whisper_model=whisper_model, voice=voice,
+        rate=rate, max_tempo=max_tempo, shorten=shorten, backend=backend, claude_model=model,
+        bg_volume_db=bg_volume, mute_original=mute_original, separate=separate, music_volume_db=music_volume,
+        retouch=tuple(take or ()),
+    )
+    pipeline.retouch(url, settings, output=output)
+
+
+@app.command()
 def web(
     work: WorkRoot = Path("work"),
     port: Annotated[int, typer.Option("--port", help="Port on 127.0.0.1")] = 8000,
