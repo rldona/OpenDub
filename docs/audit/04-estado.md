@@ -97,17 +97,16 @@ Ordenado por prioridad. Cada punto dice qué falta, dónde está y qué se propo
 puntos que vienen de la [Auditoría 2](03-competencia.md#7-decisiones-del-propietario-2026-10-25)
 lo indican.
 
-### Requisito de entrada de la ejecución 3
+### Requisito de entrada de la ejecución 3: cumplido (2026-10-25)
 
-- **Escucha comparativa a ciegas.**
-  - Qué: 2–3 vídeos del corpus, OpenDub frente a Subtitle Edit (con Chatterbox) y
-    frente a ElevenLabs Dubbing v2, con `docs/bench/listening`.
-  - Por qué va primero: valida la premisa del producto. Si el lazo de calidad no se
-    oye, el roadmap pasa a ser más calidad de voz y menos herramientas de edición.
-  - Necesita del propietario: una cuenta de ElevenLabs (unos 2,20 $/min por API, o el
-    plan gratuito con marca de agua) y Subtitle Edit instalado.
-  - Para que la sesión mezcle tres fuentes, `session.py` tiene que aceptar audios
-    externos además de versiones de OpenDub.
+- **Escucha comparativa a ciegas**, hecha
+  ([03-competencia.md §8](03-competencia.md#8-escucha-comparativa-2026-10-25)).
+  - Fuentes: OpenDub, una réplica del enfoque de acelerar de Subtitle Edit y
+    pyVideoTrans, y ElevenLabs Dubbing v2.
+  - Resultado: OpenDub 3,7 de nota media, preferido 9 de 10; la réplica 2,9;
+    ElevenLabs 2,0.
+  - El lazo de calidad se oye, con los límites del §8: dos vídeos cortos, un oyente,
+    la réplica no es el programa real.
 
 ### P2
 

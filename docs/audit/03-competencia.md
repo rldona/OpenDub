@@ -489,6 +489,52 @@ En la práctica:
    - Ya está escrita en el README: uso personal, y no publicar doblajes con voces
      clonadas de terceros.
 
+## 8. Escucha comparativa (2026-10-25)
+
+Es el requisito de entrada de la ejecución 3 (§7.2). Sesión `vs-others` de
+`docs/bench/listening`:
+- **Material:** 10 fragmentos de 10–15 s de los dos vídeos cortos del corpus
+  (`17kBVfGjI8c`, voz masculina; `rwF-X5STYks`, voz femenina).
+- **Escucha:** tres doblajes por fragmento en orden aleatorio, igualados en sonoridad.
+- **Notas:** una nota global de 1 a 5 y una preferencia, sin saber cuál era cuál hasta
+  el final.
+
+| Fuente | Cómo se hizo | Nota media | Preferido |
+|---|---|---|---|
+| **OpenDub** | Su doblaje normal con Chatterbox V3: traducción ajustada al hueco, acortado, comprobación con whisper, aceleración de 1,25× como máximo | **3,7** | **9 de 10** |
+| Réplica del enfoque de Subtitle Edit y pyVideoTrans | Misma traducción de Claude pero sin límite de longitud (`translate_srt.py`), misma voz Chatterbox V3 y misma referencia, cada línea acelerada hasta su subtítulo sin tope (mediana 1,14× y 1,31×, máximo 1,69×), sin acortar ni comprobar (`speedup_dub.py`) | 2,9 | 1 de 10 |
+| ElevenLabs Dubbing v2 | Su doblaje real con el plan gratuito, inglés → español, hablantes automáticos; en la sesión, su audio con la imagen original (`elevenlabs_dub.py`) | 2,0 | 0 de 10 |
+
+**Lectura:**
+- **El lazo de calidad se oye.**
+  - Con la misma voz y el mismo traductor, ajustar la traducción al hueco gana a
+    acelerar.
+  - La réplica solo empató o ganó donde casi no tuvo que acelerar: el fragmento
+    f04 empató a 4, y en f08 ganó con 4 frente a 3.
+- **ElevenLabs sacó un 2 en los diez fragmentos.** Antes de darlo por bueno se descartó
+  un fallo técnico de la preparación:
+  - su voz habla cuando habla el original, con 0,3 s de adelanto, parecido a la voz
+    original;
+  - conserva la música;
+  - es español de principio a fin.
+  - Así que la nota es el juicio de cómo suena, no un error de sincronía.
+
+**Límites, que impiden generalizar:**
+- **Muestra pequeña:** dos vídeos cortos de una sola voz, 10 fragmentos y un solo
+  oyente, que es el propietario.
+- **La segunda fuente es una réplica, no Subtitle Edit.** Reproduce el enfoque que
+  documentan Subtitle Edit y pyVideoTrans con piezas de OpenDub. Sus programas pueden
+  diferir en detalles: recorte de silencios, tope de velocidad, mezcla. No se pudo usar
+  el programa real porque exige manejar su interfaz gráfica, y no se instaló
+  pyVideoTrans por no ejecutar código de terceros.
+- **ElevenLabs:** se probó su plan gratuito con Dubbing v2, que sigue en *alpha*, sin
+  editar nada.
+- **Sin datos de vídeos largos, con música o con varias voces.**
+
+**Consecuencia:** se cumple la condición del §7.1, «si suena mejor, tendrás un
+argumento real», con estos límites. Volver a plantear si se buscan usuarios es decisión
+del propietario. La ejecución 3 puede empezar.
+
 ## Anexo · Fuentes
 
 Todas consultadas el 2026-10-25; entre paréntesis, la fecha propia de la página cuando la
