@@ -135,6 +135,14 @@ def create_app(work_root: Path = Path("work"), runner: Runner | None = None,
             raise HTTPException(404, "No job for this video")
         return saved
 
+    @app.post("/jobs/{vid}/cancel")
+    def cancel_job(vid: str) -> dict:
+        """Cancel a video's queued or running job; what it had done stays cached."""
+        job = manager.cancel(check_id(vid))
+        if not job:
+            raise HTTPException(404, "No job for this video")
+        return job.summary()
+
     @app.get("/jobs/{vid}/events")
     def job_events(vid: str, request: Request) -> StreamingResponse:
         """Server-sent events: everything since the start (or since Last-Event-ID), then live, until the job ends."""

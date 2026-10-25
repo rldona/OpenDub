@@ -139,14 +139,13 @@ def synthesize_batch(jobs: list[tuple[str, Path, int, Path]], log_path: Path, do
         pending.put(job)
 
     def serve(k: int) -> None:
-        worker = engines.worker(f"{MODEL}#{k}", lambda: engines.Worker(
-            f"{MODEL} #{k + 1}", Path(sys.executable), WORKER, [], Path.cwd(), log_path))
+        start = lambda: engines.Worker(f"{MODEL} #{k + 1}", Path(sys.executable), WORKER, [], Path.cwd(), log_path)
         while True:
             try:
                 text, ref, seed, out = pending.get_nowait()
             except Empty:
                 return
-            worker.request(text, ref, out, 1.0, seed)
+            engines.speak(f"{MODEL}#{k}", start, text, ref, out, 1.0, seed)
             done()
 
     with ThreadPoolExecutor(max_workers=size) as pool:

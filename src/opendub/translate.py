@@ -20,7 +20,7 @@ from . import media
 from . import speakers as speakers_mod
 from . import style as style_mod
 from .config import Settings
-from .log import Progress, console, log
+from .log import Progress, check_cancelled, console, log
 from .models import Segment, load_segments, save_segments
 from .workdir import WorkDir, params_hash, write_text_atomic
 
@@ -259,6 +259,7 @@ def _ask(system: str, prompt: str, expected: list[int], settings: Settings) -> t
     cost = 0.0
     last: Exception | None = None
     for attempt in range(1, MAX_ATTEMPTS + 1):
+        check_cancelled()  # a cancelled job's claude call is killed: don't start another one
         try:
             if settings.backend == "cli":
                 out, c = _call_cli(system, prompt, settings.claude_model)

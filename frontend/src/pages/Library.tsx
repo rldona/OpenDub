@@ -169,7 +169,12 @@ export function NowDubbing() {
     }
   }
   const heading = job.status === "queued" ? t("queued_now") : job.status === "running" ? t("dubbing_now")
-    : job.status === "error" ? t("job_failed", { msg: job.error ?? "" }) : t("job_done");
+    : job.status === "error" ? t("job_failed", { msg: job.error ?? "" })
+    : job.status === "cancelled" ? t("job_cancelled") : t("job_done");
+  async function cancel() {
+    if (!confirm(t("cancel_confirm", { v: job!.title ?? job!.id }))) return;
+    await api.cancel(job!.id).catch(() => undefined);
+  }
   return (
     <section className="card stack" aria-labelledby="now" style={{ padding: "16px 20px", gap: 12 }}>
       <div className="row" style={{ gap: "10px 16px" }}>
@@ -186,6 +191,7 @@ export function NowDubbing() {
         </div>
         {job.engine && <EngineTag engine={job.engine === "auto" ? null : job.engine} extra={job.engine === "auto" ? t("auto") : undefined} />}
         <span className="num" style={{ fontSize: 20, fontWeight: 700 }}>{Math.floor(f * 100)}%</span>
+        {live && <button type="button" className="btn danger" onClick={() => void cancel()}>{t("cancel_job")}</button>}
       </div>
       <div className="progress" role="progressbar" aria-valuenow={Math.floor(f * 100)} aria-valuemin={0} aria-valuemax={100}>
         <div style={{ width: `${(f * 100).toFixed(1)}%` }} />
@@ -291,9 +297,9 @@ function VideoTable({ videos, onChanged }: { videos: Video[] | null; onChanged: 
                     <td>
                       <span className="row" style={{ gap: 8 }}>
                         <StatusBadge status={v.status} />
-                        {(v.status === "error" || v.status === "pending") && (
+                        {(v.status === "error" || v.status === "pending" || v.status === "cancelled") && (
                           <button type="button" className="btn" style={{ height: 30 }} onClick={() => start(v.id)}>
-                            {v.status === "error" ? t("retry") : t("start_dub")}
+                            {v.status === "pending" ? t("start_dub") : t("retry")}
                           </button>
                         )}
                       </span>

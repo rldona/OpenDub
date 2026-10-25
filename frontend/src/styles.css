@@ -147,6 +147,7 @@ textarea.input { height: auto; padding: 6px 8px; width: 100%; resize: vertical; 
 .badge.done { background: var(--success-soft); color: var(--success); }
 .badge.running, .badge.queued { background: var(--accent-soft); color: var(--accent-text); }
 .badge.error { background: var(--danger-soft); color: var(--danger); }
+.badge.cancelled { background: var(--surface-3); color: var(--muted); }
 .badge.warning { background: var(--warning-soft); color: var(--warning); }
 .warn-text { color: var(--warning); }
 .danger-text { color: var(--danger); }

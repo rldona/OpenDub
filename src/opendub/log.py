@@ -10,6 +10,7 @@ itself (a handler on `log`), so nothing is reported twice.
 from __future__ import annotations
 
 import logging
+import threading
 import time
 from collections.abc import Callable
 from contextlib import contextmanager
@@ -38,6 +39,27 @@ Event = dict[str, Any]
 _listeners: list[Callable[[Event], None]] = []
 
 
+class Cancelled(BaseException):
+    """The running job was cancelled (web): raised at the next progress tick, phase or Claude call.
+    A BaseException, so the phases' own `except Exception` don't swallow it."""
+
+
+_cancel = threading.Event()
+
+
+def request_cancel() -> None:
+    _cancel.set()
+
+
+def clear_cancel() -> None:
+    _cancel.clear()
+
+
+def check_cancelled() -> None:
+    if _cancel.is_set():
+        raise Cancelled()
+
+
 def subscribe(listener: Callable[[Event], None]) -> Callable[[], None]:
     """Receive phase and progress events; returns the function that unsubscribes."""
     _listeners.append(listener)
@@ -63,6 +85,7 @@ def plain(markup: str) -> str:
 @contextmanager
 def phase(name: str):
     """Frame a pipeline phase and time it."""
+    check_cancelled()
     console.rule(f"[bold cyan]{name}")
     emit({"type": "phase", "name": name, "state": "start"})
     start = time.monotonic()
@@ -98,6 +121,7 @@ class Progress(rich_progress.Progress):
         self._report(task_id)
 
     def _report(self, task_id: rich_progress.TaskID, force: bool = False) -> None:
+        check_cancelled()  # every clip, block or second of transcription: where a cancel takes effect
         if not _listeners:
             return
         task = self._tasks[task_id]

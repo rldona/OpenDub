@@ -86,8 +86,11 @@ def status(wd: WorkDir, manager: JobManager) -> tuple[str, str | None]:
     finished = wd.has("mix") and wd.output.exists()
     if state in ACTIVE:
         return state, None
-    if state == "error" and not (finished and wd.output.stat().st_mtime > wd.job.stat().st_mtime):
+    newer = finished and wd.job.exists() and wd.output.stat().st_mtime > wd.job.stat().st_mtime
+    if state == "error" and not newer:
         return "error", error
+    if state == "cancelled" and not newer:
+        return "cancelled", None
     return ("done" if finished else "pending"), None
 
 

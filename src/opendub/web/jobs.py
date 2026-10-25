@@ -22,10 +22,10 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any
 
-from .. import pipeline
+from .. import media, pipeline
 from ..config import Settings
 from ..download import video_id
-from ..log import log, plain, subscribe
+from ..log import Cancelled, clear_cancel, log, plain, request_cancel, subscribe
 from ..workdir import write_text_atomic
 
 VIDEO_ID = re.compile(r"[\w-]{11}")
@@ -63,6 +63,7 @@ class Job:
     created: str = field(default_factory=lambda: datetime.now().isoformat(timespec="seconds"))
     finished: str | None = None
     events: list[dict[str, Any]] = field(default_factory=list, repr=False)
+    cancelling: bool = field(default=False, repr=False)
 
     def __post_init__(self) -> None:
         self._cond = threading.Condition()
@@ -74,7 +75,7 @@ class Job:
 
     def set_status(self, status: str, error: str | None = None) -> None:
         self.status, self.error = status, error
-        if status in ("done", "error"):
+        if status in ("done", "error", "cancelled"):
             self.finished = datetime.now().isoformat(timespec="seconds")
         self.add({"type": "status", "status": status, **({"error": error} if error else {})})
 
@@ -167,9 +168,29 @@ class JobManager:
         saved = self.saved(vid)
         return saved.get("status") if saved else None
 
+    def cancel(self, vid: str) -> Job | None:
+        """Cancel a video's job: a queued one never runs; a running one stops at its next progress
+        tick, phase or Claude call, its child processes (ffmpeg, claude, the engines) terminated.
+        What it had done stays cached, so dubbing it again goes on from there."""
+        with self._lock:
+            job = self._jobs.get(vid)
+            if not job or job.status not in ACTIVE:
+                return job
+            if job.status == "queued":
+                job.set_status("cancelled")
+                self._save(job)
+                return job
+            job.cancelling = True
+        request_cancel()
+        media.stop_children()
+        return job
+
     def _work(self) -> None:
         while True:
             job = self._queue.get()
+            if job.status == "cancelled":  # cancelled while it waited
+                self._queue.task_done()
+                continue
             try:
                 self._run(job)
             finally:
@@ -179,18 +200,25 @@ class JobManager:
         handler = _JobLogHandler(job)
         log.addHandler(handler)
         unsubscribe = subscribe(job.add)
+        clear_cancel()
         job.set_status("running")
         self._save(job)
         try:
             self.runner(job.options.url, job.options.settings(self.work_root))
+        except Cancelled:
+            job.set_status("cancelled")
         except SystemExit as e:  # the phases stop with SystemExit and a readable message
-            job.set_status("error", str(e) or "Stopped")
+            job.set_status("cancelled" if job.cancelling else "error", None if job.cancelling else str(e) or "Stopped")
         except Exception as e:
-            log.exception("Job failed")
-            job.set_status("error", f"{type(e).__name__}: {e}")
+            if job.cancelling:  # a child killed by the cancel failed the step it was in
+                job.set_status("cancelled")
+            else:
+                log.exception("Job failed")
+                job.set_status("error", f"{type(e).__name__}: {e}")
         else:
             job.set_status("done")
         finally:
+            clear_cancel()
             unsubscribe()
             log.removeHandler(handler)
             self._save(job)

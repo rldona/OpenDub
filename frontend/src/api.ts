@@ -2,7 +2,7 @@
 
 export type Engine = "chatterbox" | "indextts" | "cosyvoice";
 export type EngineChoice = Engine | "auto";
-export type Status = "pending" | "queued" | "running" | "done" | "error";
+export type Status = "pending" | "queued" | "running" | "done" | "error" | "cancelled";
 
 export interface JobOptions {
   url: string;
@@ -199,6 +199,7 @@ export const api = {
   engines: () => call<EngineStatus[]>("/engines"),
   jobs: () => call<JobSummary[]>("/jobs"),
   job: (id: string) => call<JobSummary>(`/jobs/${id}`),
+  cancel: (id: string) => call<JobSummary>(`/jobs/${id}/cancel`, { method: "POST" }),
   submit: (options: JobOptions) => call<JobSummary>("/jobs", { method: "POST", body: JSON.stringify(options) }),
   videos: () => call<Video[]>("/videos"),
   video: (id: string) => call<Video>(`/videos/${id}`),

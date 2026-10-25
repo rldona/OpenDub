@@ -69,7 +69,7 @@ def setup(home: Path) -> None:
 
 def synthesize(home: Path, log_path: Path, text: str, ref: Path, out: Path, factor: float, seed: int) -> None:
     """Speak `text` with the voice of `ref`, its duration scaled by `factor` (speed = 1/factor)."""
-    engines.worker(MODEL, lambda: _start(home, log_path)).request(text, ref, out, factor, seed)
+    engines.speak(MODEL, lambda: _start(home, log_path), text, ref, out, factor, seed)
 
 
 def _start(home: Path, log_path: Path) -> engines.Worker:

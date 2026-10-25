@@ -22,13 +22,14 @@ const en = {
   TTS: "Voice", Mix: "Mix",
   eta_min: "about {m} min left", eta_sec: "under a minute left", elapsed: "{t} elapsed", took: "took {t}",
   estimating: "estimating the time left…", finishing: "finishing: fitting and quality check…",
-  show_log: "Show log", job_failed: "Failed: {msg}", job_done: "Done",
+  show_log: "Show log", job_failed: "Failed: {msg}", job_done: "Done", job_cancelled: "Cancelled",
+  cancel_job: "Cancel", cancel_confirm: "Cancel the dub of “{v}”? What it has done is kept: dubbing it again goes on from there.",
 
   videos: "Videos", search: "Search…", search_videos: "Search videos", col_video: "Video", col_versions: "Versions",
   col_latest: "Latest", col_issues: "Issues", col_status: "Status",
   no_videos: "Paste a YouTube link above to dub your first video.", no_match: "No video matches.",
   status_pending: "Not dubbed", status_queued: "Queued", status_running: "Dubbing", status_done: "Done",
-  status_error: "Failed", retry: "Retry", start_dub: "Dub",
+  status_error: "Failed", status_cancelled: "Cancelled", retry: "Retry", start_dub: "Dub",
 
   segments_n: "{n} segments", ref_voice: "reference voice {f0} Hz", on_youtube: "YouTube",
   compare_btn: "Compare…", redub_btn: "Re-dub…", versions: "Versions", kept_n: "{n} kept", latest: "latest",
@@ -138,13 +139,14 @@ const es: Record<Key, string> = {
   TTS: "Voz", Mix: "Mezcla",
   eta_min: "faltan unos {m} min", eta_sec: "falta menos de un minuto", elapsed: "lleva {t}", took: "tardó {t}",
   estimating: "calculando lo que falta…", finishing: "terminando: ajuste y control de calidad…",
-  show_log: "Ver el log", job_failed: "Falló: {msg}", job_done: "Hecho",
+  show_log: "Ver el log", job_failed: "Falló: {msg}", job_done: "Hecho", job_cancelled: "Cancelado",
+  cancel_job: "Cancelar", cancel_confirm: "¿Cancelar el doblaje de «{v}»? Lo ya hecho se conserva: al volver a doblarlo sigue desde ahí.",
 
   videos: "Vídeos", search: "Buscar…", search_videos: "Buscar vídeos", col_video: "Vídeo", col_versions: "Versiones",
   col_latest: "Última", col_issues: "Avisos", col_status: "Estado",
   no_videos: "Pega arriba un enlace de YouTube para doblar tu primer vídeo.", no_match: "Ningún vídeo coincide.",
   status_pending: "Sin doblar", status_queued: "En cola", status_running: "Doblando", status_done: "Hecho",
-  status_error: "Falló", retry: "Reintentar", start_dub: "Doblar",
+  status_error: "Falló", status_cancelled: "Cancelado", retry: "Reintentar", start_dub: "Doblar",
 
   segments_n: "{n} segmentos", ref_voice: "voz de referencia {f0} Hz", on_youtube: "YouTube",
   compare_btn: "Comparar…", redub_btn: "Redoblar…", versions: "Versiones", kept_n: "{n} guardadas", latest: "la última",
