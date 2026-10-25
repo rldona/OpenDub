@@ -495,3 +495,69 @@ def test_versions_export_and_their_exports_go_with_them(tmp_path):
     assert c.get(f"/videos/{VID}/outputs/latest/export/srt").status_code == 404  # output.mp4 isn't kept here
     assert c.delete(f"/videos/{VID}/outputs/20261024-090000-edge").status_code == 200
     assert not list(wd.outputs_dir.glob("20261024-090000-edge*"))
+
+
+def _with_speakers(wd):
+    """make_video's dub, as if diarized: A says 1 and 3, B says 2."""
+    from opendub.models import load_segments, save_segments
+
+    wd.diarization.write_text(json.dumps({"turns": [], "speakers": {
+        "A": {"seconds": 400.0, "f0_hz": 120.0}, "B": {"seconds": 90.0, "f0_hz": 210.0}}}))
+    for path in (wd.segments, wd.translation):
+        segs = load_segments(path)
+        for s in segs:
+            s.speaker = "B" if s.id == 2 else "A"
+        save_segments(path, segs)
+    index = json.loads(wd.tts_index.read_text())
+    index["sources"] = {str(s.id): s.text for s in load_segments(wd.translation)}
+    index["speakers"] = {"1": "A", "2": "B", "3": "A"}
+    index["speaker_voices"] = {"A": {"engine": "chatterbox", "voice": None, "reference": "clone_ref_A.wav",
+                                     "gender": "male", "stock": "es-ES-AlvaroNeural"},
+                               "B": {"engine": "edge", "voice": "es-ES-ElviraNeural", "reference": None,
+                                     "gender": "female", "stock": None}}
+    wd.tts_index.write_text(json.dumps(index))
+    (wd.path / "clone_ref_A.wav").write_bytes(b"RIFF....WAVE")
+
+
+def test_speakers_list_rename_reassign_and_merge(tmp_path):
+    c = client(tmp_path, FakePipeline())
+    wd = make_video(tmp_path / "work", engine="chatterbox")
+    assert c.get(f"/videos/{VID}/speakers").json() == []  # one voice
+    _with_speakers(wd)
+    a, b = c.get(f"/videos/{VID}/speakers").json()
+    assert (a["id"], a["gender"], a["sentences"], a["voice"]["engine"]) == ("A", "male", 2, "chatterbox")
+    assert (b["gender"], b["voice"]["voice"], b["sample"]) == ("female", "es-ES-ElviraNeural", None)
+    assert c.get(a["sample"]).status_code == 200
+    assert c.get(f"/videos/{VID}/speakers/B.wav").status_code == 404
+
+    assert c.put(f"/videos/{VID}/speakers/A", json={"name": "Andy"}).json()[0]["name"] == "Andy"
+    assert c.put(f"/videos/{VID}/speakers/Z", json={"name": "x"}).status_code == 404
+
+    r = c.put(f"/videos/{VID}/segments/speakers", json=[{"id": 3, "speaker": "B"}])
+    assert r.status_code == 200
+    assert [s["speaker"] for s in r.json()["translation"]["segments"]] == ["A", "B", "B"]
+    assert r.json()["translation"]["pending"] == [3]  # a retouch speaks it with B's voice
+    assert c.put(f"/videos/{VID}/segments/speakers", json=[{"id": 3, "speaker": "C"}]).status_code == 422
+    assert c.put(f"/videos/{VID}/segments/speakers", json=[{"id": 9, "speaker": "A"}]).status_code == 422
+
+    r = c.post(f"/videos/{VID}/speakers/B/merge", json={"into": "A"})
+    assert r.json()["moved"] == 2
+    assert {s["speaker"] for s in r.json()["translation"]["segments"]} == {"A"}
+    assert c.post(f"/videos/{VID}/speakers/A/merge", json={"into": "A"}).status_code == 422
+    # kept for a translation made again
+    assert json.loads((wd.path / "speakers.json").read_text())["segments"] == {"3": "A", "2": "A"}
+
+
+def test_several_voices_need_the_diarizer(tmp_path, monkeypatch):
+    from opendub.web import videos
+
+    fake = FakePipeline()
+    c = client(tmp_path, fake)
+    monkeypatch.setattr(videos, "diarizer", lambda settings=None: {"installed": False, "setup": "uv run x"})
+    r = c.post("/jobs", json={"url": VID, "multi_speaker": True})
+    assert r.status_code == 422 and "uv run x" in r.json()["detail"]
+    assert c.get("/status").json()["diarizer"]["installed"] is False
+    monkeypatch.setattr(videos, "diarizer", lambda settings=None: {"installed": True, "setup": None})
+    c.post("/jobs", json={"url": VID, "multi_speaker": True})
+    wait_status(c, VID)
+    assert fake.runs[-1][1].multi_speaker is True
