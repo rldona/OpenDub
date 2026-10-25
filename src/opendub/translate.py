@@ -17,6 +17,7 @@ from typing import Any
 from rich.progress import BarColumn, MofNCompleteColumn, TimeElapsedColumn
 
 from . import media
+from . import speakers as speakers_mod
 from . import style as style_mod
 from .config import Settings
 from .log import Progress, console, log
@@ -84,6 +85,18 @@ rendering every time, inflected only if the grammar needs it. An empty translati
 means leave the term exactly as in the original.
 """
 
+SPEAKER_RULE = """\
+- `speaker_gender` says whether a man or a woman says the sentence: when they \
+speak of themselves, use that grammatical gender (cansado/cansada).
+"""
+
+SPEAKERS_RULE = """\
+- Several people speak: each segment says who (`speaker`, a letter) and, when \
+known, their `gender`. When a speaker speaks of themselves, use their \
+grammatical gender (cansado/cansada), and keep each one's way of speaking \
+consistent.
+"""
+
 NOTES = """
 Notes about this video from the person dubbing it (follow them):
 {notes}
@@ -125,28 +138,35 @@ def _slot(segments: list[Segment], i: int) -> float:
     return seg.duration + 1.0
 
 
-def _block_segments(block: list[tuple[Segment, float]], pace: Pace) -> list[dict[str, Any]]:
-    return [
-        {
-            "id": s.id,
-            "duration_s": round(slot, 1),
-            "max_chars": pace.max_chars(slot),
-            "text": s.text,
-        }
-        for s, slot in block
-    ]
+def _block_segments(
+    block: list[tuple[Segment, float]], pace: Pace, paces: dict[str, Pace] | None = None,
+    genders: dict[str, str | None] | None = None,
+) -> list[dict[str, Any]]:
+    """Each segment with its slot and its character cap; with several voices (`paces` per
+    speaker) the cap of its speaker's voice, and who says it."""
+    out = []
+    for s, slot in block:
+        item: dict[str, Any] = {"id": s.id, "duration_s": round(slot, 1),
+                                "max_chars": (paces or {}).get(s.speaker, pace).max_chars(slot), "text": s.text}
+        if paces:
+            item["speaker"] = s.speaker
+            if (genders or {}).get(s.speaker):
+                item["gender"] = genders[s.speaker]
+        out.append(item)
+    return out
 
 
 def _user_prompt(
     block: list[tuple[Segment, float]], context: list[tuple[str, str]], pace: Pace,
-    terms: list[style_mod.Term] | None = None,
+    terms: list[style_mod.Term] | None = None, paces: dict[str, Pace] | None = None,
+    genders: dict[str, str | None] | None = None,
 ) -> str:
     payload: dict[str, Any] = {}
     if context:
         payload["previous_context"] = [{"original": o, "translation": t} for o, t in context]
     if terms:
         payload["glossary"] = _glossary(terms)
-    payload["segments"] = _block_segments(block, pace)
+    payload["segments"] = _block_segments(block, pace, paces, genders)
     return json.dumps(payload, ensure_ascii=False, indent=1)
 
 
@@ -225,15 +245,23 @@ def _ask(system: str, prompt: str, expected: list[int], settings: Settings) -> t
 
 def shorten(
     items: list[tuple[int, str, str, int]], voice: str, settings: Settings, style: style_mod.Style | None = None,
+    genders: dict[int, str | None] | None = None,
 ) -> dict[int, str]:
     """Ask for shorter versions of sentences that do not fit: (id, original, translation, max_chars).
 
-    With a style, the shorter versions keep its register and glossary too.
+    With a style, the shorter versions keep its register and glossary too; with
+    `genders` (several voices), the gender agreement of whoever says each one.
     """
     style = style or style_mod.Style()
     terms = style_mod.matching(style.terms, [o for _, o, _, _ in items])
     system = _system(SHORTEN_PROMPT, style, terms, target=style_mod.target_name(voice, style.variant))
     listed = [{"id": i, "original": o, "translation": t, "max_chars": m} for i, o, t, m in items]
+    genders = {i: g for i, g in (genders or {}).items() if g}
+    if genders:
+        for item in listed:
+            if item["id"] in genders:
+                item["speaker_gender"] = genders[item["id"]]
+        system += SPEAKER_RULE
     payload: Any = {"glossary": _glossary(terms), "items": listed} if terms else listed
     prompt = json.dumps(payload, ensure_ascii=False, indent=1)
     got, _ = _ask(system, prompt, [i for i, *_ in items], settings)
@@ -281,17 +309,24 @@ def keep_edits(wd: WorkDir, originals: list[Segment], result: list[Segment], pac
 def run(wd: WorkDir, settings: Settings, force: bool = False) -> list[Segment]:
     if settings.backend not in ("cli", "api"):
         raise SystemExit(f"--backend must be cli or api (not {settings.backend!r})")
-    segments = load_segments(wd.segments)
+    segments = speakers_mod.apply(wd, load_segments(wd.segments))  # with the speakers corrected by hand
     meta = json.loads(wd.meta.read_text(encoding="utf-8"))
     source_code = (meta.get("language") or "en").split("-")[0]
     style = style_mod.load(settings.work_root, wd.path, settings.style_file)
     target = style_mod.target_name(settings.voice, style.variant)
-    from .tts import Pace, voice_rate  # lazy import: tts also imports this module
+    from .tts import Pace, _speaker_genders, multi_speaker, speaker_paces, voice_rate  # lazy: tts imports this module
 
     if settings.keep_translation and wd.has("translate") and wd.translation.exists():
         log.info("Keeping the existing translation (made for another voice's pace, fitted in TTS)")
         return load_segments(wd.translation)
-    pace = Pace(settings.chars_per_second) if settings.chars_per_second else voice_rate(wd, settings)
+    paces, genders = {}, {}
+    if multi_speaker(settings, segments):  # several voices: each sentence capped at its speaker's pace
+        genders = _speaker_genders(wd)
+        paces = ({spk: Pace(settings.chars_per_second) for spk in {s.speaker for s in segments}}
+                 if settings.chars_per_second else speaker_paces(wd, settings, segments))
+        pace = paces[min(paces)]  # A, who speaks most, for the logs
+    else:
+        pace = Pace(settings.chars_per_second) if settings.chars_per_second else voice_rate(wd, settings)
     cps = pace.cps
     params = {
         "model": settings.claude_model,
@@ -301,6 +336,10 @@ def run(wd: WorkDir, settings: Settings, force: bool = False) -> list[Segment]:
         "target": target,
         "source": [(s.id, s.text) for s in segments],
     }
+    if paces:
+        params["speakers"] = [(s.id, s.speaker) for s in segments]
+        params["paces"] = {spk: [p.cps, p.overhead] for spk, p in sorted(paces.items())}
+        params["genders"] = {spk: genders.get(spk) for spk in sorted(paces)}
     used = style_mod.matching(style.terms, [s.text for s in segments])
     if not style.empty:  # only then: a video without a style keeps its cached translation
         params["style"] = {"register": style.register, "notes": style.notes,
@@ -320,8 +359,12 @@ def run(wd: WorkDir, settings: Settings, force: bool = False) -> list[Segment]:
     pairs = list(zip(segments, slots))
     blocks = [pairs[i : i + settings.batch_size] for i in range(0, len(pairs), settings.batch_size)]
     log.info(f"{len(segments)} segments in {len(blocks)} blocks · backend {settings.backend} · {settings.claude_model}")
-    log.info(f"Speaking rate for max_chars: {cps:.1f} chars/s"
-             + (f" after {pace.overhead:.2f} s per clip" if pace.overhead else ""))
+    if paces:
+        log.info("Speaking rate for max_chars per speaker: " + ", ".join(
+            f"{spk} {p.cps:.1f} chars/s ({genders.get(spk) or '?'})" for spk, p in sorted(paces.items())))
+    else:
+        log.info(f"Speaking rate for max_chars: {cps:.1f} chars/s"
+                 + (f" after {pace.overhead:.2f} s per clip" if pace.overhead else ""))
     if not style.empty:
         log.info(f"Style: register {style.register} · {target} · {len(used)} of {len(style.terms)} glossary "
                  f"term(s) in this video" + (" · with notes" if style.notes else ""))
@@ -337,15 +380,17 @@ def run(wd: WorkDir, settings: Settings, force: bool = False) -> list[Segment]:
         for n, block in enumerate(blocks):
             terms = style_mod.matching(used, [s.text for s, _ in block])
             system = _system(SYSTEM_PROMPT, style, terms, source=source_name, target=target)
+            if paces:
+                system += SPEAKERS_RULE
             key = params_hash({"model": settings.claude_model, "system": system,
-                               "segments": _block_segments(block, pace), "glossary": _glossary(terms)})
+                               "segments": _block_segments(block, pace, paces, genders), "glossary": _glossary(terms)})
             path = block_dir / f"{key}.json"
             if path.exists() and not force:
                 got = {int(k): v for k, v in json.loads(path.read_text(encoding="utf-8")).items()}
             else:
                 prev = [s for s, _ in pairs[: n * settings.batch_size]][-CONTEXT_SEGMENTS:]
                 context = [(s.text, translated[s.id]) for s in prev]
-                prompt = _user_prompt(block, context, pace, terms)
+                prompt = _user_prompt(block, context, pace, terms, paces, genders)
                 got, cost = _ask(system, prompt, [s.id for s, _ in block], settings)
                 asked += 1
                 total_cost += cost
@@ -360,7 +405,7 @@ def run(wd: WorkDir, settings: Settings, force: bool = False) -> list[Segment]:
                                                ensure_ascii=False), encoding="utf-8")
 
     over = [
-        (s, slot) for s, slot in zip(result, slots) if len(s.text) > pace.max_chars(slot) * 1.25
+        (s, slot) for s, slot in zip(result, slots) if len(s.text) > paces.get(s.speaker, pace).max_chars(slot) * 1.25
     ]
     ratio = sum(len(s.text) for s in result) / sum(len(s.text) for s in segments)
     log.info(f"ES/original length: {ratio:.0%} · probably too long: {len(over)}")

@@ -105,6 +105,8 @@ class Voice:
     seed: int = SEED
     label: str = "edge"  # recorded in tts.json
     factor: float = 1.0  # engines with a native duration control: duration factor (<1 = shorter)
+    stock: str | None = None  # several voices: the stock voice of the speaker's gender (last resort)
+    gender: str | None = None  # several voices: "female" | "male", from the speaker's pitch
 
     @classmethod
     def edge(cls, settings: Settings) -> Voice:
@@ -452,6 +454,89 @@ def resolve_engine(settings: Settings, ref: Path | None = None) -> str:
     return "indextts" if f0 is not None and f0 < AUTO_F0_HZ else "chatterbox"
 
 
+# Several voices: the stock edge-tts voice of each gender per variant (a speaker who can't be
+# cloned, and every cloned speaker's last resort, speaks with the one of their gender)
+STOCK_VOICES = {
+    "es-ES": {"male": "es-ES-AlvaroNeural", "female": "es-ES-ElviraNeural"},
+    "es-MX": {"male": "es-MX-JorgeNeural", "female": "es-MX-DaliaNeural"},
+}
+
+
+def gender_of(f0: float | None) -> str | None:
+    """A speaker's gender from their mean pitch (the same threshold as --engine auto)."""
+    return None if f0 is None else ("female" if f0 >= AUTO_F0_HZ else "male")
+
+
+def stock_voice(base: str, gender: str | None) -> str:
+    """The edge-tts voice of `gender` in the variant of `base`: `base` itself if it has that gender."""
+    if gender is None:
+        return base
+    known = {v: g for pair in STOCK_VOICES.values() for g, v in pair.items()}
+    if known.get(base) == gender:
+        return base
+    return STOCK_VOICES.get(base.rsplit("-", 1)[0], STOCK_VOICES["es-ES"])[gender]
+
+
+def multi_speaker(settings: Settings, segments: list[Segment]) -> bool:
+    return settings.multi_speaker and any(s.speaker for s in segments)
+
+
+def _speaker_genders(wd: WorkDir) -> dict[str, str | None]:
+    speakers = json.loads(wd.diarization.read_text(encoding="utf-8"))["speakers"] if wd.diarization.exists() else {}
+    return {spk: gender_of(info.get("f0_hz")) for spk, info in speakers.items()}
+
+
+def speaker_voices(wd: WorkDir, settings: Settings, segments: list[Segment]) -> tuple[dict[str, Voice], str, Path | None]:
+    """(voice of each speaker, engine, main reference) for a video with several voices.
+
+    Each speaker is cloned from their own reference (reference.speaker_reference)
+    with one engine for all, the one --engine resolves for the main speaker (A,
+    who speaks most); a speaker without enough clean speech, and everyone with
+    --tts edge, speaks with the stock voice of their gender.
+    """
+    cloned = settings.tts == "clone"
+    speakers = sorted({s.speaker for s in segments if s.speaker})
+    genders = _speaker_genders(wd)
+    refs = {spk: reference.speaker_reference(wd, spk) for spk in speakers} if cloned else {}
+    main_ref = next((refs[spk] for spk in speakers if refs.get(spk)), None)
+    if cloned and main_ref is None:  # nobody has a clean stretch: the usual reference
+        main_ref = reference.reference(wd)
+    engine = resolve_engine(settings, main_ref)
+    voices = {}
+    for spk in speakers:
+        gender = genders.get(spk)
+        stock = stock_voice(settings.voice, gender)
+        if cloned and refs.get(spk):
+            voices[spk] = Voice(engine, settings.voice, settings.rate, ref=refs[spk], label=engine, stock=stock,
+                                gender=gender)
+        else:
+            voices[spk] = Voice("edge", stock, settings.rate, gender=gender)
+    return voices, engine, main_ref
+
+
+def _voices(
+    wd: WorkDir, settings: Settings, segments: list[Segment], seeds: dict[int, int],
+) -> tuple[dict[int, Voice], str, Path | None, dict[str, Voice]]:
+    """(voice of each segment, engine, main reference, voice of each speaker — empty with one voice)."""
+    if multi_speaker(settings, segments):
+        by_speaker, engine, ref = speaker_voices(wd, settings, segments)
+        main = next(iter(by_speaker.values()))
+        voices = {s.id: replace(by_speaker.get(s.speaker, main), seed=seeds.get(s.id, SEED)) for s in segments}
+        return voices, engine, ref, by_speaker
+    cloned = settings.tts == "clone"
+    ref = reference.reference(wd) if cloned else None
+    engine = resolve_engine(settings, ref)  # also validates --tts and --engine
+    base = Voice.clone(settings, ref) if cloned else Voice.edge(settings)
+    return {s.id: replace(base, seed=seeds.get(s.id, SEED)) for s in segments}, engine, ref, {}
+
+
+def speaker_paces(wd: WorkDir, settings: Settings, segments: list[Segment]) -> dict[str, Pace]:
+    """The pace of each speaker's voice (several voices), calibrating whatever isn't yet."""
+    by_speaker, _, _ = speaker_voices(wd, settings, segments)
+    return {spk: cloned_speaking_rate(settings, v) if v.engine != "edge"
+            else Pace(speaking_rate(settings.work_root, v.name, v.rate)) for spk, v in by_speaker.items()}
+
+
 def native_duration(engine: str) -> bool:
     return engine in NATIVE_DURATION
 
@@ -676,8 +761,9 @@ def _shorten_overflows(
                   shorten_target(c.text, c, 1.0 if native_duration(voices[c.id].engine) else settings.max_tempo,
                                  _clip_overhead(c, voices[c.id], settings)))
                  for c in bad]
-        new_texts = translate.shorten(items, settings.voice, settings, style.load(settings.work_root, wd.path,
-                                                                                   settings.style_file))
+        new_texts = translate.shorten(items, settings.voice, settings,
+                                      style.load(settings.work_root, wd.path, settings.style_file),
+                                      {c.id: voices[c.id].gender for c in bad})
         jobs = [(replace(by_id[i], text=t), voices[i]) for i, t in new_texts.items()]
         for clip in _render_each(wd, jobs, slots, settings):
             clips[clip.id] = clip
@@ -709,7 +795,8 @@ def _repair_clones(
     """
     from . import translate  # lazy import: translate also imports this module
 
-    bad = _clone_failures(wd, set(clips) if only is None else only, clips, settings)
+    candidates = {i for i in (set(clips) if only is None else only) if voices[i].engine != "edge"}
+    bad = _clone_failures(wd, candidates, clips, settings) if candidates else set()  # stock voices aren't checked
     steps = ["another seed", "a shorter sentence", "the fixed reference", "edge-tts"]
     for step in steps:
         if not bad:
@@ -730,13 +817,15 @@ def _repair_clones(
             if not items:
                 continue
             st = style.load(settings.work_root, wd.path, settings.style_file)
-            texts = {**texts, **translate.shorten(items, settings.voice, settings, st)}
+            texts = {**texts, **translate.shorten(items, settings.voice, settings, st,
+                                                  {i: voices[i].gender for i, *_ in items})}
             new_voices = {i: replace(voices[i], label=f"{voices[i].engine} (shortened)") for i, *_ in items}
         elif step == "the fixed reference":
             new_voices = {i: replace(voices[i], ref=settings.clone_ref, seed=SEED,
                                      label=f"{voices[i].engine} (fixed reference)") for i in bad}
         else:
-            new_voices = {i: Voice.edge(settings) for i in bad}
+            new_voices = {i: Voice("edge", voices[i].stock or settings.voice, settings.rate, gender=voices[i].gender)
+                          for i in bad}
         redo = set(new_voices)  # a tiny or hand-edited text skips the shorter-sentence step as it is
         jobs = [(replace(by_id[i], text=texts[i]), new_voices[i]) for i in sorted(redo)]
         for clip in _render_each(wd, jobs, slots, settings):
@@ -778,13 +867,25 @@ def pending_edits(wd: WorkDir) -> set[int]:
     texts = {s.id: s.text for s in load_segments(wd.translation)}
     sources = index.get("sources")
     if sources is not None:
-        return {i for i, text in texts.items() if sources.get(str(i)) != text}
+        changed = {i for i, text in texts.items() if sources.get(str(i)) != text}
+        said_by = index.get("speakers")  # several voices: who each clip was spoken as
+        if said_by is not None:
+            speakers = {s.id: s.speaker for s in load_segments(wd.translation)}
+            changed |= {i for i in texts if said_by.get(str(i)) != speakers.get(i)}
+        return changed
     said = {c["id"]: c.get("text") for c in index.get("clips") or []}
     return {i for i in hand_edited(wd) if i in texts and texts[i] != said.get(i)}
 
 
+def _describe(by_speaker: dict[str, Voice]) -> dict[str, dict]:
+    """How each speaker speaks, for tts.json and the web page."""
+    return {spk: {"engine": v.engine, "voice": v.name if v.engine == "edge" else None,
+                  "reference": v.ref.name if v.ref else None, "gender": v.gender, "stock": v.stock}
+            for spk, v in by_speaker.items()}
+
+
 def _params(settings: Settings, segments: list[Segment], engine: str, ref: Path | None,
-            seeds: dict[int, int]) -> dict:
+            seeds: dict[int, int], by_speaker: dict[str, Voice] | None = None) -> dict:
     """What a TTS run depends on: the cache key of the phase."""
     from . import clone
 
@@ -808,6 +909,12 @@ def _params(settings: Settings, segments: list[Segment], engine: str, ref: Path 
             params["min_factor"] = settings.min_factor
     if seeds:  # only then: dubs without takes keep their cache
         params["takes"] = sorted(seeds.items())
+    if by_speaker:  # several voices: whose each sentence is, and how each one speaks
+        from . import clone
+
+        params["speakers"] = [(s.id, s.speaker) for s in segments]
+        params["speaker_voices"] = {spk: [v.engine, clone.file_hash(v.ref) if v.ref else v.name]
+                                    for spk, v in sorted(by_speaker.items())}
     return params
 
 
@@ -842,8 +949,8 @@ def _fit(
         bad_qc = [c for c in suspicious(list(clips.values())) if only is None or c.id in only]
         if bad_qc:
             log.warning(f"Quality check: {len(bad_qc)} clip(s) with abnormal duration, regenerating…")
-            segs = [replace(by_id[c.id], text=c.text) for c in bad_qc]
-            for clip in _render(wd, segs, slots, settings, voices[bad_qc[0].id], regenerate=True):
+            jobs = [(replace(by_id[c.id], text=c.text), voices[c.id]) for c in bad_qc]  # each with its own voice
+            for clip in _render_jobs(wd, jobs, slots, settings, regenerate=True):
                 clips[clip.id] = clip
     still_bad = {c.id for c in suspicious(list(clips.values())) if only is None or c.id in only}
 
@@ -858,10 +965,9 @@ def _fit(
 def run(wd: WorkDir, settings: Settings, force: bool = False) -> list[Clip]:
     segments = load_segments(wd.translation)
     cloned = settings.tts == "clone"
-    ref = reference.reference(wd) if cloned else None
-    engine = resolve_engine(settings, ref)  # also validates --tts and --engine
     seeds = takes(wd) if cloned else {}
-    params = _params(settings, segments, engine, ref, seeds)
+    voices, engine, ref, by_speaker = _voices(wd, settings, segments, seeds)
+    params = _params(settings, segments, engine, ref, seeds, by_speaker)
     ref_f0 = reference.mean_f0(ref) if cloned else None
     choice = None
     if cloned:
@@ -873,6 +979,10 @@ def run(wd: WorkDir, settings: Settings, force: bool = False) -> list[Clip]:
         choice = f"auto (F0 threshold {AUTO_F0_HZ:.0f} Hz)" if settings.engine == "auto" else "manual"
         log.info(f"Cloned voice: engine {engine}{how} ({engine_model(engine)}) · reference mean F0 {f0} · "
                  f"{len(segments)} segments")
+    for spk, v in by_speaker.items():
+        said = sum(1 for seg in segments if seg.speaker == spk)
+        how = f"cloned with {v.engine}" if v.engine != "edge" else f"stock voice {v.name}"
+        log.info(f"Speaker {spk} ({v.gender or 'gender unknown'}): {how} · {said} segments")
     if not force and wd.is_done("tts", params) and wd.tts_index.exists():
         log.info("TTS cached, skipping")
         index = json.loads(wd.tts_index.read_text(encoding="utf-8"))
@@ -891,9 +1001,7 @@ def run(wd: WorkDir, settings: Settings, force: bool = False) -> list[Clip]:
     meta = json.loads(wd.meta.read_text(encoding="utf-8"))
     slots = {s.id: slot for s, slot in zip(segments, _slots(segments, meta.get("duration")))}
     by_id = {s.id: s for s in segments}
-    voice = Voice.clone(settings, ref) if cloned else Voice.edge(settings)
-    voices = {s.id: replace(voice, seed=seeds.get(s.id, SEED)) for s in segments}
-    if not cloned:
+    if not cloned and not by_speaker:
         log.info(f"Voice {settings.voice} ({settings.rate}) · {len(segments)} segments")
     jobs = [(s, voices[s.id]) for s in segments]
     clips = {c.id: c for c in _render_each(wd, jobs, slots, settings, regenerate=force)}
@@ -912,6 +1020,9 @@ def run(wd: WorkDir, settings: Settings, force: bool = False) -> list[Clip]:
         # the translation each clip was made from: what a retouch compares edits with
         "sources": {str(s.id): s.text for s in segments},
     }
+    if by_speaker:  # several voices: who each clip was spoken as, and how each speaker speaks
+        index["speakers"] = {str(s.id): s.speaker for s in segments}
+        index["speaker_voices"] = _describe(by_speaker)
     wd.tts_index.write_text(json.dumps(index, ensure_ascii=False, indent=1), encoding="utf-8")
     with wd.overflow_log.open("w", encoding="utf-8") as f:
         for c in result:
@@ -955,7 +1066,8 @@ def retouch(wd: WorkDir, settings: Settings, new_takes: list[int] | tuple[int, .
     index = _index(wd)
     engine = index.get("engine") or "edge"
     cloned = engine != "edge"
-    settings = replace(settings, tts="clone" if cloned else "edge", engine=engine if cloned else settings.engine)
+    settings = replace(settings, tts="clone" if cloned else "edge", engine=engine if cloned else settings.engine,
+                       multi_speaker=index.get("speakers") is not None)  # with the dub's own voices
     segments = load_segments(wd.translation)
     clips = {c.id: c for c in load_clips(wd)}
     unknown = sorted(set(new_takes) - set(clips))
@@ -975,7 +1087,7 @@ def retouch(wd: WorkDir, settings: Settings, new_takes: list[int] | tuple[int, .
     log.info(f"Retouch with {engine}: {len(ids)} segment(s) · edited {len(edits)} · new takes {len(new_takes)}")
 
     started = time.monotonic()
-    ref = reference.reference(wd) if cloned else None
+    every, _, ref, by_speaker = _voices(wd, settings, segments, seeds)
     asyncio.run(_check_voice(settings.voice))
     (wd.tts_dir / "raw").mkdir(parents=True, exist_ok=True)
     meta = json.loads(wd.meta.read_text(encoding="utf-8"))
@@ -983,14 +1095,16 @@ def retouch(wd: WorkDir, settings: Settings, new_takes: list[int] | tuple[int, .
     translated = {s.id: s for s in segments}
     # an edit speaks the new translation; a take, what the clip said (maybe a shortened version that fit)
     by_id = {i: replace(translated[i], text=translated[i].text if i in edits else clips[i].text) for i in ids}
-    base = Voice.clone(settings, ref) if cloned else Voice.edge(settings)
-    voices = {i: replace(base, seed=seeds.get(i, SEED)) for i in clips}
+    voices = {i: every[i] for i in clips}
     for clip in _render_each(wd, [(by_id[i], voices[i]) for i in ids], slots, settings):
         clips[clip.id] = clip
     fell_back, still_bad, n_short, below_floor = _fit(wd, clips, voices, slots, by_id, settings, engine, set(ids))
 
     index["clips"] = [asdict(clips[s.id]) for s in segments]
     index["sources"] = {str(s.id): s.text for s in segments}  # every pending edit is spoken now
+    if by_speaker:
+        index["speakers"] = {str(s.id): s.speaker for s in segments}
+        index["speaker_voices"] = _describe(by_speaker)
     index["stats"] = {"seconds": round(time.monotonic() - started, 1), "shortened": n_short, "retouched": ids}
     wd.tts_index.write_text(json.dumps(index, ensure_ascii=False, indent=1), encoding="utf-8")
     # the other clips keep their lines; the mix writes its "delayed" lines again
@@ -1010,5 +1124,5 @@ def retouch(wd: WorkDir, settings: Settings, new_takes: list[int] | tuple[int, .
     fits = sum(1 for i in ids if clips[i].overflow == 0)
     log.info(f"Retouched {len(ids)} segment(s) in {time.monotonic() - started:.1f}s · fit: {fits} · "
              f"shortened: {n_short} · fell back to edge-tts: {len(fell_back)}")
-    wd.mark_done("tts", _params(settings, segments, engine, ref, seeds if cloned else {}))
+    wd.mark_done("tts", _params(settings, segments, engine, ref, seeds if cloned else {}, by_speaker))
     return ids

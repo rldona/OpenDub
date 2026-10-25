@@ -99,7 +99,7 @@ def test_another_take_uses_the_next_seed_and_a_full_run_keeps_it(wd, monkeypatch
 def test_hand_edits_are_never_shortened(wd, monkeypatch):
     rendered, asked = [], []
     monkeypatch.setattr(tts, "_render_jobs", _renderer(rendered, chars_per_s=8.0))
-    monkeypatch.setattr(translate, "shorten", lambda items, v, s, st=None: asked.extend(i for i, *_ in items) or
+    monkeypatch.setattr(translate, "shorten", lambda items, v, s, st=None, g=None: asked.extend(i for i, *_ in items) or
                         {i: "Corta." for i, *_ in items})
     settings = Settings(tts="clone", engine="chatterbox")
     tts.run(wd, settings)

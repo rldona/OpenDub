@@ -20,15 +20,11 @@ from .workdir import WorkDir
 
 SAMPLE_RATE = 24000
 REF_MIN, REF_MAX = 10.0, 15.0  # seconds of reference audio
+REF_SPEAKER_MIN = 6.0  # several voices: a speaker with less clean speech is not cloned (stock voice)
 
 
-def pick_reference(segments: list[Segment]) -> tuple[float, float]:
-    """(start, end) of the consecutive segments that make the best reference.
-
-    Prefers windows of REF_MIN–REF_MAX seconds with the most speech (fewest
-    pauses); without any, the longest window under REF_MAX; if every segment is
-    longer than that, the first REF_MAX seconds of the first one.
-    """
+def _window(segments: list[Segment]) -> tuple[tuple[float, float], tuple] | None:
+    """((start, end), key) of the best window of consecutive segments, or None."""
     best, best_key = None, None
     for i, first in enumerate(segments):
         for j in range(i, len(segments)):
@@ -39,6 +35,18 @@ def pick_reference(segments: list[Segment]) -> tuple[float, float]:
             key = (span >= REF_MIN, speech / span if span >= REF_MIN else span)
             if best_key is None or key > best_key:
                 best, best_key = (first.start, segments[j].end), key
+    return (best, best_key) if best else None
+
+
+def pick_reference(segments: list[Segment]) -> tuple[float, float]:
+    """(start, end) of the consecutive segments that make the best reference.
+
+    Prefers windows of REF_MIN–REF_MAX seconds with the most speech (fewest
+    pauses); without any, the longest window under REF_MAX; if every segment is
+    longer than that, the first REF_MAX seconds of the first one.
+    """
+    found = _window(segments)
+    best = found[0] if found else None
     if best is None:
         if not segments:
             raise SystemExit("There are no segments to take a voice reference from")
@@ -60,6 +68,34 @@ def reference(wd: WorkDir) -> Path:
         raise SystemExit("Voice cloning needs the separated vocals: run `separate` first (or use `dub`)")
     start, end = pick_reference(load_segments(wd.segments))
     path = wd.path / "clone_ref.wav"
+    ffmpeg("-ss", f"{start:.3f}", "-to", f"{end:.3f}", "-i", str(wd.vocals),
+           "-ac", "1", "-ar", str(SAMPLE_RATE), str(path))
+    return path
+
+
+def speaker_reference(wd: WorkDir, speaker: str) -> Path | None:
+    """The reference clip of one speaker (several voices), or None without enough clean speech.
+
+    Windows are taken only inside runs of that speaker's consecutive sentences,
+    so no one else's voice gets into it; under REF_SPEAKER_MIN seconds the
+    speaker is not cloned.
+    """
+    if not wd.vocals.exists():
+        raise SystemExit("Voice cloning needs the separated vocals: run `separate` first (or use `dub`)")
+    runs: list[list[Segment]] = []
+    for seg in load_segments(wd.segments):
+        if seg.speaker == speaker:
+            if runs and runs[-1][-1].id == seg.id - 1:
+                runs[-1].append(seg)
+            else:
+                runs.append([seg])
+    windows = [w for run in runs if (w := _window(run))]
+    if not windows:
+        return None
+    (start, end), _ = max(windows, key=lambda w: w[1])
+    if end - start < REF_SPEAKER_MIN:
+        return None
+    path = wd.path / f"clone_ref_{speaker}.wav"
     ffmpeg("-ss", f"{start:.3f}", "-to", f"{end:.3f}", "-i", str(wd.vocals),
            "-ac", "1", "-ar", str(SAMPLE_RATE), str(path))
     return path
