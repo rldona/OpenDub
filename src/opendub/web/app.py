@@ -198,6 +198,25 @@ def create_app(work_root: Path = Path("work"), runner: Runner | None = None,
         return FileResponse(path, media_type="video/mp4", filename=f"{vid}.es.{version}.mp4",
                             content_disposition_type="inline")
 
+    @app.get("/videos/{vid}/outputs/{version}/export/{fmt}")
+    def export_version(vid: str, version: str, fmt: str) -> FileResponse:
+        """A version as subtitles (srt, srt-orig), an MKV with both audio tracks, or its audio
+        (m4a): made on first request, in seconds, and kept. "latest" is output.mp4's version."""
+        from .. import export
+
+        wd = folder(vid)
+        if fmt not in export.FORMATS:
+            raise HTTPException(404, "Unknown format")
+        job = manager.get(vid)
+        if version == "latest" and job and job.status == "running":
+            raise HTTPException(409, "This video is being dubbed; export it when the job ends")
+        try:
+            path = export.export(wd, fmt, version)
+        except LookupError:
+            raise HTTPException(404, "No such dub")
+        media_type = {"mkv": "video/x-matroska", "m4a": "audio/mp4"}.get(fmt, "application/x-subrip")
+        return FileResponse(path, media_type=media_type, filename=f"{vid}.{path.name}")
+
     @app.get("/videos/{vid}/translation")
     def get_translation(vid: str) -> dict:
         data = videos.translation(folder(vid), manager)

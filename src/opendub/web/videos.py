@@ -184,8 +184,10 @@ def version_detail(wd: WorkDir, version: str) -> dict[str, Any]:
 
 
 def delete_output(wd: WorkDir, version: str) -> None:
-    """Delete a kept dub (its video, tts.json and overflow.log). Not the latest one: output.mp4,
-    tts.json and the issues on the video's page belong to it."""
+    """Delete a kept dub (its video, tts.json, overflow.log and exports). Not the latest one:
+    output.mp4, tts.json and the issues on the video's page belong to it."""
+    from ..export import FORMATS
+
     from ..mix import VERSION
 
     video = wd.outputs_dir / f"{version}.mp4"
@@ -193,7 +195,7 @@ def delete_output(wd: WorkDir, version: str) -> None:
         raise LookupError(version)
     if wd.output.exists() and video.samefile(wd.output):
         raise ValueError("the latest dub can't be deleted")
-    for suffix in (".mp4", ".tts.json", ".overflow.log"):
+    for suffix in (".mp4", ".tts.json", ".overflow.log", *FORMATS.values()):
         (wd.outputs_dir / f"{version}{suffix}").unlink(missing_ok=True)
 
 

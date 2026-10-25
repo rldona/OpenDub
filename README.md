@@ -145,6 +145,23 @@ video never says changes nothing. Shortened sentences keep the glossary too. A
 sentence whose spoken text doesn't use a term its original says is listed as a
 `glossary` issue on the web page, except hand edits.
 
+### Exporting
+
+```bash
+uv run opendub export KS837a-TFRc -f mkv            # the latest dub; --version for a kept one
+```
+
+| Format | What you get |
+|---|---|
+| `mkv` | The video with the dubbed audio (default track), the original audio and both subtitles as selectable tracks |
+| `m4a` | The dubbed audio alone |
+| `srt` | Spanish subtitles of what the voice says, timed where the mix placed each clip, in screens of up to two lines |
+| `srt-orig` | The original sentences at their original timestamps |
+
+Nothing is re-encoded: an MKV of a 19-minute video takes under a second. Each
+export is kept next to its version (`outputs/<version>.mkv`…), is deleted with it,
+and is offered by the web page's **Download** menu too.
+
 ### Retouching a few sentences
 
 ```bash
@@ -170,9 +187,10 @@ or light, with a choice of accent color (Preferences):
   running dub phase by phase, and find every video with its versions, the
   latest one, its issues and its status.
 - **Video**: the player, a timeline with each issue where it happens (click to
-  jump), and every dub kept: each one plays, downloads and shows its numbers
+  jump), and every dub kept: each one plays and shows its numbers
   (voice time, sped up, shortened, below the floor, redone, edge-tts) and its
-  own issues; older ones can be deleted (the latest stays). The translation,
+  own issues, downloads as MP4, MKV (both audio tracks and subtitles), audio or
+  SRT, and older ones can be deleted (the latest stays). The translation,
   segment by segment, shows each issue of the version you watch next to its
   sentence, filters to those or to hand edits, and saves edits. **Regenerate**
   speaks again only the edited sentences and those marked for **another take**

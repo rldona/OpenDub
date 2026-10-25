@@ -311,6 +311,40 @@ def retouch(
 
 
 @app.command()
+def export(
+    url: Url,
+    fmt: Annotated[
+        str,
+        typer.Option("--format", "-f", help="srt (the dubbed voice, timed as heard), srt-orig (the original), "
+                     "mkv (video, dubbed and original audio, both subtitles) or m4a (the dubbed audio)"),
+    ] = "mkv",
+    version: Annotated[
+        str | None, typer.Option("--version", help="A kept version (outputs/<version>.mp4); the latest by default"),
+    ] = None,
+    work: WorkRoot = Path("work"),
+    output: Output = None,
+) -> None:
+    """Export a dub as subtitles, an MKV with both audio tracks or its audio, without re-encoding."""
+    import shutil
+
+    from . import export as export_mod
+
+    require_ffmpeg()
+    wd = WorkDir(work, download_mod.video_id(url), create=False)
+    try:
+        path = export_mod.export(wd, fmt, version)
+    except LookupError as e:
+        raise typer.BadParameter(f"No such dub: {e}") from e
+    except ValueError as e:
+        raise typer.BadParameter(str(e)) from e
+    if output:
+        output.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copyfile(path, output)
+        path = output
+    log.info(f"Exported: [bold]{path}[/]")
+
+
+@app.command()
 def web(
     work: WorkRoot = Path("work"),
     port: Annotated[int, typer.Option("--port", help="Port on 127.0.0.1")] = 8000,

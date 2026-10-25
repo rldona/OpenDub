@@ -477,3 +477,21 @@ def test_retouch_needs_a_cloned_voice_for_takes(tmp_path):
     make_video(tmp_path / "work", engine="edge")
     r = c.post(f"/videos/{VID}/retouch", json={"takes": [2]})
     assert r.status_code == 422 and "cloned voice" in r.json()["detail"]
+
+
+def test_versions_export_and_their_exports_go_with_them(tmp_path):
+    c = client(tmp_path, FakePipeline())
+    wd = make_video(tmp_path / "work")
+    wd.outputs_dir.mkdir()
+    old = wd.outputs_dir / "20261024-090000-edge"
+    old.with_suffix(".mp4").write_bytes(b"old")
+    old.with_suffix(".tts.json").write_text(wd.tts_index.read_text())
+    r = c.get(f"/videos/{VID}/outputs/20261024-090000-edge/export/srt")
+    assert r.status_code == 200 and "Los terremotos son frecuentes." in r.text
+    assert r.headers["content-disposition"].endswith(f'filename="{VID}.20261024-090000-edge.es.srt"')
+    assert "Earthquakes are common." in c.get(f"/videos/{VID}/outputs/20261024-090000-edge/export/srt-orig").text
+    assert c.get(f"/videos/{VID}/outputs/20261024-090000-edge/export/avi").status_code == 404
+    assert c.get(f"/videos/{VID}/outputs/20261024-000000-edge/export/srt").status_code == 404
+    assert c.get(f"/videos/{VID}/outputs/latest/export/srt").status_code == 404  # output.mp4 isn't kept here
+    assert c.delete(f"/videos/{VID}/outputs/20261024-090000-edge").status_code == 200
+    assert not list(wd.outputs_dir.glob("20261024-090000-edge*"))
