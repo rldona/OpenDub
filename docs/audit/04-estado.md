@@ -93,7 +93,21 @@ código; los que siguen abiertos dicen qué falta y dónde.
 
 ## Pendiente
 
-Ordenado por prioridad. Cada punto dice qué falta, dónde está y qué se propone.
+Ordenado por prioridad. Cada punto dice qué falta, dónde está y qué se propone. Los
+puntos que vienen de la [Auditoría 2](03-competencia.md#7-decisiones-del-propietario-2026-10-25)
+lo indican.
+
+### Requisito de entrada de la ejecución 3
+
+- **Escucha comparativa a ciegas.**
+  - Qué: 2–3 vídeos del corpus, OpenDub frente a Subtitle Edit (con Chatterbox) y
+    frente a ElevenLabs Dubbing v2, con `docs/bench/listening`.
+  - Por qué va primero: valida la premisa del producto. Si el lazo de calidad no se
+    oye, el roadmap pasa a ser más calidad de voz y menos herramientas de edición.
+  - Necesita del propietario: una cuenta de ElevenLabs (unos 2,20 $/min por API, o el
+    plan gratuito con marca de agua) y Subtitle Edit instalado.
+  - Para que la sesión mezcle tres fuentes, `session.py` tiene que aceptar audios
+    externos además de versiones de OpenDub.
 
 ### P2
 
@@ -153,6 +167,27 @@ Ordenado por prioridad. Cada punto dice qué falta, dónde está y qué se propo
      `--engine chatterbox-es` solo para comparar. Mantenerlo cuesta un
      checkpoint más en caché (~3 GB).
    - **Decisión pendiente:** retirarlo o conservarlo como referencia.
+
+### Backlog de la Auditoría 2
+
+Se ordena en la ejecución 3, con el resultado de la escucha comparativa delante.
+
+9. **Backend de traducción local en Ollama** (decisión del propietario).
+   - Modelos candidatos: Gemma 3 27B o Qwen3-30B-A3B.
+   - Validación: contra Sonnet en el corpus, con las métricas de longitud y encaje
+     que ya existen (`dub_metrics.py`) y el juez de `shortening.py`.
+   - Quita la dependencia de la suscripción. Mientras tanto, `--backend api` está
+     documentado en el README.
+10. **Revisar la traducción antes de sintetizar.** Una pausa opcional tras la
+    traducción, como el *Proofread* de HeyGen o Vozo, para no gastar GPU en un vídeo
+    largo mal traducido.
+11. **Clonar con la voz de cada línea como referencia**, como Subtitle Edit o
+    VoiceStudio. Da más expresividad y sirve de respaldo cuando falla la diarización.
+12. **Importar y exportar subtítulos con hablante** (actor en ASS, `<v>` en WebVTT),
+    para colaborar con Subtitle Edit en lugar de competir con él.
+
+Descartado en la Auditoría 2: sincronización labial, más idiomas, y equipos, API,
+cuentas o SaaS.
 
 ## Hallazgos de la ejecución
 

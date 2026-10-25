@@ -78,7 +78,9 @@ There are two ways to translate:
   curl -fsSL https://claude.ai/install.sh | bash
   ```
 - **API (`--backend api`)**: copy `.env.example` to `.env` and fill in
-  `ANTHROPIC_API_KEY`.
+  `ANTHROPIC_API_KEY`. The same translation, billed per token instead of by the
+  subscription: the way to go on if the subscription can't be used for this. A
+  local backend (Ollama) is planned, so a dub needn't depend on either.
 
 ## Usage
 
@@ -390,6 +392,9 @@ transcript to Anthropic (Claude) under your subscription or API terms. OpenDub i
 a personal tool: it is not packaged or supported for distribution.
 
 ## Responsible use
+
+OpenDub is a tool for **personal use**: watching in Spanish videos you'd otherwise
+watch in English. Don't publish dubs made with cloned voices of other people.
 
 - Clone a voice only with the consent of the person it belongs to, and don't
   present a cloned voice as that person speaking.

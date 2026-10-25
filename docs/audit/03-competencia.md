@@ -465,6 +465,30 @@ En la práctica:
    - Falta comprobar en los términos actuales que el uso por CLI es aceptable y tener
      medido el coste por vídeo con la API.
 
+## 7. Decisiones del propietario (2026-10-25)
+
+1. **Usuarios: no por ahora.**
+   - El repositorio sigue público con MIT; quien quiera puede usarlo.
+   - No se asumen soporte, instaladores ni compatibilidades.
+   - Se revisa tras la escucha comparativa del punto 2:
+     - si OpenDub no suena mejor que Subtitle Edit, buscar usuarios no tiene sentido;
+     - si suena mejor, habrá un argumento real.
+2. **Escucha comparativa: requisito de entrada de la ejecución 3.**
+   - Qué: 2–3 vídeos del corpus, OpenDub frente a Subtitle Edit y frente a ElevenLabs,
+     a ciegas, con el script de sesión que ya existe (`docs/bench/listening`).
+   - Por qué: es el único dato que valida la premisa del producto.
+   - Si el lazo de calidad no se oye, el roadmap cambia: más calidad de voz y menos
+     herramientas de edición.
+3. **Dependencia de la suscripción de Claude.**
+   - Se resuelve con un backend local en Ollama (Gemma 3 27B o Qwen3-30B-A3B).
+   - Se valida contra Sonnet en el corpus con las métricas de longitud que ya existen.
+   - Mientras tanto, la API (`--backend api`) queda documentada como camino alternativo
+     en el README.
+4. **Vídeos y voces de terceros.**
+   - La postura completa queda diferida mientras no haya distribución.
+   - Ya está escrita en el README: uso personal, y no publicar doblajes con voces
+     clonadas de terceros.
+
 ## Anexo · Fuentes
 
 Todas consultadas el 2026-10-25; entre paréntesis, la fecha propia de la página cuando la
