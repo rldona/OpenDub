@@ -98,3 +98,27 @@ def test_each_phase_runs_on_its_own_from_the_cli(work, monkeypatch):
     assert installed == ["indextts", "cosyvoice", "nemotron"]
     assert runner.invoke(app, ["setup-engine", "xtts"]).exit_code != 0
     assert runner.invoke(app, ["export", VID, *w, "-f", "avi"]).exit_code != 0
+
+
+def test_the_translate_and_tts_phases_take_several_voices(work, monkeypatch):
+    from typer.testing import CliRunner
+
+    from opendub import cli
+    from opendub.workdir import WorkDir
+
+    runner = CliRunner()
+    w = ["--work", str(work)]
+    assert runner.invoke(cli.app, ["transcribe", VID, *w]).exit_code == 0
+    seen = {}
+    monkeypatch.setattr(cli.translate_mod, "run", lambda wd, s, force=False: seen.setdefault("translate", s))
+    monkeypatch.setattr(cli.tts_mod, "run", lambda wd, s, force=False: seen.setdefault("tts", s))
+    # several voices need the separated vocals (each speaker's pace) and the diarization (who is who)
+    assert runner.invoke(cli.app, ["translate", VID, *w, "--multi-speaker"]).exit_code != 0
+    wd = WorkDir(work, VID)
+    wd.mark_done("separate", {"model": "htdemucs"})
+    assert runner.invoke(cli.app, ["translate", VID, *w, "--multi-speaker"]).exit_code == 0
+    wd.mark_done("translate", {"x": 1})
+    assert runner.invoke(cli.app, ["tts", VID, *w, "--multi-speaker"]).exit_code != 0
+    wd.mark_done("diarize", {"x": 1})
+    assert runner.invoke(cli.app, ["tts", VID, *w, "--multi-speaker"]).exit_code == 0
+    assert seen["translate"].multi_speaker and seen["tts"].multi_speaker

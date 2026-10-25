@@ -213,17 +213,19 @@ def translate(
     chars_per_second: CharsPerSecond = None,
     rate: Rate = "-10%",
     style: StyleFile = None,
+    multi_speaker: MultiSpeaker = False,
     force: Force = False,
 ) -> None:
-    """Translate the segments into Spanish with Claude. Requires `transcribe` (and `separate` with --tts clone)."""
+    """Translate the segments into Spanish with Claude. Requires `transcribe` (and `separate` with --tts clone or
+    --multi-speaker)."""
     settings = Settings(
         work_root=work, backend=backend, claude_model=model, voice=voice, tts=tts, engine=engine, batch_size=batch_size,
-        chars_per_second=chars_per_second, rate=rate, style_file=style,
+        chars_per_second=chars_per_second, rate=rate, style_file=style, multi_speaker=multi_speaker,
     )
     wd = _setup(url, settings)
     settings = _with_style(settings, wd)
     _require(wd, "transcribe")
-    if tts != "edge":
+    if tts != "edge" or multi_speaker:  # several voices: each speaker's pace is measured on their own voice
         _require(wd, "separate")
     with phase("Translation"):
         translate_mod.run(wd, settings, force=force)
@@ -246,20 +248,24 @@ def tts(
     backend: Backend = "cli",
     model: ClaudeModel = "claude-sonnet-5-5",
     style: StyleFile = None,
+    multi_speaker: MultiSpeaker = False,
     force: Force = False,
 ) -> None:
-    """Generate one voice clip per segment and fit it to its slot. Requires `translate` (and `separate` with --tts clone)."""
+    """Generate one voice clip per segment and fit it to its slot. Requires `translate` (and `separate` with --tts
+    clone, `diarize` with --multi-speaker)."""
     settings = Settings(
         work_root=work, voice=voice, tts=tts, engine=engine, min_factor=min_factor, clone_ref=clone_ref,
         whisper_model=whisper_model, rate=rate,
         min_tempo=min_tempo, max_tempo=max_tempo, shorten=shorten, backend=backend, claude_model=model,
-        style_file=style,
+        style_file=style, multi_speaker=multi_speaker,
     )
     wd = _setup(url, settings)
     settings = _with_style(settings, wd)
     _require(wd, "translate")
     if tts != "edge":
         _require(wd, "separate")
+    if multi_speaker:  # each speaker's reference and gender come from the diarization
+        _require(wd, "diarize")
     with phase("TTS"):
         tts_mod.run(wd, settings, force=force)
 
