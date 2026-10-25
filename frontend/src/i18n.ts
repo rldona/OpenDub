@@ -140,6 +140,7 @@ const en = {
   err_no_speaker: "That speaker doesn't exist.", err_invalid_speakers: "Those speaker changes aren't valid.",
   err_invalid_style: "That style isn't valid.", err_unknown: "Something went wrong.", detail: "Detail: {d}",
   loading: "Loading…", main_nav: "Main",
+  err_unauthorized: "Open the link with the token printed in the terminal where `opendub web --lan` runs.",
 };
 
 export type Key = keyof typeof en;
@@ -286,6 +287,7 @@ const es: Record<Key, string> = {
   err_no_speaker: "Esa voz no existe.", err_invalid_speakers: "Esos cambios de voces no son válidos.",
   err_invalid_style: "Ese estilo no es válido.", err_unknown: "Algo ha fallado.", detail: "Detalle: {d}",
   loading: "Cargando…", main_nav: "Principal",
+  err_unauthorized: "Abre el enlace con el token que muestra el terminal donde corre `opendub web --lan`.",
 };
 
 export type Lang = "en" | "es";

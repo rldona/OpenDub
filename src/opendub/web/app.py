@@ -1,12 +1,16 @@
 """Local web frontend for OpenDub (FastAPI): `opendub web`.
 
-Only meant for this computer: it listens on 127.0.0.1 and only answers requests
-addressed to localhost (no DNS rebinding). It drives the existing pipeline and
-its cache in work/; it adds no logic of its own to the phases.
+By default only for this computer: it listens on 127.0.0.1 and only answers requests
+addressed to localhost (no DNS rebinding). With `opendub web --lan` it listens on every
+interface and answers any host name, but only to requests carrying the token printed
+in the terminal (in the link, then in a cookie, or as a bearer token); there is no
+mode open to the network without it. It drives the existing pipeline and its cache in
+work/; it adds no logic of its own to the phases.
 """
 
 from __future__ import annotations
 
+import hmac
 import json
 import re
 from pathlib import Path
@@ -14,7 +18,7 @@ from typing import Literal
 
 from fastapi import Body, FastAPI, HTTPException, Request
 from fastapi.middleware.trustedhost import TrustedHostMiddleware
-from fastapi.responses import FileResponse, StreamingResponse
+from fastapi.responses import FileResponse, HTMLResponse, JSONResponse, RedirectResponse, StreamingResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 
@@ -26,6 +30,15 @@ from .jobs import ACTIVE, VIDEO_ID, JobManager, JobOptions, Runner
 
 STATIC = Path(__file__).parent / "static"
 KEEPALIVE_S = 15.0
+COOKIE = "opendub_token"
+# what a browser without the token sees in --lan mode: the only page served without it
+ENTRY_PAGE = """<!doctype html><html lang="en"><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1"><title>OpenDub</title>
+<body style="font-family: system-ui, sans-serif; max-width: 34rem; margin: 15vh auto; padding: 0 16px; line-height: 1.5">
+<h1>OpenDub</h1>
+<p>Open the link printed in the terminal where <code>opendub web --lan</code> runs: it carries the access token.</p>
+<p lang="es">Abre el enlace que muestra el terminal donde corre <code>opendub web --lan</code>: lleva el token de acceso.</p>
+</body></html>"""
 
 
 class JobRequest(BaseModel):
@@ -76,13 +89,40 @@ def check_id(vid: str) -> str:
 
 
 def create_app(work_root: Path = Path("work"), runner: Runner | None = None,
-               allowed_hosts: tuple[str, ...] = ("127.0.0.1", "localhost")) -> FastAPI:
+               allowed_hosts: tuple[str, ...] = ("127.0.0.1", "localhost"), token: str | None = None) -> FastAPI:
+    """`token`: the --lan mode. Every host name is accepted (the computer's LAN address or name), and every
+    request needs the token instead."""
     work_root = work_root.resolve()
     work_root.mkdir(parents=True, exist_ok=True)
     manager = JobManager(work_root, runner) if runner else JobManager(work_root)
     app = FastAPI(title="OpenDub", docs_url=None, redoc_url=None)
-    app.add_middleware(TrustedHostMiddleware, allowed_hosts=list(allowed_hosts))
+    app.add_middleware(TrustedHostMiddleware, allowed_hosts=["*"] if token else list(allowed_hosts))
     app.state.manager = manager
+
+    if token:
+        def carries_token(request: Request) -> bool:
+            bearer = request.headers.get("authorization", "").removeprefix("Bearer ").strip()
+            given = request.cookies.get(COOKIE) or bearer
+            return bool(given) and hmac.compare_digest(given.encode(), token.encode())
+
+        @app.middleware("http")
+        async def require_token(request: Request, call_next):
+            """401 without the token. The link's ?token= is swapped for a cookie (and taken out of the address
+            bar); the entry page is the only thing answered without it."""
+            given = request.query_params.get("token")
+            if given is not None:
+                if not hmac.compare_digest(given.encode(), token.encode()):
+                    return HTMLResponse(ENTRY_PAGE, status_code=401)
+                rest = request.url.remove_query_params("token")
+                response = RedirectResponse(rest.path + (f"?{rest.query}" if rest.query else ""), status_code=303)
+                response.set_cookie(COOKIE, token, httponly=True, samesite="strict", max_age=30 * 24 * 3600)
+                return response
+            if carries_token(request):
+                return await call_next(request)
+            if request.method == "GET" and request.url.path == "/":
+                return HTMLResponse(ENTRY_PAGE, status_code=200)
+            return JSONResponse({"detail": {"code": "unauthorized", "message": "Open the link with the token "
+                                            "printed in the terminal", "params": {}}}, status_code=401)
 
     @app.middleware("http")
     async def revalidate_page(request: Request, call_next):
@@ -462,8 +502,8 @@ class ExitGuard:
         return True
 
 
-def serve(app: FastAPI, port: int) -> None:
-    """Run the app with uvicorn on 127.0.0.1, guarding a running dub against a stray Ctrl+C.
+def serve(app: FastAPI, port: int, host: str = "127.0.0.1") -> None:
+    """Run the app with uvicorn on `host` (every interface in --lan mode), guarding a running dub against a stray Ctrl+C.
 
     Children (ffmpeg, the claude CLI, the IndexTTS worker) run in their own session,
     so the terminal's Ctrl+C reaches only the server: with a dub running, the first
@@ -485,5 +525,5 @@ def serve(app: FastAPI, port: int) -> None:
             super().handle_exit(sig, frame)
 
     # a paused <video> keeps its connection open: don't let it hold the exit forever
-    config = uvicorn.Config(app, host="127.0.0.1", port=port, log_level="warning", timeout_graceful_shutdown=3)
+    config = uvicorn.Config(app, host=host, port=port, log_level="warning", timeout_graceful_shutdown=3)
     Server(config).run()

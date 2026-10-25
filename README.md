@@ -234,6 +234,18 @@ uv run opendub web           # http://127.0.0.1:8000, opens the browser
 It only listens on 127.0.0.1 and runs one job at a time (the others wait in
 order); it uses the same `work/` folder and cache as the CLI.
 
+To use it from another device on your network (a tablet, the TV's browser):
+
+```bash
+uv run opendub web --lan     # prints a link with an access token for each address
+```
+
+Open that link once on each device: the token is kept in a cookie and taken out of
+the address bar. Without it, every request gets a 401 and the page only says where
+to find the link. The token changes on every start, so old links stop working;
+anyone with a current link can use OpenDub on this computer, so share it only with
+your own devices. There is no mode open to the network without the token.
+
 The page is a React 19 + TypeScript app in [frontend/](frontend/), built with
 Vite into `src/opendub/web/static/`, which is committed: running it needs no
 Node, only changing it does (Node 22+):

@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import contextlib
+import secrets
 import sys
 from pathlib import Path
 from typing import Annotated
@@ -393,8 +394,10 @@ def export(
 @app.command()
 def web(
     work: WorkRoot = Path("work"),
-    port: Annotated[int, typer.Option("--port", help="Port on 127.0.0.1")] = 8000,
+    port: Annotated[int, typer.Option("--port", help="Port to listen on")] = 8000,
     browser: Annotated[bool, typer.Option("--browser/--no-browser", help="Open the page in the browser")] = True,
+    lan: Annotated[bool, typer.Option("--lan", help="Also answer other devices on the network, with the access "
+                                      "token this prints (in the link, then kept in a cookie)")] = False,
 ) -> None:
     """Local web frontend: paste a URL, follow the progress, watch and fix the dubs."""
     try:
@@ -402,14 +405,39 @@ def web(
     except ImportError:
         raise SystemExit("The web frontend needs its optional dependencies: uv sync --extra web")
     require_ffmpeg()
-    url = f"http://127.0.0.1:{port}/"
+    token = secrets.token_urlsafe(24) if lan else None  # a new one each start: old links stop working
+    url = f"http://127.0.0.1:{port}/" + (f"?token={token}" if token else "")
     if browser:
         import threading
         import webbrowser
 
         threading.Timer(1.0, webbrowser.open, args=(url,)).start()
-    log.info(f"OpenDub web on [bold]{url}[/] (Ctrl+C to stop)")
-    serve(create_app(work), port)
+    log.info(f"OpenDub web on [bold]{url}[/] (Ctrl+C to stop)" if not token else "OpenDub web (Ctrl+C to stop):")
+    if token:
+        # plain lines: the log wraps long ones, and a link cut in two loses its token
+        print(f"  this computer:   {url}", flush=True)
+        for address in lan_addresses():
+            print(f"  another device:  http://{address}:{port}/?token={token}", flush=True)
+        log.warning("Anyone with this link can use OpenDub on this computer: share it only with your own devices")
+    serve(create_app(work, token=token), port, host="0.0.0.0" if lan else "127.0.0.1")
+
+
+def lan_addresses() -> list[str]:
+    """This computer's addresses on the local network, for the links --lan prints."""
+    import socket
+
+    found = set()
+    try:
+        with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as s:
+            s.connect(("192.0.2.1", 9))  # no packet is sent: it only picks the interface of the default route
+            found.add(s.getsockname()[0])
+    except OSError:
+        pass
+    try:
+        found |= {a[4][0] for a in socket.getaddrinfo(socket.gethostname(), None, socket.AF_INET)}
+    except OSError:
+        pass
+    return sorted(a for a in found if not a.startswith("127.")) or [socket.gethostname()]
 
 
 @app.command("setup-indextts")
