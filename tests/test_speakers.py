@@ -139,3 +139,28 @@ def test_shortening_knows_who_says_it(monkeypatch):
     translate.shorten([(3, "I'm tired.", "Estoy muy cansada hoy.", 12)], "es-ES-AlvaroNeural", Settings(),
                       genders={3: "female"})
     assert seen["items"][0]["speaker_gender"] == "female" and "speaker_gender" in seen["system"]
+
+
+# the pitch can't be measured: --voice, as before
+@pytest.mark.parametrize("f0, stock", [(214.0, "es-ES-ElviraNeural"), (120.0, "es-ES-AlvaroNeural"),
+                                       (None, "es-ES-AlvaroNeural")])
+def test_one_voice_falls_back_to_a_stock_voice_of_its_gender(wd, monkeypatch, f0, stock):
+    monkeypatch.setattr(reference, "reference", lambda wd_: wd_.path / "clone_ref.wav")
+    monkeypatch.setattr(reference, "mean_f0", lambda path: f0)
+    voices, _, _, _ = tts._voices(wd, Settings(tts="clone", engine="chatterbox"), SEGMENTS, {})
+    assert {v.stock for v in voices.values()} == {stock}
+    assert {v.gender for v in voices.values()} == {None}  # no gender for the prompts with one voice
+
+
+def test_one_womans_last_resort_is_a_womans_voice(wd, monkeypatch):
+    rendered = []
+    monkeypatch.setattr(tts, "_render_jobs", _renderer(rendered))
+    def cut(wd_):
+        (wd_.path / "clone_ref.wav").write_bytes(b"ref")
+        return wd_.path / "clone_ref.wav"
+
+    monkeypatch.setattr(reference, "reference", cut)
+    monkeypatch.setattr(reference, "mean_f0", lambda path: 214.0)
+    monkeypatch.setattr(tts, "_clone_failures", lambda wd_, ids, clips, s: {i for i in ids if clips[i].voice != "edge"})
+    tts.run(wd, Settings(tts="clone", engine="chatterbox", shorten=False))
+    assert {name for _, engine, name in rendered if engine == "edge"} == {"es-ES-ElviraNeural"}

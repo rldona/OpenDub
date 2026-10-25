@@ -527,6 +527,11 @@ def _voices(
     ref = reference.reference(wd) if cloned else None
     engine = resolve_engine(settings, ref)  # also validates --tts and --engine
     base = Voice.clone(settings, ref) if cloned else Voice.edge(settings)
+    if cloned:
+        # the last resort speaks with a stock voice of the speaker's gender, not --voice's: a woman's
+        # clip said by Álvaro in the middle of her cloned voice. Only the fallback: the translation
+        # prompts don't get a gender with one voice
+        base = replace(base, stock=stock_voice(settings.voice, gender_of(reference.mean_f0(ref))))
     return {s.id: replace(base, seed=seeds.get(s.id, SEED)) for s in segments}, engine, ref, {}
 
 
