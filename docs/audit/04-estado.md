@@ -19,7 +19,7 @@ código; los que siguen abiertos dicen qué falta y dónde.
   - Varias voces va marcada por defecto en la web cuando Nemotron está
     instalado. En la CLI sigue siendo opcional.
 - **Quedan abiertos:**
-  - 6 gaps parciales: G-001, G-005, G-010, G-016, G-020 y G-024.
+  - 5 gaps parciales: G-001, G-005, G-010, G-016 y G-024 (G-020 se cerró después, con el bloqueo de GPU).
   - 5 hallazgos nuevos, descritos más abajo.
   - Ninguno es P1.
 
@@ -76,7 +76,7 @@ código; los que siguen abiertos dicen qué falta y dónde.
 | G-017 Apple Silicon y CPU | Cerrado por decisión | El Mac solo tiene que funcionar con edge-tts (G-032) |
 | G-018 Timeout de workers | Cerrado | T-06 |
 | G-019 Escrituras atómicas | Cerrado | T-04 |
-| G-020 CLI y web a la vez | **Parcial** | El vídeo está protegido (T-05), pero la GPU no |
+| G-020 CLI y web a la vez | Cerrado | El vídeo con T-05; la GPU con un bloqueo por máquina (`gpu.py`), hecho tras esta auditoría |
 | G-021 Memoria de la separación | Cerrado | T-24 |
 | G-022 Clips en bruto sin límite | Cerrado por decisión | Se borran a mano desde la web (T-08); P9 descarta el borrado automático |
 | G-023 Biblioteca lenta | Cerrado | T-22 |
@@ -107,19 +107,12 @@ Ordenado por prioridad. Cada punto dice qué falta, dónde está y qué se propo
      YouTube, sin red, Claude inalcanzable, motor o diarizador no instalado,
      clips borrados), igual que la API con `fail()`. El texto técnico quedaría
      solo como detalle.
-2. **La GPU no se reparte entre procesos** (resto de G-020).
-   - **Qué falta:** el bloqueo es por vídeo, así que un doblaje desde la CLI y
-     otro desde la web sobre vídeos distintos pueden coincidir en la GPU. Con
-     Chatterbox (2 × 3,6 GB), whisper y demucs a la vez, 16 GB no siempre bastan.
-   - **Propuesta:** un bloqueo de GPU por máquina (`flock` en
-     `~/.cache/opendub/gpu.lock`) en las fases que la usan, con espera visible en
-     lugar de error.
-3. **Reducir la lista de mypy** (resto de G-024).
+2. **Reducir la lista de mypy** (resto de G-024).
    - **Qué falta:** 36 errores, casi todos `Path | None` pasados donde se espera
      `Path` (referencias de voz) y tipos de `**dict` en `web/jobs.py`.
    - **Propuesta:** corregirlos por módulos. `tools/mypy_baseline.py --update`
      acorta la lista a medida que bajan.
-4. **Fidelidad de la traducción completa** (resto de G-005).
+3. **Fidelidad de la traducción completa** (resto de G-005).
    - **Qué falta:** T-13 mide lo que se pierde al acortar, no si la traducción
      completa dice lo mismo que el original.
    - **Propuesta:** el mismo juez de `shortening.py` (rúbrica fija, sin
@@ -128,19 +121,19 @@ Ordenado por prioridad. Cada punto dice qué falta, dónde está y qué se propo
 
 ### P3
 
-5. **Decidir el motor *Automático*** (resto de G-016).
+4. **Decidir el motor *Automático*** (resto de G-016).
    - **Qué falta:** sigue marcado como experimental hasta tener datos de 8–10
      vídeos.
    - **Propuesta:** ya existen las herramientas. Doblar el corpus con IndexTTS y
      con Chatterbox, pasar `dub_metrics.py` y una sesión de escucha, y decidir
      si el umbral de 165 Hz se sostiene.
-6. **Alternativa al bloqueo de YouTube** (resto de G-001).
+5. **Alternativa al bloqueo de YouTube** (resto de G-001).
    - **Situación:** el bloqueo no se elude. yt-dlp puede usar las cookies del
      navegador del propio usuario (`--cookies-from-browser`). Eso no salta la
      comprobación: descarga como el usuario con su sesión.
    - **Decisión pendiente del propietario:** si se ofrece como opción
      documentada o se deja como está.
-7. **LAN sin cifrar.**
+6. **LAN sin cifrar.**
    - **Qué pasa:** `--lan` sirve HTTP. Quien escuche la red local puede ver el
      token. Además, el token cambia en cada arranque, así que tras reiniciar
      cada dispositivo debe abrir el enlace nuevo; la cookie, de 30 días, ya no
@@ -149,13 +142,13 @@ Ordenado por prioridad. Cada punto dice qué falta, dónde está y qué se propo
      - Documentar que es para redes de confianza.
      - Ofrecer un token persistente opcional (guardado en `~/.config/opendub`)
        para el servicio systemd.
-8. **Varias voces en más casos.**
+7. **Varias voces en más casos.**
    - **Qué falta:** la validación con escucha se hizo con un pódcast de hombre y
      mujer. Faltan dos hombres de tono parecido y solapes reales, que en el
      bench solo se probaron con conversaciones sintéticas.
    - **Propuesta:** una sesión con un vídeo así antes de activarla también en la
      CLI.
-9. **Afinado es-ES en la CLI.**
+8. **Afinado es-ES en la CLI.**
    - **Situación:** perdió la escucha (3,17 frente a 3,83) y sigue como
      `--engine chatterbox-es` solo para comparar. Mantenerlo cuesta un
      checkpoint más en caché (~3 GB).

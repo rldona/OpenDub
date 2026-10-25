@@ -11,8 +11,8 @@ from typing import Annotated
 import typer
 
 from . import download as download_mod
+from . import gpu, pipeline
 from . import mix as mix_mod
-from . import pipeline
 from . import separate as separate_mod
 from . import style as style_mod
 from . import transcribe as transcribe_mod
@@ -156,6 +156,13 @@ def _setup(url: str, settings: Settings) -> WorkDir:
     return wd
 
 
+def _gpu(wd: WorkDir) -> None:
+    """A phase command that may use the GPU holds it until the command ends (gpu.py): another OpenDub
+    process waits instead of running out of memory next to it."""
+    _held.enter_context(gpu.hold(f"opendub {sys.argv[1] if len(sys.argv) > 1 else 'cli'} {wd.path.name}",
+                                 on_release=pipeline.release_models))
+
+
 def _with_style(settings: Settings, wd: WorkDir) -> Settings:
     """The edge-tts voice of the style's variant, if it asks for the other one."""
     return style_mod.with_variant_voice(settings, style_mod.load(settings.work_root, wd.path, settings.style_file))
@@ -196,6 +203,7 @@ def transcribe(
     _require(wd, "download")
     if multi_speaker:
         _require(wd, "diarize")
+    _gpu(wd)
     with phase("Transcription"):
         transcribe_mod.run(wd, settings, force=force)
 
@@ -227,6 +235,8 @@ def translate(
     _require(wd, "transcribe")
     if tts != "edge" or multi_speaker:  # several voices: each speaker's pace is measured on their own voice
         _require(wd, "separate")
+    if settings.tts != "edge" or settings.multi_speaker:  # a cloned voice's pace is calibrated on the GPU
+        _gpu(wd)
     with phase("Translation"):
         translate_mod.run(wd, settings, force=force)
 
@@ -266,6 +276,7 @@ def tts(
         _require(wd, "separate")
     if multi_speaker:  # each speaker's reference and gender come from the diarization
         _require(wd, "diarize")
+    _gpu(wd)
     with phase("TTS"):
         tts_mod.run(wd, settings, force=force)
 
@@ -281,6 +292,7 @@ def separate(
     settings = Settings(work_root=work, separator=separator)
     wd = _setup(url, settings)
     _require(wd, "download")
+    _gpu(wd)
     with phase("Separation"):
         separate_mod.run(wd, settings, force=force)
 
@@ -297,6 +309,7 @@ def diarize(
     settings = Settings(work_root=work)
     wd = _setup(url, settings)
     _require(wd, "separate")
+    _gpu(wd)
     with phase("Separation"):
         diarize_mod.run(wd, settings, force=force)
 

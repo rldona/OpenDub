@@ -8,6 +8,7 @@ from pathlib import Path
 
 from . import diarize as diarize_mod
 from . import download as download_mod
+from . import gpu
 from . import mix as mix_mod
 from . import retouch as retouch_mod
 from . import separate as separate_mod
@@ -52,19 +53,22 @@ def _dub(url: str, wd: WorkDir, settings: Settings, output: Path | None, force: 
         wd.invalidate_from("download")
     with phase("Download"):
         download_mod.run(url, wd, settings)
-    if settings.multi_speaker:
-        with phase("Separation"):
-            separate_mod.run(wd, settings)
-            diarize_mod.run(wd, settings)
-    with phase("Transcription"):
-        transcribe_mod.run(wd, settings)
-    if (settings.separate or settings.tts != "edge") and not settings.multi_speaker:
-        with phase("Separation"):
-            separate_mod.run(wd, settings)
-    with phase("Translation"):
-        translate_mod.run(wd, settings)
-    with phase("TTS"):
-        tts_mod.run(wd, settings)
+    # the GPU from the first phase that may use it to the voice (the translation calibrates a cloned
+    # voice's pace); its memory is freed before the mix, which doesn't need it
+    with gpu.hold(f"dub {wd.path.name}", on_release=release_models):
+        if settings.multi_speaker:
+            with phase("Separation"):
+                separate_mod.run(wd, settings)
+                diarize_mod.run(wd, settings)
+        with phase("Transcription"):
+            transcribe_mod.run(wd, settings)
+        if (settings.separate or settings.tts != "edge") and not settings.multi_speaker:
+            with phase("Separation"):
+                separate_mod.run(wd, settings)
+        with phase("Translation"):
+            translate_mod.run(wd, settings)
+        with phase("TTS"):
+            tts_mod.run(wd, settings)
     with phase("Mix"):
         return mix_mod.run(wd, settings, output=output)
 
@@ -81,11 +85,12 @@ def retouch(url: str, settings: Settings, output: Path | None = None) -> Path:
         with phase("Download"):
             download_mod.run(url, wd, settings)
         cloned = wd.tts_index.exists() and (tts_mod._index(wd).get("engine") or "edge") != "edge"
-        if cloned or settings.separate:
-            with phase("Separation"):
-                separate_mod.run(wd, settings)
-        with phase("TTS"):
-            retouch_mod.retouch(wd, settings, settings.retouch or ())
+        with gpu.hold(f"retouch {wd.path.name}", on_release=release_models):
+            if cloned or settings.separate:
+                with phase("Separation"):
+                    separate_mod.run(wd, settings)
+            with phase("TTS"):
+                retouch_mod.retouch(wd, settings, settings.retouch or ())
         with phase("Mix"):
             return mix_mod.run(wd, settings, output=output)
 

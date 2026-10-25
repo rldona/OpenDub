@@ -154,6 +154,11 @@ source, separate the stems, speak the clips).
 - **Lock** (`WorkDir.lock`): a dub, a retouch or a phase command holds an
   exclusive lock on `work/<id>/.lock`; a second process is refused with who holds
   it, and the web answers 409 to edits while it is held.
+- **GPU** (`gpu.hold`): one machine-wide lock (`~/.cache/opendub/gpu.lock`) from the
+  first phase that may use the GPU to the end of the voice, in a dub, a retouch or a
+  phase command. Another OpenDub process, on any video, waits and says who has it
+  (and can be cancelled while it waits); the models' memory is freed before the
+  lock is let go, and the download and the mix run outside it.
 - **Cancel** (`log.request_cancel`): the web's Cancel stops a running job at the
   next progress step or Claude call; what was done is cached, so dubbing it again
   goes on from there. A queued job that is cancelled never starts.

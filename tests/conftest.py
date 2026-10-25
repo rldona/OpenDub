@@ -31,3 +31,9 @@ def no_network_probe(monkeypatch):
     from opendub import translate
 
     monkeypatch.setattr(translate, "_reachable", True)
+
+
+@pytest.fixture(autouse=True)
+def own_gpu_lock(monkeypatch, tmp_path_factory):
+    """The GPU lock is machine-wide (~/.cache/opendub): tests use their own, or a real dub would block them."""
+    monkeypatch.setenv("OPENDUB_GPU_LOCK", str(tmp_path_factory.mktemp("gpu") / "gpu.lock"))
