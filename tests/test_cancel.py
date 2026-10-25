@@ -50,7 +50,8 @@ def test_claude_is_not_called_again_once_cancelled(monkeypatch):
 
 
 pytest.importorskip("fastapi")
-from test_web import VID, VID2, client, read_events, wait_status  # noqa: E402
+# engines_installed: autouse there, and here too once imported (CI has no cloning engine installed)
+from test_web import VID, VID2, client, engines_installed, read_events, wait_status  # noqa: E402, F401
 
 
 class Ticking:
