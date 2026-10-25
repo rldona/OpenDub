@@ -854,6 +854,13 @@ def _repair_clones(
     return set()
 
 
+def clips_exist(wd: WorkDir) -> bool:
+    """Whether the latest dub's voice clips are all on disk (storage.py can delete them)."""
+    if not wd.tts_index.exists():
+        return False
+    return all((wd.path / c.file).exists() for c in load_clips(wd))
+
+
 def takes(wd: WorkDir) -> dict[int, int]:
     """The seed each sentence asked for another take was last spoken with (takes.json)."""
     path = wd.path / "takes.json"
@@ -1000,7 +1007,7 @@ def run(wd: WorkDir, settings: Settings, force: bool = False) -> list[Clip]:
         said = sum(1 for seg in segments if seg.speaker == spk)
         how = f"cloned with {v.engine}" if v.engine != "edge" else f"stock voice {v.name}"
         log.info(f"Speaker {spk} ({v.gender or 'gender unknown'}): {how} · {said} segments")
-    if not force and wd.is_done("tts", params) and wd.tts_index.exists():
+    if not force and wd.is_done("tts", params) and clips_exist(wd):  # deleted to save space: speak them again
         log.info("TTS cached, skipping")
         index = json.loads(wd.tts_index.read_text(encoding="utf-8"))
         if isinstance(index, dict) and index.get("engine_choice") != choice:
@@ -1080,6 +1087,9 @@ def retouch(wd: WorkDir, settings: Settings, new_takes: list[int] | tuple[int, .
     """
     if not (wd.tts_index.exists() and wd.translation.exists()):
         raise SystemExit("Nothing to retouch: this video has no dub yet")
+    if not clips_exist(wd):
+        raise SystemExit("The voice clips were deleted to save space: dub the video again (its translation is "
+                         "kept; only the voice and the mix are redone) before retouching it")
     index = _index(wd)
     engine = index.get("engine") or "edge"
     cloned = engine != "edge"

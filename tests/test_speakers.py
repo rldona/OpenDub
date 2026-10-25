@@ -56,6 +56,9 @@ def _renderer(log):
     def fake_render(wd_, jobs, slots, settings, regenerate=False):
         out = []
         for seg, voice in jobs:
+            clip = wd_.path / f"tts/{seg.id:04d}.wav"  # as the real render leaves it (tts.clips_exist)
+            clip.parent.mkdir(parents=True, exist_ok=True)
+            clip.write_bytes(b"")
             log.append((seg.id, voice.engine, voice.name if voice.engine == "edge" else voice.ref.name))
             raw = len(seg.text) / 15
             out.append(tts.Clip(seg.id, seg.start, slots[seg.id], raw, 1.0, raw, 0.0, f"tts/{seg.id:04d}.wav",

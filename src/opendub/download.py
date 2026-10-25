@@ -117,24 +117,17 @@ def thumbnail(wd: WorkDir) -> bool:
     return wd.thumbnail.exists()
 
 
-def run(url: str, wd: WorkDir, settings: Settings, force: bool = False) -> dict[str, Any]:
-    params = {"max_height": settings.max_height, "source_lang": settings.source_lang}
-    if not force and wd.is_done("download", params) and wd.meta.exists():
-        log.info("Download cached, skipping")
-        return json.loads(wd.meta.read_text())
-
-    for old in wd.path.glob("subs.*"):
-        old.unlink()
-
+def _info(url: str) -> dict[str, Any]:
     log.info("Fetching video info…")
     try:
         with yt_dlp.YoutubeDL(_BASE_OPTS) as ydl:
-            raw = ydl.sanitize_info(ydl.extract_info(url, download=False, process=False))
+            return ydl.sanitize_info(ydl.extract_info(url, download=False, process=False))
     except yt_dlp.utils.DownloadError as e:
         raise explain(e) from None
-    lang = settings.source_lang or raw.get("language")  # None: whisper will detect it
-    log.info(f"[bold]{raw['title']}[/] · {raw.get('duration', 0)}s · language {lang or '?'}")
 
+
+def _fetch_media(raw: dict[str, Any], wd: WorkDir, settings: Settings) -> None:
+    """The video (H.264 up to --max-height when there is one) and its 16 kHz mono audio for whisper."""
     h = settings.max_height
     opts = {
         **_BASE_OPTS,
@@ -158,9 +151,27 @@ def run(url: str, wd: WorkDir, settings: Settings, force: bool = False) -> dict[
             raise explain(e) from None
     v = next(s for s in probe(wd.video)["streams"] if s["codec_type"] == "video")
     log.info(f"Video: {v['codec_name']} {v['width']}x{v['height']}")
-
     log.info("Extracting audio (16 kHz mono for whisper)…")
     ffmpeg("-i", str(wd.video), "-vn", "-ac", "1", "-ar", "16000", str(wd.audio))
+
+
+def run(url: str, wd: WorkDir, settings: Settings, force: bool = False) -> dict[str, Any]:
+    params = {"max_height": settings.max_height, "source_lang": settings.source_lang}
+    if not force and wd.is_done("download", params) and wd.meta.exists():
+        if wd.video.exists() and wd.audio.exists():
+            log.info("Download cached, skipping")
+        else:  # deleted to save space (storage.py): fetch the media again, nothing else changes
+            log.info("The original video was deleted to save space: downloading it again…")
+            _fetch_media(_info(url), wd, settings)
+        return json.loads(wd.meta.read_text())
+
+    for old in wd.path.glob("subs.*"):
+        old.unlink()
+
+    raw = _info(url)
+    lang = settings.source_lang or raw.get("language")  # None: whisper will detect it
+    log.info(f"[bold]{raw['title']}[/] · {raw.get('duration', 0)}s · language {lang or '?'}")
+    _fetch_media(raw, wd, settings)
 
     subs: dict[str, str | None] = {"manual": None, "auto": None}
     if key := _pick_track(raw.get("subtitles") or {}, lang or "en"):

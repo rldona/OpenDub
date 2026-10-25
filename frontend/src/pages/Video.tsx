@@ -9,6 +9,7 @@ import { usePrefs } from "../prefs";
 import { useDefaultOptions } from "./Library";
 import { RedubDialog } from "./RedubDialog";
 import { SpeakersCard, speakerName } from "./Speakers";
+import { StorageCard } from "./Storage";
 import { cleanStyle, sameStyle, StyleEditor } from "./StyleEditor";
 
 type Filter = "all" | "issues" | "edited";
@@ -149,8 +150,9 @@ export function VideoPage({ id }: { id: string }) {
 
   const styleChanged = !!styleInfo && !!styleDraft && !sameStyle(styleInfo.video, styleDraft);
   const pending = translation?.pending ?? [];
-  const cloned = !!video.engine && video.engine !== "edge";
-  const toRetouch = [...new Set([...pending, ...takes])].sort((a, b) => a - b);
+  const clipsGone = translation?.clips_available === false; // deleted to save space: no retouch until re-dubbed
+  const cloned = !!video.engine && video.engine !== "edge" && !clipsGone;
+  const toRetouch = clipsGone ? [] : [...new Set([...pending, ...takes])].sort((a, b) => a - b);
 
   async function retouch() {
     try {
@@ -238,6 +240,7 @@ export function VideoPage({ id }: { id: string }) {
       </div>
 
       {busy && <div className="notice">{t("busy")}</div>}
+      {!busy && clipsGone && versions.length > 0 && <div className="notice">{t("clips_gone")}</div>}
       {!busy && translation?.needs_regeneration && !edits.size && !pending.length && <div className="notice">{t("needs_regen")}</div>}
 
       <div className="row" style={{ alignItems: "flex-start", gap: 20 }}>
@@ -469,6 +472,8 @@ export function VideoPage({ id }: { id: string }) {
           </div>
         </section>
       )}
+
+      <StorageCard id={id} busy={busy} onChanged={() => void load()} />
 
       {(edits.size > 0 || note || (toRetouch.length > 0 && versions.length > 0 && !busy)) && (
         <div className="savebar" role="region" aria-label={t("save")}>

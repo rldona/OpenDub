@@ -253,7 +253,9 @@ def translation(wd: WorkDir, manager: JobManager) -> dict[str, Any] | None:
     return {"segments": segments, "chars_per_second": pace.cps if pace else None,
             "needs_regeneration": not (wd.has("tts") and wd.has("mix")),
             # edited since the latest dub: what a retouch speaks again
-            "pending": sorted(tts.pending_edits(wd)) if wd.output.exists() else []}
+            "pending": sorted(tts.pending_edits(wd)) if wd.output.exists() else [],
+            # the voice clips a retouch needs may have been deleted to save space (storage.py)
+            "clips_available": tts.clips_exist(wd)}
 
 
 def dub_engine(wd: WorkDir) -> str:

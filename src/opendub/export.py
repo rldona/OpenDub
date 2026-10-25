@@ -105,6 +105,9 @@ def export(wd: WorkDir, fmt: str, version: str | None = None) -> Path:
     elif fmt == "m4a":
         ffmpeg("-i", str(video), "-map", "0:a:0", "-c", "copy", "-movflags", "+faststart", str(tmp))
     else:
+        if not wd.video.exists():
+            raise ValueError("The original video was deleted to save space: dub or retouch the video to download "
+                             "it again, then export the MKV with its original audio")
         es, orig = export(wd, "srt", stem), export(wd, "srt-orig", stem)
         meta = json.loads(wd.meta.read_text(encoding="utf-8")) if wd.meta.exists() else {}
         lang = LANG_639_2.get((meta.get("language") or "").split("-")[0], "und")

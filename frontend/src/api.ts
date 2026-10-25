@@ -65,6 +65,12 @@ export interface Translation {
   chars_per_second: number | null;
   needs_regeneration: boolean;
   pending: number[]; // edited since the latest dub: what a retouch speaks again
+  clips_available: boolean; // false when the voice clips were deleted to save space
+}
+
+export interface Storage {
+  groups: { id: "source" | "stems" | "raw" | "clips" | "exports"; bytes: number; files: number }[];
+  kept: number; // bytes that always stay: versions, translation, tts.json…
 }
 
 export type IssueKind = "fallback" | "floor" | "overflow" | "abnormal" | "glossary" | "repaired" | "delayed";
@@ -215,6 +221,9 @@ export const api = {
   changeSpeakers: (id: string, changes: { id: number; speaker: string }[]) =>
     call<{ speakers: Speaker[]; translation: Translation }>(
       `/videos/${id}/segments/speakers`, { method: "PUT", body: JSON.stringify(changes) }),
+  storage: (id: string) => call<Storage>(`/videos/${id}/storage`),
+  deleteStorage: (id: string, group: string) =>
+    call<Storage & { freed: number }>(`/videos/${id}/storage/${group}`, { method: "DELETE" }),
   style: () => call<Style>("/style"),
   saveStyle: (style: Style) => call<Style>("/style", { method: "PUT", body: JSON.stringify(style) }),
   videoStyle: (id: string) => call<VideoStyle>(`/videos/${id}/style`),

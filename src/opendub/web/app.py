@@ -20,6 +20,7 @@ from pydantic import BaseModel, Field
 
 from .. import download, mix
 from .. import speakers as speakers_mod
+from .. import storage
 from ..workdir import WorkDir
 from . import videos
 from .jobs import ACTIVE, VIDEO_ID, JobManager, JobOptions, Runner
@@ -249,6 +250,8 @@ def create_app(work_root: Path = Path("work"), runner: Runner | None = None,
             path = export.export(wd, fmt, version)
         except LookupError:
             raise HTTPException(404, "No such dub")
+        except ValueError as e:  # the original video was deleted to save space
+            raise HTTPException(409, str(e)) from e
         media_type = {"mkv": "video/x-matroska", "m4a": "audio/mp4"}.get(fmt, "application/x-subrip")
         return FileResponse(path, media_type=media_type, filename=f"{vid}.{path.name}")
 
@@ -349,6 +352,24 @@ def create_app(work_root: Path = Path("work"), runner: Runner | None = None,
         except KeyError as e:
             raise HTTPException(422, f"No segment {e.args[0]}") from e
         return {"speakers": videos.speakers_info(wd), "translation": videos.translation(wd, manager)}
+
+    # --- storage ------------------------------------------------------------------
+    @app.get("/videos/{vid}/storage")
+    def get_storage(vid: str) -> dict:
+        """What the video takes on disk: the groups that can be deleted, and what always stays."""
+        return storage.usage(folder(vid))
+
+    @app.delete("/videos/{vid}/storage/{group}")
+    def delete_storage(vid: str, group: str) -> dict:
+        wd = folder(vid)
+        job = manager.get(vid)
+        if job and job.status in ACTIVE:
+            raise HTTPException(409, "This video is being dubbed; free its space when the job ends")
+        ensure_free(wd)
+        if group not in storage.GROUPS:
+            raise HTTPException(404, "Unknown group")
+        freed = storage.delete(wd, group)
+        return {"freed": freed, **storage.usage(wd)}
 
     @app.get("/style")
     def get_style() -> dict:

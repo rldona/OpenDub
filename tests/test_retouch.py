@@ -33,6 +33,9 @@ def _renderer(log, chars_per_s=15.0):
     def fake_render(wd_, jobs, slots, settings, regenerate=False):
         out = []
         for seg, voice in jobs:
+            clip = wd_.path / f"tts/{seg.id:04d}.wav"  # as the real render leaves it (tts.clips_exist)
+            clip.parent.mkdir(parents=True, exist_ok=True)
+            clip.write_bytes(b"")
             log.append((seg.id, seg.text, voice.seed))
             raw = len(seg.text) / chars_per_s
             tempo = min(max(raw / slots[seg.id], 1.0), settings.max_tempo)

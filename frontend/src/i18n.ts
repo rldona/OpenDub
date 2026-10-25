@@ -113,6 +113,21 @@ const en = {
   voice_cloned_n: "Cloned with {e}", voice_stock_n: "Stock voice {v} (too little clean speech to clone)",
   voice_not_yet: "Not dubbed yet", merge_into: "Merge into", merged_n: "{n} sentences moved: regenerate them to hear it.",
   merge_confirm: "Give every sentence of {a} to {b}?", speaker_of_n: "Speaker of sentence {n}",
+  storage: "Disk space", st_summary: "{free} can be freed · {kept} always kept",
+  st_group: "What", st_size: "Size", st_if_deleted: "If you delete it",
+  st_source: "Original video and audio", st_source_lost: "The MKV with the original audio can't be exported meanwhile",
+  st_source_redo: "Downloaded again (from YouTube) by the next dub or retouch",
+  st_stems: "Separated voice and music", st_stems_lost: "Nothing kept is lost",
+  st_stems_redo: "Separated again (about a minute) before the next dub or retouch",
+  st_raw: "Raw voice clips (cache)", st_raw_lost: "Nothing is lost",
+  st_raw_redo: "Whatever is spoken again is synthesized again",
+  st_clips: "Voice clips of the latest dub", st_clips_lost: "No retouch or remix until the video is dubbed again",
+  st_clips_redo: "The next dub speaks the voice again (the translation is kept)",
+  st_exports: "Exports (MKV, audio, subtitles)", st_exports_lost: "Nothing is lost",
+  st_exports_redo: "Made again when downloaded",
+  st_confirm: "Delete “{what}”? {lost}.", st_freed: "{n} freed.",
+  st_hint: "Versions, the translation and the dub's data always stay. Nothing is deleted automatically.",
+  clips_gone: "The voice clips were deleted to save space: dub the video again to retouch it (the translation is kept).",
 };
 
 export type Key = keyof typeof en;
@@ -230,6 +245,21 @@ const es: Record<Key, string> = {
   voice_cloned_n: "Clonada con {e}", voice_stock_n: "Voz genérica {v} (muy poca voz limpia para clonar)",
   voice_not_yet: "Aún sin doblar", merge_into: "Fusionar en", merged_n: "{n} frases movidas: regenéralas para oírlo.",
   merge_confirm: "¿Dar todas las frases de {a} a {b}?", speaker_of_n: "Hablante de la frase {n}",
+  storage: "Espacio en disco", st_summary: "{free} se pueden liberar · {kept} se conservan siempre",
+  st_group: "Qué", st_size: "Tamaño", st_if_deleted: "Si lo borras",
+  st_source: "Vídeo y audio originales", st_source_lost: "Mientras tanto no se puede exportar el MKV con el audio original",
+  st_source_redo: "Se vuelve a descargar (de YouTube) en el próximo doblaje o retoque",
+  st_stems: "Voz y música separadas", st_stems_lost: "No se pierde nada de lo conservado",
+  st_stems_redo: "Se vuelve a separar (cerca de un minuto) antes del próximo doblaje o retoque",
+  st_raw: "Clips de voz en bruto (caché)", st_raw_lost: "No se pierde nada",
+  st_raw_redo: "Lo que se vuelva a decir se sintetiza de nuevo",
+  st_clips: "Clips de voz del último doblaje", st_clips_lost: "Ni retoques ni remezclas hasta volver a doblar el vídeo",
+  st_clips_redo: "El próximo doblaje vuelve a decir la voz (la traducción se conserva)",
+  st_exports: "Exportaciones (MKV, audio, subtítulos)", st_exports_lost: "No se pierde nada",
+  st_exports_redo: "Se vuelven a crear al descargarlas",
+  st_confirm: "¿Borrar «{what}»? {lost}.", st_freed: "{n} liberados.",
+  st_hint: "Las versiones, la traducción y los datos del doblaje se conservan siempre. Nada se borra solo.",
+  clips_gone: "Los clips de voz se borraron para ahorrar espacio: vuelve a doblar el vídeo para retocarlo (la traducción se conserva).",
 };
 
 export type Lang = "en" | "es";

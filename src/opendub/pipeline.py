@@ -75,6 +75,14 @@ def retouch(url: str, settings: Settings, output: Path | None = None) -> Path:
     with wd.lock("retouch"):
         settings = style_mod.with_variant_voice(settings, style_mod.load(settings.work_root, wd.path,
                                                                          settings.style_file))
+        # what may have been deleted to save space (storage.py): the video for the mix, the stems for
+        # a cloned voice's reference and for the background
+        with phase("Download"):
+            download_mod.run(url, wd, settings)
+        cloned = wd.tts_index.exists() and (tts_mod._index(wd).get("engine") or "edge") != "edge"
+        if cloned or settings.separate:
+            with phase("Separation"):
+                separate_mod.run(wd, settings)
         with phase("TTS"):
             tts_mod.retouch(wd, settings, settings.retouch or ())
         with phase("Mix"):
