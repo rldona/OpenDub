@@ -39,7 +39,7 @@ class Worker:
         log_path.parent.mkdir(parents=True, exist_ok=True)
         self.log_path = log_path
         self._stderr = log_path.open("a", encoding="utf-8")
-        log.info(f"Starting {name} (its own venv; log in {log_path})…")
+        log.info(f"Starting {name} in its own process (log in {log_path})…")
         self.proc = media.popen(
             [str(python), "-I", str(script), *args], cwd=cwd,
             stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=self._stderr, text=True, bufsize=1,

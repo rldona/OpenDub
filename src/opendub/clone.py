@@ -64,7 +64,6 @@ def unload() -> None:
     global _model
     _model = None
     _whisper.clear()
-_whisper: dict[str, object] = {}  # quality-check model, loaded once per run (several check rounds)
 
 
 def synthesize(text: str, ref: Path, seed: int, out: Path) -> None:
@@ -82,6 +81,72 @@ def synthesize(text: str, ref: Path, seed: int, out: Path) -> None:
         w.setframerate(model.sr)
         w.writeframes(pcm.tobytes())
     tmp.rename(out)
+
+
+# Chatterbox doesn't use the whole GPU for one clip: two processes speaking side by side
+# went from 3.64x to 5.00x real time (docs/v2-plan.md). Each takes 3.6 GB, so the pool
+# needs room for both plus the quality check's whisper
+POOL_MIN_VRAM_GB = 12
+WORKER = Path(__file__).parent / "workers" / "chatterbox_worker.py"
+
+
+def pool_size() -> int:
+    """Chatterbox processes to speak with: 2 on a GPU with room for them, else 1 (in this process).
+
+    OPENDUB_CHATTERBOX_WORKERS overrides it.
+    """
+    import os
+
+    if os.environ.get("OPENDUB_CHATTERBOX_WORKERS"):
+        return max(1, int(os.environ["OPENDUB_CHATTERBOX_WORKERS"]))
+    try:
+        import torch
+
+        if torch.cuda.is_available() and torch.cuda.get_device_properties(0).total_memory / 2**30 >= POOL_MIN_VRAM_GB:
+            return 2
+    except ImportError:
+        pass
+    return 1
+
+
+def synthesize_batch(jobs: list[tuple[str, Path, int, Path]], log_path: Path, done=lambda: None) -> None:
+    """Speak (text, ref, seed, out) jobs, on pool_size() processes when there is more than one.
+
+    Each process takes the next job as soon as it is free; `done` is called after
+    each clip (from the pool's threads). With one process, this one speaks them.
+    """
+    size = min(pool_size(), len(jobs))
+    if size <= 1:
+        for text, ref, seed, out in jobs:
+            synthesize(text, ref, seed, out)
+            done()
+        return
+    import sys
+    from concurrent.futures import ThreadPoolExecutor
+    from queue import Empty, Queue
+
+    from . import engines
+
+    global _model
+    _model = None  # the workers speak: this process doesn't need Chatterbox on the GPU
+    pending: Queue = Queue()
+    for job in jobs:
+        pending.put(job)
+
+    def serve(k: int) -> None:
+        worker = engines.worker(f"{MODEL}#{k}", lambda: engines.Worker(
+            f"{MODEL} #{k + 1}", Path(sys.executable), WORKER, [], Path.cwd(), log_path))
+        while True:
+            try:
+                text, ref, seed, out = pending.get_nowait()
+            except Empty:
+                return
+            worker.request(text, ref, out, 1.0, seed)
+            done()
+
+    with ThreadPoolExecutor(max_workers=size) as pool:
+        for future in [pool.submit(serve, k) for k in range(size)]:
+            future.result()  # re-raise a worker's failure
 
 
 def normalize(text: str) -> str:

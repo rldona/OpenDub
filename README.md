@@ -195,7 +195,9 @@ chain that keeps the same voice as long as possible:
 4. edge-tts (`--voice`) as a last resort, recorded in `overflow.log`.
 
 `tts.json` records which of these produced each clip. Chatterbox adds Resemble
-AI's inaudible Perth watermark to everything it generates.
+AI's inaudible Perth watermark to everything it generates. On a GPU with 12 GB or
+more, Chatterbox speaks with two processes side by side (about 1.25× faster on a
+long video); `OPENDUB_CHATTERBOX_WORKERS=1` keeps it to one.
 
 ### Choosing the engine
 

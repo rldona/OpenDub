@@ -264,5 +264,10 @@ today, voice cloning (the most uncertain part) last.
   cache); greedy decoding halves the check (23.6 → 12.3 s on 353 clips) with the
   same verdict on 352 of them. Enabled.
 - Chatterbox with two processes on the GPU: 3.64× → 5.00× real time (1.37×),
-  3.6 GB each. About 10% of a long Chatterbox dub, for a pool of worker
-  processes and tighter VRAM: not done for now.
+  3.6 GB each. Done later as a pool of two worker processes on the shared
+  JSON-lines launcher (`workers/chatterbox_worker.py`, OpenDub's own venv), used
+  when the GPU has 12 GB or more (`OPENDUB_CHATTERBOX_WORKERS` overrides it): on
+  real dubs the voice phase went 320.9 → 254.2 s on the 19-minute video (1.26×)
+  and 49.0 → 39.5 s and 62.9 → 56.9 s on the short ones (where the two processes'
+  10 s start weighs more), with the same clips (same seeds: identical speed-ups,
+  shortenings and quality-check redos).

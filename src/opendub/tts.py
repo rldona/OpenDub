@@ -253,16 +253,21 @@ def _synthesize_jobs(jobs: list[tuple[str, Path, Voice]], settings: Settings) ->
         TimeElapsedColumn(), console=console, transient=True,
     ) as progress:
         task = progress.add_task("Cloning voice", total=len(cloned))
+        # Chatterbox clips go to its process pool, several at a time (clone.synthesize_batch)
+        batch = [(spell_numbers(text), voice.ref, voice.seed, path) for text, path, voice in cloned
+                 if voice.engine == "chatterbox"]
+        if batch:
+            clone.synthesize_batch(batch, settings.work_root / "chatterbox.log", lambda: progress.advance(task))
         for text, path, voice in cloned:
             said = spell_numbers(text)  # cloned voices misread figures and "2x2"
+            if voice.engine == "chatterbox":
+                continue
             if voice.engine == "indextts":
                 indextts.synthesize(settings.indextts_dir, settings.work_root / "indextts.log",
                                     said, voice.ref, path, voice.factor, voice.seed)
             elif voice.engine == "cosyvoice":
                 cosyvoice.synthesize(settings.cosyvoice_dir, settings.work_root / "cosyvoice.log",
                                      said, voice.ref, path, voice.factor, voice.seed)
-            else:
-                clone.synthesize(said, voice.ref, voice.seed, path)
             progress.advance(task)
 
 

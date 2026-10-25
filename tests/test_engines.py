@@ -120,3 +120,35 @@ def test_cosyvoice_smoke(tmp_path):
         assert durations[1] == pytest.approx(durations[0] * 0.7, rel=0.05)
     finally:
         worker.close()
+
+
+def test_chatterbox_pool_spreads_clips_over_its_processes(tmp_path, monkeypatch):
+    from opendub import clone
+
+    script = tmp_path / "fake_worker.py"
+    script.write_text(FAKE_WORKER + "\nimport os\n")
+    monkeypatch.setattr(clone, "WORKER", script)
+    monkeypatch.setattr(clone, "pool_size", lambda: 2)
+    jobs = [(f"Frase {i}.", tmp_path / "ref.wav", i, tmp_path / f"{i}.wav") for i in range(6)]
+    done = []
+    try:
+        clone.synthesize_batch(jobs, tmp_path / "cb.log", lambda: done.append(1))
+    finally:
+        engines.shutdown()
+    assert len(done) == 6
+    for text, _ref, seed, out in jobs:
+        req = json.loads(out.read_text())
+        assert (req["text"], req["seed"]) == (text, seed)
+    assert {k for k in engines._workers} == set()  # both processes stopped
+    log = (tmp_path / "cb.log").read_text() if (tmp_path / "cb.log").exists() else ""
+    assert "Traceback" not in log
+
+
+def test_chatterbox_pool_size_follows_the_gpu(monkeypatch):
+    from opendub import clone
+
+    monkeypatch.undo()  # conftest pins it to 1
+    monkeypatch.setenv("OPENDUB_CHATTERBOX_WORKERS", "3")
+    assert clone.pool_size() == 3
+    monkeypatch.setenv("OPENDUB_CHATTERBOX_WORKERS", "0")
+    assert clone.pool_size() == 1

@@ -11,4 +11,5 @@ def no_real_synthesis(monkeypatch):
 
     monkeypatch.setattr(indextts, "synthesize", refuse)
     monkeypatch.setattr(cosyvoice, "synthesize", refuse)
+    monkeypatch.setattr(clone, "pool_size", lambda: 1)  # no Chatterbox worker processes either
     monkeypatch.setattr(clone, "synthesize", refuse)
