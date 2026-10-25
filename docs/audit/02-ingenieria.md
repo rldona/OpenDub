@@ -251,6 +251,24 @@ Solo amenazas realistas para una herramienta local de un usuario.
 - **P8** · Varias voces ya existe aunque el encargo la situaba más adelante: ¿entra en el alcance de la ejecución 3?
 - **P9** · ¿Política de disco: conservar todas las versiones para siempre? ¿Se pueden borrar las voces separadas y los clips en bruto de vídeos terminados?
 
+## Respuestas del propietario (2026-10-25)
+
+Decisiones que la ejecución 3 debe tomar como dadas:
+
+| # | Decisión | Efecto en los gaps |
+|---|---|---|
+| P1 | El modelo por defecto es **Chatterbox afinado es-ES**, por decisión de escucha | G-015 pasa a **defecto**: el código carga Multilingual V3 (`clone._load`). `v2-plan.md` (Fase C) documenta V3 como elegido de oído; esa entrada contradice la decisión y también hay que corregirla. |
+| P2 | Motor por defecto **Chatterbox fijo**. *Automático* solo cuando haya datos de 8–10 vídeos | G-014 pasa a **defecto**: la web usa *Automático* por defecto (`JobRequest.engine`, `prefs.tsx`). |
+| P3 | **Pendiente.** Opciones: "público, MIT solo para el código de OpenDub (los motores con sus licencias, y el README lo dice)" o "público, licencia pendiente". "Distribución" es una decisión aparte de "público" | G-029 **bloqueado** hasta decidir; lo que dependa de él (avisos de licencias en el README, empaquetado) también. |
+| P4 | Sin conexión **no es requisito**; basta con que falle con un mensaje claro, sin reintentos eternos | G-004 cambia: no hace falta funcionar sin red, sino un error claro al no haber conexión (edge-tts, Claude, YouTube). Se une a G-001. |
+| P5 | Caso habitual: vídeos de 20–30 min; máximo soportado: 60 min; biblioteca de decenas. **Disco antes que memoria** | G-003 y G-022 suben de prioridad. G-021 baja: con 60 min de máximo, el pico estimado (7–9 GB para 70 min) cabe en 32 GB. G-023 queda como mejora menor. |
+| P6 | Arrancar a mano con `opendub web` basta. Un servicio systemd sería un P3 opcional | Sin gap nuevo; servicio = P3 opcional. |
+| P7 | **Sí** a la escucha a ciegas: 10–12 clips, dos motores, sin saber cuál es cuál. Corpus: los dos cortos actuales y dos nuevos de 10–20 min (uno con música de fondo y otro con un hablante rápido) que elija el auditor. El ticket incluye **el script que genera la sesión y registra las respuestas** | G-016 queda concretado con ese corpus y ese entregable. |
+| P8 | Varias voces **fuera del alcance de implementación** de la ejecución 3; dentro, solo un ticket de investigación (pyannote: coste, licencia, token de HF, cambios en `reference.py` y en la mezcla) | Desfase: el bench pyannote frente a Nemotron 3 ya se hizo, y Nemotron ya está integrado como opción desactivada por defecto (`1ba9a4c`–`9fe1fee`). G-009 queda como "experimental, sin ampliar". **Pendiente**: cómo tratar lo ya integrado. |
+| P9 | Conservar indefinidamente las versiones finales (`output*.mp4`, `translation.json`, `tts.json`). Los intermedios pesados (`video.mp4`, `audio.wav`, `stems`, clips wav) se pueden borrar **por vídeo desde la web**, con aviso de qué se pierde y qué fases habría que repetir. **Sin borrado automático** | G-003 y G-022 se concretan con esa política. |
+| Mac | El Mac no es objetivo de la v2; **solo debe seguir funcionando el modo edge-tts sin separación** | G-017 se reduce a G-032. |
+| LAN | Acceder a la web desde otros dispositivos de la LAN es un **ticket P2** | G-033. |
+
 ## Gaps (ingeniería)
 
 - **G-018** · Las peticiones a un worker no tienen timeout; un worker colgado bloquea el trabajo sin poder cancelarlo · `engines.Worker._read`.
@@ -267,3 +285,5 @@ Solo amenazas realistas para una herramienta local de un usuario.
 - **G-029** · Repo público sin `LICENSE` · raíz del repositorio.
 - **G-030** · `tts.py` concentra demasiadas responsabilidades, con funciones de muchos parámetros · 1.128 líneas.
 - **G-031** · `docs/architecture.md` probablemente desfasado frente a varias voces, retoque y exportación · no revisado.
+- **G-032** · Nada comprueba que el modo edge-tts sin separación siga funcionando en macOS (el único requisito de Mac en la v2) · la CI corre solo en Linux; no hay un test del camino edge sin los extras `separate` y `clone`.
+- **G-033** · La web solo es accesible desde la propia máquina; acceder desde la LAN (ticket P2) exige revisar la exposición, porque hoy no hay autenticación y la protección depende de escuchar en `127.0.0.1` y de `TrustedHostMiddleware` · `app.serve`, `create_app(allowed_hosts=…)`.

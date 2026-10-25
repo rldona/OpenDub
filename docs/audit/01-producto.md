@@ -20,7 +20,7 @@ implementación y comprobado con ejecuciones, no en el README. Ingeniería
   - [v2-plan.md](../v2-plan.md).
   - [bench/README.md](../bench/README.md) y `bench/metrics.py`.
   - [bench/diarize/README.md](../bench/diarize/README.md).
-- Las preguntas P1–P9 están al final de [02-ingenieria.md](02-ingenieria.md#preguntas-para-el-propietario).
+- Las preguntas P1–P9 y las respuestas del propietario están al final de [02-ingenieria.md](02-ingenieria.md#respuestas-del-propietario-2026-10-25).
 - Leyenda de las afirmaciones:
   - **Hecho** (verificado en código o ejecución).
   - **Hipótesis** (deducido del código, no ejecutado).
@@ -320,18 +320,18 @@ ese retoque.
 
 - **G-001** · YouTube puede bloquear la descarga y no hay alternativa ni mensaje accionable · observado el 2026-10-25 en `download.run` ("Sign in to confirm you're not a bot").
 - **G-002** · No se puede cancelar un trabajo ni quitarlo de la cola · ausente en `web/jobs.py`, `app.py` y el frontend.
-- **G-003** · No se puede borrar un vídeo ni limpiar sus intermedios desde la web · solo `DELETE /videos/{id}/outputs/{version}`.
-- **G-004** · La fase de voz necesita red aunque el motor sea local · `asyncio.run(_check_voice(...))` en `tts.run` y `tts.retouch`.
+- **G-003** · No se pueden borrar desde la web los intermedios pesados de un vídeo (P9: `video.mp4`, `audio.wav`, `stems`, clips wav, por vídeo, avisando qué se pierde y qué fases habría que repetir; sin borrado automático) · solo `DELETE /videos/{id}/outputs/{version}`.
+- **G-004** · La fase de voz necesita red aunque el motor sea local; sin conexión falla sin un mensaje claro (P4: trabajar sin red no es requisito, pero el error debe ser claro) · `asyncio.run(_check_voice(...))` en `tts.run` y `tts.retouch`.
 - **G-005** · No se mide la pérdida de sentido al acortar ni la fidelidad de la traducción · `translate.shorten` sin comprobación posterior.
 - **G-006** · Con una sola voz, la reserva edge-tts no respeta el sexo del hablante · `rwF-X5STYks` #11 dicha por `es-ES-AlvaroNeural`; `_repair_clones` usa `voices[i].stock or settings.voice`.
 - **G-007** · No se mide la deriva acumulada entre voz e imagen · solo hay retrasos por clip en `overflow.log`.
 - **G-008** · Sin normalización de sonoridad ni limitador · −14,9 a −26,6 LUFS entre vídeos; pico de −0,1 dBFS; `mix.filter_graph` con `normalize=0`.
-- **G-009** · Varias voces validada en un solo vídeo real y sin escucha · §5.7.
+- **G-009** · Varias voces validada en un solo vídeo real y sin escucha (P8: fuera del alcance de implementación de la ejecución 3; ya integrada como opción desactivada por defecto) · §5.7.
 - **G-010** · Mensajes de error y logs en inglés en la interfaz en español · `NowDubbing`, mensajes de `app.py`.
 - **G-011** · El idioma por defecto de la interfaz es inglés · `prefs.tsx` `lang: "en"`.
 - **G-012** · El diálogo de redoblaje no permite activar varias voces · `RedubDialog.tsx`.
 - **G-013** · Controles por frase ocultos hasta pasar el ratón · `.add-term`, `.row-action` en `styles.css`.
-- **G-014** · Motor por defecto distinto en la web (*Automático*) y en la CLI (Chatterbox) · `JobRequest.engine`, `prefs.tsx`, `Settings.engine`.
-- **G-015** · El modelo de Chatterbox cargado (Multilingual V3) no coincide con el "afinado es-ES" del encargo · `clone._load`.
-- **G-016** · No hay un corpus ni un protocolo de evaluación de doblajes completos; el bench mide frases sueltas · `docs/bench/README.md`.
-- **G-017** · Funcionamiento en Apple Silicon y en CPU sin probar para la clonación · `clone._device` contempla `mps`; los venvs de motores fijan CUDA 12.8.
+- **G-014** · **Defecto (P2)**: la web usa *Automático* por defecto; debe ser Chatterbox fijo, como la CLI · `JobRequest.engine`, `prefs.tsx`, `Settings.engine`.
+- **G-015** · **Defecto (P1)**: se carga Chatterbox Multilingual V3 en lugar del afinado es-ES decidido por escucha; `v2-plan.md` documenta lo contrario · `clone._load`.
+- **G-016** · No hay un corpus ni un protocolo de evaluación de doblajes completos (P7: escucha a ciegas de 10–12 clips y dos motores sobre los dos cortos más dos de 10–20 min, uno con música y otro con un hablante rápido, con un script que genere la sesión y registre las respuestas); el bench mide frases sueltas · `docs/bench/README.md`.
+- **G-017** · Funcionamiento en Apple Silicon y en CPU sin probar para la clonación (cerrado por decisión: el Mac no es objetivo de la v2; ver G-032) · `clone._device` contempla `mps`; los venvs de motores fijan CUDA 12.8.
