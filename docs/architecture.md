@@ -101,7 +101,8 @@ flowchart TD
 
 ## Several voices
 
-`--multi-speaker` (experimental) gives each speaker their own cloned voice.
+`--multi-speaker` gives each speaker their own cloned voice: on by default on the web
+page when Nemotron is installed, asked for on the CLI.
 
 ```mermaid
 flowchart LR

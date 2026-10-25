@@ -1,0 +1,383 @@
+{
+ "name": "multi-speaker-vs-one",
+ "a": "20261025-211631-chatterbox",
+ "b": "20261025-212504-chatterbox",
+ "seed": 1,
+ "videos": [
+  "R4zlpwwEpnY"
+ ],
+ "answers": {
+  "f01": {
+   "ratings": {
+    "1": {
+     "naturalness": 4,
+     "meaning": 4,
+     "sync": 4
+    },
+    "2": {
+     "sync": 4,
+     "meaning": 4,
+     "naturalness": 4
+    }
+   },
+   "prefer": "same"
+  },
+  "f02": {
+   "ratings": {
+    "1": {
+     "naturalness": 4,
+     "meaning": 4,
+     "sync": 4
+    },
+    "2": {
+     "naturalness": 1,
+     "meaning": 1,
+     "sync": 1
+    }
+   },
+   "prefer": "1"
+  },
+  "f03": {
+   "ratings": {
+    "1": {
+     "naturalness": 1,
+     "sync": 1,
+     "meaning": 1
+    },
+    "2": {
+     "naturalness": 4,
+     "meaning": 4,
+     "sync": 4
+    }
+   },
+   "prefer": "2"
+  },
+  "f04": {
+   "ratings": {
+    "1": {
+     "naturalness": 4,
+     "meaning": 4,
+     "sync": 4
+    },
+    "2": {
+     "sync": 1,
+     "meaning": 1,
+     "naturalness": 1
+    }
+   },
+   "prefer": "1"
+  },
+  "f05": {
+   "ratings": {
+    "1": {
+     "naturalness": 1,
+     "meaning": 1,
+     "sync": 1
+    },
+    "2": {
+     "naturalness": 4,
+     "meaning": 4,
+     "sync": 4
+    }
+   },
+   "prefer": "2"
+  },
+  "f06": {
+   "ratings": {
+    "1": {
+     "naturalness": 3,
+     "meaning": 3,
+     "sync": 3
+    },
+    "2": {
+     "sync": 4,
+     "naturalness": 4,
+     "meaning": 4
+    }
+   },
+   "prefer": "same"
+  },
+  "f07": {
+   "ratings": {
+    "1": {
+     "naturalness": 3,
+     "meaning": 3,
+     "sync": 3
+    },
+    "2": {
+     "sync": 3,
+     "meaning": 3,
+     "naturalness": 3
+    }
+   },
+   "prefer": "same"
+  },
+  "f08": {
+   "ratings": {
+    "1": {
+     "naturalness": 3,
+     "meaning": 3,
+     "sync": 3
+    },
+    "2": {
+     "sync": 3,
+     "meaning": 3,
+     "naturalness": 3
+    }
+   },
+   "prefer": "same"
+  },
+  "f09": {
+   "ratings": {
+    "1": {
+     "naturalness": 4,
+     "meaning": 4,
+     "sync": 4
+    },
+    "2": {
+     "sync": 4,
+     "meaning": 4,
+     "naturalness": 4
+    }
+   },
+   "prefer": "same"
+  },
+  "f10": {
+   "ratings": {
+    "1": {
+     "naturalness": 4,
+     "meaning": 4,
+     "sync": 4
+    },
+    "2": {
+     "meaning": 1,
+     "sync": 1,
+     "naturalness": 1
+    }
+   },
+   "prefer": "1"
+  }
+ },
+ "revealed": {
+  "f01": {
+   "video": "R4zlpwwEpnY",
+   "start": 43.39,
+   "end": 54.63,
+   "versions": {
+    "20261025-211631-chatterbox": "20261025-211631-chatterbox",
+    "20261025-212504-chatterbox": "20261025-212504-chatterbox"
+   },
+   "ratings": {
+    "20261025-211631-chatterbox": {
+     "naturalness": 4,
+     "meaning": 4,
+     "sync": 4
+    },
+    "20261025-212504-chatterbox": {
+     "sync": 4,
+     "meaning": 4,
+     "naturalness": 4
+    }
+   },
+   "prefer": "same"
+  },
+  "f02": {
+   "video": "R4zlpwwEpnY",
+   "start": 233.81,
+   "end": 247.03,
+   "versions": {
+    "20261025-211631-chatterbox": "20261025-211631-chatterbox",
+    "20261025-212504-chatterbox": "20261025-212504-chatterbox"
+   },
+   "ratings": {
+    "20261025-211631-chatterbox": {
+     "naturalness": 4,
+     "meaning": 4,
+     "sync": 4
+    },
+    "20261025-212504-chatterbox": {
+     "naturalness": 1,
+     "meaning": 1,
+     "sync": 1
+    }
+   },
+   "prefer": "20261025-211631-chatterbox"
+  },
+  "f03": {
+   "video": "R4zlpwwEpnY",
+   "start": 282.51,
+   "end": 295.93,
+   "versions": {
+    "20261025-211631-chatterbox": "20261025-211631-chatterbox",
+    "20261025-212504-chatterbox": "20261025-212504-chatterbox"
+   },
+   "ratings": {
+    "20261025-212504-chatterbox": {
+     "naturalness": 1,
+     "sync": 1,
+     "meaning": 1
+    },
+    "20261025-211631-chatterbox": {
+     "naturalness": 4,
+     "meaning": 4,
+     "sync": 4
+    }
+   },
+   "prefer": "20261025-211631-chatterbox"
+  },
+  "f04": {
+   "video": "R4zlpwwEpnY",
+   "start": 456.37,
+   "end": 470.73,
+   "versions": {
+    "20261025-211631-chatterbox": "20261025-211631-chatterbox",
+    "20261025-212504-chatterbox": "20261025-212504-chatterbox"
+   },
+   "ratings": {
+    "20261025-211631-chatterbox": {
+     "naturalness": 4,
+     "meaning": 4,
+     "sync": 4
+    },
+    "20261025-212504-chatterbox": {
+     "sync": 1,
+     "meaning": 1,
+     "naturalness": 1
+    }
+   },
+   "prefer": "20261025-211631-chatterbox"
+  },
+  "f05": {
+   "video": "R4zlpwwEpnY",
+   "start": 560.45,
+   "end": 572.33,
+   "versions": {
+    "20261025-211631-chatterbox": "20261025-211631-chatterbox",
+    "20261025-212504-chatterbox": "20261025-212504-chatterbox"
+   },
+   "ratings": {
+    "20261025-212504-chatterbox": {
+     "naturalness": 1,
+     "meaning": 1,
+     "sync": 1
+    },
+    "20261025-211631-chatterbox": {
+     "naturalness": 4,
+     "meaning": 4,
+     "sync": 4
+    }
+   },
+   "prefer": "20261025-211631-chatterbox"
+  },
+  "f06": {
+   "video": "R4zlpwwEpnY",
+   "start": 782.13,
+   "end": 796.83,
+   "versions": {
+    "20261025-211631-chatterbox": "20261025-211631-chatterbox",
+    "20261025-212504-chatterbox": "20261025-212504-chatterbox"
+   },
+   "ratings": {
+    "20261025-212504-chatterbox": {
+     "naturalness": 3,
+     "meaning": 3,
+     "sync": 3
+    },
+    "20261025-211631-chatterbox": {
+     "sync": 4,
+     "naturalness": 4,
+     "meaning": 4
+    }
+   },
+   "prefer": "same"
+  },
+  "f07": {
+   "video": "R4zlpwwEpnY",
+   "start": 908.79,
+   "end": 920.33,
+   "versions": {
+    "20261025-211631-chatterbox": "20261025-211631-chatterbox",
+    "20261025-212504-chatterbox": "20261025-212504-chatterbox"
+   },
+   "ratings": {
+    "20261025-211631-chatterbox": {
+     "naturalness": 3,
+     "meaning": 3,
+     "sync": 3
+    },
+    "20261025-212504-chatterbox": {
+     "sync": 3,
+     "meaning": 3,
+     "naturalness": 3
+    }
+   },
+   "prefer": "same"
+  },
+  "f08": {
+   "video": "R4zlpwwEpnY",
+   "start": 1023.71,
+   "end": 1035.37,
+   "versions": {
+    "20261025-211631-chatterbox": "20261025-211631-chatterbox",
+    "20261025-212504-chatterbox": "20261025-212504-chatterbox"
+   },
+   "ratings": {
+    "20261025-212504-chatterbox": {
+     "naturalness": 3,
+     "meaning": 3,
+     "sync": 3
+    },
+    "20261025-211631-chatterbox": {
+     "sync": 3,
+     "meaning": 3,
+     "naturalness": 3
+    }
+   },
+   "prefer": "same"
+  },
+  "f09": {
+   "video": "R4zlpwwEpnY",
+   "start": 1209.45,
+   "end": 1221.39,
+   "versions": {
+    "20261025-211631-chatterbox": "20261025-211631-chatterbox",
+    "20261025-212504-chatterbox": "20261025-212504-chatterbox"
+   },
+   "ratings": {
+    "20261025-212504-chatterbox": {
+     "naturalness": 4,
+     "meaning": 4,
+     "sync": 4
+    },
+    "20261025-211631-chatterbox": {
+     "sync": 4,
+     "meaning": 4,
+     "naturalness": 4
+    }
+   },
+   "prefer": "same"
+  },
+  "f10": {
+   "video": "R4zlpwwEpnY",
+   "start": 1317.07,
+   "end": 1328.87,
+   "versions": {
+    "20261025-211631-chatterbox": "20261025-211631-chatterbox",
+    "20261025-212504-chatterbox": "20261025-212504-chatterbox"
+   },
+   "ratings": {
+    "20261025-211631-chatterbox": {
+     "naturalness": 4,
+     "meaning": 4,
+     "sync": 4
+    },
+    "20261025-212504-chatterbox": {
+     "meaning": 1,
+     "sync": 1,
+     "naturalness": 1
+    }
+   },
+   "prefer": "20261025-211631-chatterbox"
+  }
+ }
+}

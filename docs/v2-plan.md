@@ -62,6 +62,25 @@ today, voice cloning (the most uncertain part) last.
   order is: regenerate with another seed → regenerate with a sentence shortened
   by Claude → clone with the fixed Spanish reference → edge-tts only as a last
   resort, logged in `overflow.log`.
+- **V3 against the es-ES finetune, by blind listening (25 Oct 2026).** The
+  finetune was benchmarked on single sentences but never heard on whole dubs. Both
+  dubbed the listening corpus with one translation: the two short videos, an
+  11-minute one with music and a 20-minute fast speaker
+  ([bench/listening/](bench/listening/), session `chatterbox-v3-vs-es`, 12
+  fragments of 10–15 s, loudness-matched, which dub was which hidden until the
+  end).
+
+  | | Chatterbox V3 | es-ES finetune |
+  |---|---|---|
+  | mean note (1–5) | **3.83** | 3.17 |
+  | preferred | **7** | 1 (4 the same) |
+  | CER on the final track ([dub metrics](bench/README.md#whole-dubs)) | 0.008–0.016 | 0.001–0.018 |
+  | voice heard > 0.5 s late, fast 20-min video | 33 s | 43 s |
+
+  Each fragment got the same note for naturalness, meaning and sync, so the notes
+  read as one overall note. **Decision: V3 stays the engine.** The finetune is as
+  intelligible but sounded worse in most fragments and fits its slots a little
+  worse; it stays as the CLI-only `--engine chatterbox-es`, for comparisons.
 
 ### IndexTTS-2.5 (`--tts indextts`)
 - Candidate added after Chatterbox: IndexTTS-2.5 (Bilibili IndexTeam, Spanish
@@ -309,3 +328,30 @@ sentence (diarization) lets each person keep their own voice.
   real speakers have over 10 minutes each.
 - **Decision: Nemotron 3 is integrated**, off by default (it is opt-in per dub),
   with the 30 s minimum.
+
+### Validation by blind listening (25 Oct 2026)
+- A real video other than the interview: a 23-minute podcast of two hosts, a man
+  and a woman (`R4zlpwwEpnY`). Diarization found both (99 and 86 sentences, male
+  and female). The same translation was dubbed with Chatterbox V3 twice, once
+  with several voices and once with a single one, and heard blind
+  ([bench/listening/](bench/listening/), session `multi-speaker-vs-one`, 10
+  fragments).
+
+  | | several voices | one voice |
+  |---|---|---|
+  | mean note (1–5) | **3.8** | 2.2 |
+  | preferred | **5** | 0 (5 the same) |
+  | fragments noted 1 | 0 | 5 |
+
+  The five 1s are the fragments where the second host speaks: with one voice she
+  is dubbed by a clone of him. Where only one host speaks the two dubs are the same.
+  As in the other session, each fragment got one note for all three criteria.
+- **Decision: several voices on by default on the web page** when Nemotron is
+  installed (the box can still be unticked); the CLI keeps it opt-in with
+  `--multi-speaker`, now also on the `translate` and `tts` phases. A single-voice
+  video keeps one voice: in the controls a false second voice took 1 sentence in
+  199, and the 30 s minimum drops it. It costs the diarization, ~10 s a dub.
+- The audit's defects ([audit/](audit/01-producto.md)): G-009 (several voices
+  validated on one real video and never heard) is closed by this session; G-012
+  (the re-dub dialog can't switch several voices on) stays filed at P2, as the
+  feature was frozen for this cycle. No new defect came up in the session.

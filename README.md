@@ -163,7 +163,10 @@ speaker is cloned from their own turns (one with under 6 s of clean speech gets
 the stock voice of their gender), and each sentence is translated to fit its
 speaker's pace, with their gender for the agreement. On the web page, each
 speaker can be named, heard and merged into another, and any sentence given to
-someone else: a retouch then speaks it with the right voice. Off by default.
+someone else: a retouch then speaks it with the right voice. On the web page it is
+ticked by default once Nemotron is installed (a single-voice video keeps one
+voice); on the CLI it is asked for with `--multi-speaker`, also by the `translate`
+and `tts` phases run on their own.
 
 ### Exporting
 

@@ -50,13 +50,15 @@ function NewDub({ onSubmitted }: { onSubmitted: () => void }) {
   const [engine, setEngine] = useState<EngineChoice>(defaults.engine);
   const [separate, setSeparate] = useState(defaults.separate);
   const [volume, setVolume] = useState(defaults.bg_volume);
-  const [multi, setMulti] = useState(false);
+  const [multi, setMulti] = useState<boolean | null>(null); // null: the default, on when Nemotron is installed
   const [diarizer, setDiarizer] = useState<{ installed: boolean; setup: string | null } | null>(null);
   useEffect(() => {
     api.status().then((s) => setDiarizer(s.diarizer)).catch(() => undefined);
   }, []);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  // several voices by default (docs/v2-plan.md, blind listening): a single-voice video keeps one voice anyway
+  const several = (multi ?? true) && !!diarizer?.installed;
 
   const installed = (id: EngineChoice) => engines?.find((e) => e.id === id)?.installed ?? true;
   const missing = (engines ?? []).filter((e) => !e.installed && e.id !== "auto");
@@ -71,7 +73,7 @@ function NewDub({ onSubmitted }: { onSubmitted: () => void }) {
     }
     setBusy(true);
     try {
-      await api.submit({ ...defaults, url: url.trim(), tts, engine, separate, bg_volume: volume, multi_speaker: multi });
+      await api.submit({ ...defaults, url: url.trim(), tts, engine, separate, bg_volume: volume, multi_speaker: several });
       setUrl("");
       setError(null);
       refresh();
@@ -121,12 +123,12 @@ function NewDub({ onSubmitted }: { onSubmitted: () => void }) {
       <details className="small muted">
         <summary style={{ cursor: "pointer" }}>
           {t("more_options")} · {separate ? t("options_music", { db: volume }) : t("options_original", { db: volume })}
-          {multi ? ` · ${t("several_voices").toLowerCase()}` : ""}
+          {several ? ` · ${t("several_voices").toLowerCase()}` : ""}
         </summary>
         <div className="row" style={{ marginTop: 12, gap: "12px 28px" }}>
           <label className="row" style={{ gap: 8, cursor: diarizer?.installed ? "pointer" : "default", color: "var(--text)" }}
             title={diarizer && !diarizer.installed ? t("install_hint", { e: "Nemotron 3 Diarization", cmd: diarizer.setup ?? "" }) : undefined}>
-            <input type="checkbox" checked={multi} disabled={!diarizer?.installed} style={{ accentColor: "var(--accent)" }}
+            <input type="checkbox" checked={several} disabled={!diarizer?.installed} style={{ accentColor: "var(--accent)" }}
               onChange={(e) => setMulti(e.target.checked)} />
             {t("several_voices")}
             <span className="faint">· {diarizer && !diarizer.installed ? t("not_installed") : t("several_voices_hint")}</span>
