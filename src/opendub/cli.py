@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import contextlib
+import sys
 from pathlib import Path
 from typing import Annotated
 
@@ -131,10 +133,14 @@ Output = Annotated[
 ]
 
 
+_held = contextlib.ExitStack()  # a phase command holds its video until the process ends
+
+
 def _setup(url: str, settings: Settings) -> WorkDir:
     require_ffmpeg()
     wd = WorkDir(settings.work_root, download_mod.video_id(url))
     log.info(f"Working folder: {wd.path}")
+    _held.enter_context(wd.lock(f"opendub {sys.argv[1] if len(sys.argv) > 1 else 'cli'}"))
     return wd
 
 

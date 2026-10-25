@@ -10,6 +10,7 @@ from __future__ import annotations
 import hashlib
 import json
 import os
+from contextlib import contextmanager
 from datetime import datetime
 from pathlib import Path
 from typing import Any
@@ -81,6 +82,47 @@ class WorkDir:
     translation_style = property(lambda self: self.path / "translation.style.json")  # style it was made with
     translation_edits = property(lambda self: self.path / "translation_edits.json")  # hand edits from the web
     job = property(lambda self: self.path / "job.json")  # web frontend: last job's options and outcome
+
+    lock_path = property(lambda self: self.path / ".lock")
+
+    @contextmanager
+    def lock(self, what: str):
+        """Hold this video for one process (a dub, a retouch, a phase): another one, from the CLI or
+        the web, stops at once instead of writing the same files. The lock goes with the process."""
+        import fcntl
+
+        fd = os.open(self.lock_path, os.O_RDWR | os.O_CREAT, 0o644)
+        try:
+            fcntl.flock(fd, fcntl.LOCK_EX | fcntl.LOCK_NB)
+        except BlockingIOError:
+            os.close(fd)
+            raise SystemExit(f"Another OpenDub process is working on this video ({self.holder() or 'unknown'}): "
+                             "wait until it ends.") from None
+        os.ftruncate(fd, 0)
+        os.write(fd, f"pid {os.getpid()}, {what}".encode())
+        try:
+            yield
+        finally:
+            os.ftruncate(fd, 0)
+            fcntl.flock(fd, fcntl.LOCK_UN)
+            os.close(fd)
+
+    def holder(self) -> str | None:
+        """Who holds the lock ("pid 123, dub"), or None if nobody does."""
+        import fcntl
+
+        if not self.lock_path.exists():
+            return None
+        fd = os.open(self.lock_path, os.O_RDONLY)
+        try:
+            fcntl.flock(fd, fcntl.LOCK_SH | fcntl.LOCK_NB)
+        except BlockingIOError:
+            return self.lock_path.read_text(encoding="utf-8").strip() or "another process"
+        else:
+            fcntl.flock(fd, fcntl.LOCK_UN)
+            return None
+        finally:
+            os.close(fd)
 
     def _read(self) -> dict[str, Any]:
         if self.manifest_path.exists():

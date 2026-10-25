@@ -41,6 +41,11 @@ def dub(url: str, settings: Settings, output: Path | None = None, force: bool = 
     if settings.retouch is not None:
         return retouch(url, settings, output)
     wd = workdir(url, settings)
+    with wd.lock("dub"):
+        return _dub(url, wd, settings, output, force)
+
+
+def _dub(url: str, wd: WorkDir, settings: Settings, output: Path | None, force: bool) -> Path:
     settings = style_mod.with_variant_voice(settings, style_mod.load(settings.work_root, wd.path, settings.style_file))
     if force:
         wd.invalidate_from("download")
@@ -67,11 +72,13 @@ def retouch(url: str, settings: Settings, output: Path | None = None) -> Path:
     """Speak again only the edited sentences and the new takes of the latest dub, then mix:
     a new version, in seconds instead of a whole TTS phase."""
     wd = workdir(url, settings)
-    settings = style_mod.with_variant_voice(settings, style_mod.load(settings.work_root, wd.path, settings.style_file))
-    with phase("TTS"):
-        tts_mod.retouch(wd, settings, settings.retouch or ())
-    with phase("Mix"):
-        return mix_mod.run(wd, settings, output=output)
+    with wd.lock("retouch"):
+        settings = style_mod.with_variant_voice(settings, style_mod.load(settings.work_root, wd.path,
+                                                                         settings.style_file))
+        with phase("TTS"):
+            tts_mod.retouch(wd, settings, settings.retouch or ())
+        with phase("Mix"):
+            return mix_mod.run(wd, settings, output=output)
 
 
 def release_models() -> None:

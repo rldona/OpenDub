@@ -162,6 +162,12 @@ def create_app(work_root: Path = Path("work"), runner: Runner | None = None,
                                  headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"})
 
     # --- videos ------------------------------------------------------------
+    def ensure_free(wd: WorkDir) -> None:
+        """409 when another process (the CLI, or this server's running job) holds the video."""
+        if holder := wd.holder():
+            raise HTTPException(409, f"Another OpenDub process is working on this video ({holder}): "
+                                     "edit it when it ends")
+
     def folder(vid: str) -> WorkDir:
         wd = WorkDir(work_root, check_id(vid), create=False)  # unknown ids must not create folders
         if not wd.meta.exists():
@@ -200,6 +206,7 @@ def create_app(work_root: Path = Path("work"), runner: Runner | None = None,
     def delete_version(vid: str, version: str) -> dict:
         """Delete one of the kept dubs; the latest one stays (output.mp4 and the page's issues are its)."""
         wd = folder(vid)
+        ensure_free(wd)
         try:
             videos.delete_output(wd, version)
         except LookupError:
@@ -252,6 +259,7 @@ def create_app(work_root: Path = Path("work"), runner: Runner | None = None,
             raise HTTPException(409, "This video is being dubbed; edit it when the job ends")
         if not wd.translation.exists():
             raise HTTPException(404, "Not translated yet")
+        ensure_free(wd)
         try:
             videos.save_translation(wd, [e.model_dump() for e in edits])
         except KeyError as e:
@@ -265,6 +273,7 @@ def create_app(work_root: Path = Path("work"), runner: Runner | None = None,
         job = manager.get(vid)
         if job and job.status in ACTIVE:
             raise HTTPException(409, "This video is being dubbed; retouch it when the job ends")
+        ensure_free(wd)
         try:
             pending = videos.retouchable(wd, req.takes)
         except LookupError as e:
@@ -290,6 +299,7 @@ def create_app(work_root: Path = Path("work"), runner: Runner | None = None,
             raise HTTPException(409, "This video is being dubbed; edit it when the job ends")
         if not wd.translation.exists():
             raise HTTPException(404, "Not translated yet")
+        ensure_free(wd)
         return wd
 
     @app.get("/videos/{vid}/speakers")
@@ -353,6 +363,7 @@ def create_app(work_root: Path = Path("work"), runner: Runner | None = None,
     @app.put("/videos/{vid}/style")
     def put_video_style(vid: str, data: dict = Body()) -> dict:
         wd = folder(vid)
+        ensure_free(wd)
         try:
             videos.save_style(wd.path / videos.style.FILE, data)
         except ValueError as e:
