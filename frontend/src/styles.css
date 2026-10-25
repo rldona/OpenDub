@@ -223,3 +223,9 @@ code.cmd { flex: 1; min-width: 0; padding: 8px 10px; border-radius: 8px; backgro
 tr:hover .add-term, .add-term:focus-visible { opacity: 1; }
 @media (hover: none) { .add-term { opacity: 1; } }
 .mark-glossary { background: var(--accent); }
+
+/* retouch: another take of a sentence */
+.row-action { display: block; margin-bottom: 4px; color: var(--accent-text); opacity: 0; }
+tr:hover .row-action, .row-action:focus-visible, .row-action.on { opacity: 1; }
+.row-action.on { font-weight: 650; }
+@media (hover: none) { .row-action { opacity: 1; } }

@@ -94,6 +94,12 @@ const en = {
   video_style_hint: "Wins over the global style in Preferences.",
   style_stale: "The style changed since this translation.", style_apply: "Translate and dub again with {e}",
   add_term: "+ glossary", add_term_hint: "Add to this video's glossary (select a few words first to use them)",
+
+  retouch_n: "retouch of {n}", edited_pending: "Edited · not heard yet",
+  take_btn: "↻ another take", take_queued: "↻ take queued", take_hint: "Speak this sentence again with another take of the cloned voice",
+  saved_hint_retouch: "Regenerate just these sentences, in seconds, or re-dub the whole video.",
+  to_retouch: "{n} sentence(s) to regenerate.", n_edited: "{n} edited", n_takes: "{n} new take(s)",
+  save_retouch: "Save and regenerate", clear_takes: "Clear takes", retouch_btn: "Regenerate {n} sentence(s)",
 };
 
 export type Key = keyof typeof en;
@@ -192,6 +198,12 @@ const es: Record<Key, string> = {
   video_style_hint: "Tiene prioridad sobre el estilo global de Preferencias.",
   style_stale: "El estilo ha cambiado desde esta traducción.", style_apply: "Retraducir y doblar con {e}",
   add_term: "+ glosario", add_term_hint: "Añadir al glosario de este vídeo (selecciona antes unas palabras para usarlas)",
+
+  retouch_n: "retoque de {n}", edited_pending: "Editada · aún sin oír",
+  take_btn: "↻ otra toma", take_queued: "↻ toma en cola", take_hint: "Volver a decir esta frase con otra toma de la voz clonada",
+  saved_hint_retouch: "Regenera solo estas frases, en segundos, o redobla el vídeo entero.",
+  to_retouch: "{n} frase(s) por regenerar.", n_edited: "{n} editada(s)", n_takes: "{n} toma(s) nueva(s)",
+  save_retouch: "Guardar y regenerar", clear_takes: "Quitar tomas", retouch_btn: "Regenerar {n} frase(s)",
 };
 
 export type Lang = "en" | "es";

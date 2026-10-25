@@ -8,6 +8,7 @@ import { usePrefs } from "../prefs";
 import { issueClass, issueText } from "./Video";
 
 type Side = "a" | "b";
+type NumericStat = Exclude<keyof VersionDetail["stats"], "retouched">;
 
 export function Compare({ id }: { id: string | null }) {
   const { t, prefs } = usePrefs();
@@ -122,12 +123,12 @@ function Comparison({ video, lang }: { video: Video; lang: "en" | "es" }) {
     </div>
   );
 
-  const stat = (k: keyof VersionDetail["stats"], d: VersionDetail | null) => {
+  const stat = (k: NumericStat, d: VersionDetail | null) => {
     const v = d?.stats[k];
     if (v == null) return "—";
     return k === "voice_seconds" ? t("min_n", { m: (v / 60).toFixed(1) }) : String(v);
   };
-  const rows: [string, keyof VersionDetail["stats"]][] = [
+  const rows: [string, NumericStat][] = [
     [t("voice_phase"), "voice_seconds"], [t("st_shortened"), "shortened"], [t("st_floor"), "below_floor"],
     [t("st_redone"), "redone"], [t("st_sped"), "sped_up"], [t("spoken_edge"), "edge"],
   ];

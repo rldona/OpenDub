@@ -29,6 +29,7 @@ export interface Output {
   date: string;
   current: boolean;
   issues: number;
+  retouched: number; // sentences a retouch spoke again over the dub before it
 }
 
 export interface Video {
@@ -61,6 +62,7 @@ export interface Translation {
   segments: Segment[];
   chars_per_second: number | null;
   needs_regeneration: boolean;
+  pending: number[]; // edited since the latest dub: what a retouch speaks again
 }
 
 export type IssueKind = "fallback" | "floor" | "overflow" | "abnormal" | "glossary" | "repaired" | "delayed";
@@ -122,6 +124,7 @@ export interface VersionDetail {
     below_floor: number;
     redone: number;
     edge: number;
+    retouched: number[];
   };
   issues: Issue[];
   clips: Clip[];
@@ -183,6 +186,8 @@ export const api = {
   videoStyle: (id: string) => call<VideoStyle>(`/videos/${id}/style`),
   saveVideoStyle: (id: string, style: Style) =>
     call<VideoStyle>(`/videos/${id}/style`, { method: "PUT", body: JSON.stringify(style) }),
+  retouch: (id: string, takes: number[]) =>
+    call<JobSummary & { segments: number[] }>(`/videos/${id}/retouch`, { method: "POST", body: JSON.stringify({ takes }) }),
   version: (id: string, version: string) =>
     call<VersionDetail>(`/videos/${id}/versions/${encodeURIComponent(version)}`),
   deleteVersion: (id: string, version: string) =>

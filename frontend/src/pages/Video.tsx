@@ -59,6 +59,8 @@ export function VideoPage({ id }: { id: string }) {
   const [styleNote, setStyleNote] = useState<string | null>(null);
   const [focusTerm, setFocusTerm] = useState(0);
   const [issuesStamp, setIssuesStamp] = useState(0); // bumped when a style change may change the issues
+  const [takes, setTakes] = useState<Set<number>>(new Set()); // sentences to speak again with another take
+  const [jumpTo, setJumpTo] = useState<number | null>(null); // after a retouch: its first sentence
   const player = useRef<HTMLVideoElement>(null);
   const defaults = useDefaultOptions();
   const { refresh } = useJobs();
@@ -86,6 +88,13 @@ export function VideoPage({ id }: { id: string }) {
   }, [id, video, versions, selected, issuesStamp]);
 
   const busy = !!job && job.id === id && (job.status === "running" || job.status === "queued");
+  // when a retouch ends, the latest version plays from its first retouched sentence
+  useEffect(() => {
+    if (jumpTo == null || !detail?.current || !detail.stats.retouched.includes(jumpTo)) return;
+    const clip = detail.clips.find((c) => c.id === jumpTo);
+    setJumpTo(null);
+    if (clip && player.current) player.current.currentTime = Math.max(0, clip.start - 0.2);
+  }, [detail, jumpTo]);
   const issuesById = useMemo(() => {
     const map = new Map<number, Issue[]>();
     detail?.issues.forEach((i) => map.set(i.id, [...(map.get(i.id) ?? []), i]));
@@ -136,6 +145,29 @@ export function VideoPage({ id }: { id: string }) {
   }
 
   const styleChanged = !!styleInfo && !!styleDraft && !sameStyle(styleInfo.video, styleDraft);
+  const pending = translation?.pending ?? [];
+  const cloned = !!video.engine && video.engine !== "edge";
+  const toRetouch = [...new Set([...pending, ...takes])].sort((a, b) => a - b);
+
+  async function retouch() {
+    try {
+      const r = await api.retouch(id, [...takes]);
+      setTakes(new Set());
+      setVersion(null);
+      setJumpTo(r.segments[0] ?? null);
+      setNote(null);
+      refresh();
+    } catch (err) {
+      setNote((err as Error).message);
+    }
+  }
+
+  const toggleTake = (sid: number) => {
+    const next = new Set(takes);
+    if (next.has(sid)) next.delete(sid); else next.add(sid);
+    setTakes(next);
+  };
+
   async function saveStyle() {
     try {
       const s = await api.saveVideoStyle(id, cleanStyle(styleDraft!));
@@ -192,7 +224,7 @@ export function VideoPage({ id }: { id: string }) {
       </div>
 
       {busy && <div className="notice">{t("busy")}</div>}
-      {!busy && translation?.needs_regeneration && !edits.size && <div className="notice">{t("needs_regen")}</div>}
+      {!busy && translation?.needs_regeneration && !edits.size && !pending.length && <div className="notice">{t("needs_regen")}</div>}
 
       <div className="row" style={{ alignItems: "flex-start", gap: 20 }}>
         <div className="stack" style={{ flex: "999 1 560px", minWidth: 0, gap: 10 }}>
@@ -240,7 +272,8 @@ export function VideoPage({ id }: { id: string }) {
                     <span style={{ flex: 1 }}>
                       {engineShort(o.engine)}{" "}
                       <span className={on ? "" : "faint"} style={on ? { color: "var(--accent-text)" } : undefined}>
-                        · {when(o.date, prefs.lang)}{o.current ? ` · ${t("latest")}` : ""}{on ? ` · ${t("watching")}` : ""}
+                        · {when(o.date, prefs.lang)}{o.retouched ? ` · ${t("retouch_n", { n: o.retouched })}` : ""}
+                        {o.current ? ` · ${t("latest")}` : ""}{on ? ` · ${t("watching")}` : ""}
                       </span>
                     </span>
                     <span className={`small ${o.issues ? "warn-text" : "ok-text"}`}>{o.issues}</span>
@@ -360,6 +393,7 @@ export function VideoPage({ id }: { id: string }) {
                             }} />
                         </label>
                         {edits.has(s.id) && <div className="small" style={{ color: "var(--accent-text)" }}>{t("edited_unsaved")}</div>}
+                        {!edits.has(s.id) && pending.includes(s.id) && <div className="small" style={{ color: "var(--accent-text)" }}>{t("edited_pending")}</div>}
                       </td>
                       <td className="small muted num" style={{ textAlign: "right" }}>
                         {seconds(s.slot, prefs.lang)}<br />
@@ -367,6 +401,12 @@ export function VideoPage({ id }: { id: string }) {
                       </td>
                       {detail && (
                         <td>
+                          {detail.current && cloned && !busy && (
+                            <button type="button" className={`link-btn small row-action ${takes.has(s.id) ? "on" : ""}`}
+                              aria-pressed={takes.has(s.id)} title={t("take_hint")} onClick={() => toggleTake(s.id)}>
+                              {takes.has(s.id) ? t("take_queued") : t("take_btn")}
+                            </button>
+                          )}
                           {found.length ? (
                             <span className="row" style={{ gap: 8, flexWrap: "nowrap" }}>
                               <button type="button" className="round-btn" aria-label={t("listen", { n: s.id })} onClick={() => seek(s.start)}><PlayIcon /></button>
@@ -389,13 +429,20 @@ export function VideoPage({ id }: { id: string }) {
         </section>
       )}
 
-      {(edits.size > 0 || note) && (
+      {(edits.size > 0 || note || (toRetouch.length > 0 && versions.length > 0 && !busy)) && (
         <div className="savebar" role="region" aria-label={t("save")}>
           <span>
             {edits.size > 0 ? (
               <>
                 <strong>{edits.size === 1 ? t("unsaved_1") : t("unsaved_n", { n: edits.size })}.</strong>{" "}
-                <span className="muted">{t("saved_hint")}</span>
+                <span className="muted">{versions.length ? t("saved_hint_retouch") : t("saved_hint")}</span>
+              </>
+            ) : toRetouch.length > 0 && !busy ? (
+              <>
+                <strong>{t("to_retouch", { n: toRetouch.length })}</strong>{" "}
+                <span className="muted">{[pending.length ? t("n_edited", { n: pending.length }) : null,
+                  takes.size ? t("n_takes", { n: takes.size }) : null].filter(Boolean).join(" · ")}
+                  {note ? ` · ${note}` : ""}</span>
               </>
             ) : <span className="muted">{note}</span>}
           </span>
@@ -403,8 +450,18 @@ export function VideoPage({ id }: { id: string }) {
             <div className="row" style={{ gap: 8 }}>
               <button type="button" className="btn" onClick={() => { setEdits(new Map()); setNote(null); }}>{t("discard")}</button>
               <button type="button" className="btn solid" onClick={() => void save()}>{t("save")}</button>
-              <button type="button" className="btn primary" disabled={busy}
+              <button type="button" className="btn" disabled={busy}
                 onClick={async () => { if (await save()) setDialog(true); }}>{t("save_redub")}</button>
+              {versions.length > 0 && (
+                <button type="button" className="btn primary" disabled={busy}
+                  onClick={async () => { if (await save()) await retouch(); }}>{t("save_retouch")}</button>
+              )}
+            </div>
+          ) : toRetouch.length > 0 && !busy ? (
+            <div className="row" style={{ gap: 8 }}>
+              {takes.size > 0 && <button type="button" className="btn" onClick={() => setTakes(new Set())}>{t("clear_takes")}</button>}
+              <button type="button" className="btn" onClick={() => setDialog(true)}>{t("redub_btn")}</button>
+              <button type="button" className="btn primary" onClick={() => void retouch()}>{t("retouch_btn", { n: toRetouch.length })}</button>
             </div>
           ) : (
             <button type="button" className="btn primary" disabled={busy} onClick={() => setDialog(true)}>{t("redub_btn")}</button>
