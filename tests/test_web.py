@@ -599,3 +599,12 @@ def test_the_library_reads_a_version_again_only_when_its_files_change(tmp_path, 
     assert videos.outputs(wd)[0]["issues"] == first[0]["issues"] + 1 and len(read) == 2  # changed: read again
     (tmp_path / "style.json").write_text(json.dumps({"terms": [{"source": "rewind", "target": "rebobinar"}]}))
     assert videos.outputs(wd)[0]["issues"] == first[0]["issues"] + 2 and len(read) == 3  # a new glossary term
+
+
+def test_a_video_says_whether_its_latest_dub_had_several_voices(tmp_path):
+    wd = make_video(tmp_path / "work")
+    c = client(tmp_path, FakePipeline())
+    assert c.get(f"/videos/{VID}").json()["several_voices"] is False
+    index = json.loads(wd.tts_index.read_text())
+    wd.tts_index.write_text(json.dumps(index | {"speakers": {"1": "A", "2": "B", "3": "A"}}))  # dubbed from the CLI
+    assert c.get(f"/videos/{VID}").json()["several_voices"] is True

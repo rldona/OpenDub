@@ -119,6 +119,7 @@ def summary(wd: WorkDir, manager: JobManager) -> dict[str, Any]:
         "date": date,
         "engine": index.get("engine"),
         "reference_f0_hz": index.get("reference_f0_hz"),
+        "several_voices": index.get("speakers") is not None,  # the latest dub, from the web or the CLI
         "clips": len(clips),
         "sped_up": sum(1 for c in clips if c.get("tempo", 1.0) > 1.0),
         "shortened": sum(1 for c in clips if c["id"] in translation and c.get("text") != translation[c["id"]]),

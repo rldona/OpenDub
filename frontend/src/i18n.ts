@@ -107,6 +107,7 @@ const en = {
   dl_srt_orig: "Original subtitles", dl_srt_orig_hint: "SRT, the original sentences",
 
   several_voices: "Several voices", several_voices_hint: "each person keeps their own voice",
+  several_voices_retranslate: "the sentences are cut again where the speaker changes, so it is translated again",
   speakers: "Speakers", speakers_hint: "who speaks; name them, hear them, merge one split in two",
   speaker_n: "Speaker {s}", speaker_name_n: "Name of speaker {s}", hear_speaker: "Hear {s}",
   gender_female: "woman", gender_male: "man", sentences_n: "{n} sentences",
@@ -254,6 +255,7 @@ const es: Record<Key, string> = {
   dl_srt_orig: "Subtítulos originales", dl_srt_orig_hint: "SRT, las frases originales",
 
   several_voices: "Varias voces", several_voices_hint: "cada persona conserva su voz",
+  several_voices_retranslate: "las frases se cortan de nuevo donde cambia quien habla, así que se traduce otra vez",
   speakers: "Hablantes", speakers_hint: "quién habla; ponles nombre, escúchalos, fusiona uno partido en dos",
   speaker_n: "Hablante {s}", speaker_name_n: "Nombre del hablante {s}", hear_speaker: "Escuchar a {s}",
   gender_female: "mujer", gender_male: "hombre", sentences_n: "{n} frases",

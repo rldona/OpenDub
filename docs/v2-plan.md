@@ -352,6 +352,8 @@ sentence (diarization) lets each person keep their own voice.
   video keeps one voice: in the controls a false second voice took 1 sentence in
   199, and the 30 s minimum drops it. It costs the diarization, ~10 s a dub.
 - The audit's defects ([audit/](audit/01-producto.md)): G-009 (several voices
-  validated on one real video and never heard) is closed by this session; G-012
-  (the re-dub dialog can't switch several voices on) stays filed at P2, as the
-  feature was frozen for this cycle. No new defect came up in the session.
+  validated on one real video and never heard) is closed by this session, and
+  G-012 (the re-dub dialog couldn't switch several voices on) is fixed: the dialog
+  starts as the latest dub was made and says that switching translates again (the
+  sentences are cut where the speaker changes). No new defect came up in the
+  session.

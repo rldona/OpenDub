@@ -8,7 +8,8 @@ import { usePrefs } from "../prefs";
 import { useDefaultOptions } from "./Library";
 import { errorText } from "../errors";
 
-/** Dub the video again: the engine, and whether to keep its translation. Every version is kept. */
+/** Dub the video again: the engine, several voices or one, and whether to keep its translation. Every version
+ * is kept. */
 export function RedubDialog({ video, watching, onClose, onStarted }: {
   video: Video;
   watching: string | null;
@@ -25,6 +26,16 @@ export function RedubDialog({ video, watching, onClose, onStarted }: {
     return other?.id ?? "auto";
   });
   const [keep, setKeep] = useState(true);
+  const before = video.several_voices; // how the latest dub was made
+  // several voices: as the latest dub was; on by default for a video not dubbed yet (as a new dub)
+  const [multi, setMulti] = useState<boolean | null>(null);
+  const [diarizer, setDiarizer] = useState<{ installed: boolean; setup: string | null } | null>(null);
+  useEffect(() => {
+    api.status().then((s) => setDiarizer(s.diarizer)).catch(() => undefined);
+  }, []);
+  const several = (multi ?? (video.outputs.length ? before : true)) && !!diarizer?.installed;
+  // switching between one voice and several cuts the sentences again (at speaker changes): translated again
+  const retranslates = several !== before;
   const [error, setError] = useState<string | null>(null);
   const [voiceTime, setVoiceTime] = useState<Record<string, number | null>>({});
 
@@ -51,7 +62,7 @@ export function RedubDialog({ video, watching, onClose, onStarted }: {
 
   async function start() {
     try {
-      await redub(video.id, defaults, { tts: "clone", engine, keep_translation: keep });
+      await redub(video.id, defaults, { tts: "clone", engine, keep_translation: keep && !retranslates, multi_speaker: several });
       refresh();
       onStarted();
     } catch (err) {
@@ -103,8 +114,22 @@ export function RedubDialog({ video, watching, onClose, onStarted }: {
           </div>
         </fieldset>
 
+        <label className="radio-card" style={{ gap: 12 }}
+          title={diarizer && !diarizer.installed ? t("install_hint", { e: "Nemotron 3 Diarization", cmd: diarizer.setup ?? "" }) : undefined}>
+          <input type="checkbox" checked={several} disabled={!diarizer?.installed} onChange={(e) => setMulti(e.target.checked)}
+            style={{ width: 18, height: 18 }} />
+          <span className="stack" style={{ gap: 2 }}>
+            <span style={{ fontWeight: 650 }}>{t("several_voices")}</span>
+            <span className="small muted">
+              {diarizer && !diarizer.installed ? t("not_installed") : t("several_voices_hint")}
+              {retranslates ? ` · ${t("several_voices_retranslate")}` : ""}
+            </span>
+          </span>
+        </label>
+
         <label className="radio-card" style={{ gap: 12 }}>
-          <input type="checkbox" checked={keep} onChange={(e) => setKeep(e.target.checked)} style={{ width: 18, height: 18 }} />
+          <input type="checkbox" checked={keep && !retranslates} disabled={retranslates} onChange={(e) => setKeep(e.target.checked)}
+            style={{ width: 18, height: 18 }} />
           <span className="stack" style={{ gap: 2 }}>
             <span style={{ fontWeight: 650 }}>{t("keep_translation")}</span>
             <span className="small muted">{t("keep_translation_hint")}</span>

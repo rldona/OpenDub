@@ -42,6 +42,7 @@ export interface Video {
   date: string | null;
   engine: string | null;
   reference_f0_hz: number | null;
+  several_voices: boolean; // the latest dub gave each speaker their own voice
   clips: number;
   issues: number;
   options: JobOptions | null;
