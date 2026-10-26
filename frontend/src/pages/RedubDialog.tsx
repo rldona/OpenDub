@@ -29,7 +29,8 @@ export function RedubDialog({ video, watching, running, onClose, onStarted }: {
     const other = ENGINES.find((e) => e.id !== (running ?? watching));
     return [other?.id ?? "auto"];
   });
-  const [keep, setKeep] = useState(true);
+  // off: another engine speaks at another pace, so its own translation fits it (on: only the voice is redone)
+  const [keep, setKeep] = useState(false);
   const before = video.several_voices; // how the latest dub was made
   // several voices: as the latest dub was; on by default for a video not dubbed yet (as a new dub)
   const [multi, setMulti] = useState<boolean | null>(null);
