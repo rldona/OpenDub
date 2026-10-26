@@ -64,7 +64,7 @@ export function apply(job: LiveJob, e: JobEvent): LiveJob {
     j.status = e.status;
     if (e.error) j.error = e.error;
     if (e.status === "running") j.startedAt = e.t;
-    if (e.status === "done" || e.status === "error" || e.status === "cancelled") j.finishedAt = e.t;
+    if (e.status === "done" || e.status === "review" || e.status === "error" || e.status === "cancelled") j.finishedAt = e.t;
   } else if (e.type === "phase" && e.name) {
     j.phases[e.name] = { state: e.state === "start" ? "active" : (e.state ?? "done"), seconds: e.seconds };
     if (e.state === "start") {

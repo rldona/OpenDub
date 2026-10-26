@@ -608,3 +608,16 @@ def test_a_video_says_whether_its_latest_dub_had_several_voices(tmp_path):
     index = json.loads(wd.tts_index.read_text())
     wd.tts_index.write_text(json.dumps(index | {"speakers": {"1": "A", "2": "B", "3": "A"}}))  # dubbed from the CLI
     assert c.get(f"/videos/{VID}").json()["several_voices"] is True
+
+
+def test_a_job_that_asks_for_review_ends_waiting_for_it(tmp_path):
+    from opendub import pipeline
+
+    def stops(url, settings):
+        assert settings.review
+        raise pipeline.ReviewPending("Translation ready to review")
+
+    c = client(tmp_path, stops)
+    assert c.post("/jobs", json={"url": VID, "review": True}).status_code == 200
+    job = wait_status(c, VID, ("review", "done", "error"))
+    assert job["status"] == "review" and job["finished"] and job["options"]["review"] is True

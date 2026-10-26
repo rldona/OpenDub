@@ -52,6 +52,7 @@ class JobRequest(BaseModel):
     # reuse the translation made for another engine: only TTS and the mix are redone
     keep_translation: bool = False
     multi_speaker: bool = False  # several voices (needs `setup-engine nemotron`)
+    review: bool = False  # stop after the translation, to edit it before the voice
 
 
 class RetouchRequest(BaseModel):

@@ -154,7 +154,9 @@ export function VideoPage({ id }: { id: string }) {
   const pending = translation?.pending ?? [];
   const clipsGone = translation?.clips_available === false; // deleted to save space: no retouch until re-dubbed
   const cloned = !!video.engine && video.engine !== "edge" && !clipsGone;
-  const toRetouch = retouchQueue(pending, takes, clipsGone);
+  // stopped after the translation (T-29): the dub goes on with all of it, nothing is retouched over an old one
+  const reviewing = video.status === "review";
+  const toRetouch = reviewing ? [] : retouchQueue(pending, takes, clipsGone);
 
   async function retouch() {
     try {
@@ -218,6 +220,17 @@ export function VideoPage({ id }: { id: string }) {
     }
   }
 
+  /** After a review: the same job without stopping; the translation, as edited, is cached. */
+  async function goOn() {
+    try {
+      await redub(id, defaults, { review: false });
+      refresh();
+      void load();
+    } catch (err) {
+      setNote(errorText(err, t));
+    }
+  }
+
   const segments = translation?.segments ?? [];
   const rows = segments.filter((s) => filter === "all" || (filter === "issues" ? issuesById.has(s.id) : s.edited || edits.has(s.id)));
   const editedCount = segments.filter((s) => s.edited || edits.has(s.id)).length;
@@ -242,8 +255,14 @@ export function VideoPage({ id }: { id: string }) {
       </div>
 
       {busy && <div className="notice">{t("busy")}</div>}
+      {!busy && reviewing && translation && (
+        <div className="notice row" style={{ justifyContent: "space-between" }}>
+          <span>{t("review_notice")}</span>
+          <button type="button" className="btn primary" disabled={edits.size > 0} onClick={() => void goOn()}>{t("continue_dub")}</button>
+        </div>
+      )}
       {!busy && clipsGone && versions.length > 0 && <div className="notice">{t("clips_gone")}</div>}
-      {!busy && translation?.needs_regeneration && !edits.size && !pending.length && <div className="notice">{t("needs_regen")}</div>}
+      {!busy && translation?.needs_regeneration && !reviewing && !edits.size && !pending.length && <div className="notice">{t("needs_regen")}</div>}
 
       <div className="row" style={{ alignItems: "flex-start", gap: 20 }}>
         <div className="stack" style={{ flex: "999 1 560px", minWidth: 0, gap: 10 }}>
@@ -498,9 +517,14 @@ export function VideoPage({ id }: { id: string }) {
             <div className="row" style={{ gap: 8 }}>
               <button type="button" className="btn" onClick={() => { setEdits(new Map()); setNote(null); }}>{t("discard")}</button>
               <button type="button" className="btn solid" onClick={() => void save()}>{t("save")}</button>
-              <button type="button" className="btn" disabled={busy}
-                onClick={async () => { if (await save()) setDialog(true); }}>{t("save_redub")}</button>
-              {versions.length > 0 && (
+              {reviewing ? (
+                <button type="button" className="btn primary" disabled={busy}
+                  onClick={async () => { if (await save()) await goOn(); }}>{t("save_continue")}</button>
+              ) : (
+                <button type="button" className="btn" disabled={busy}
+                  onClick={async () => { if (await save()) setDialog(true); }}>{t("save_redub")}</button>
+              )}
+              {versions.length > 0 && !reviewing && (
                 <button type="button" className="btn primary" disabled={busy}
                   onClick={async () => { if (await save()) await retouch(); }}>{t("save_retouch")}</button>
               )}

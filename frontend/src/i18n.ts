@@ -107,6 +107,10 @@ const en = {
   dl_srt_orig: "Original subtitles", dl_srt_orig_hint: "SRT, the original sentences",
 
   several_voices: "Several voices", several_voices_hint: "each person keeps their own voice",
+  review_first: "Review the translation first", review_first_hint: "stops before the voice, to read and edit it",
+  status_review: "To review", job_review: "Translation ready to review", review_link: "Review",
+  review_notice: "The translation is ready. Read it and fix what you want below; the voice starts when you go on.",
+  continue_dub: "Go on with the dub", save_continue: "Save and go on",
   several_voices_retranslate: "the sentences are cut again where the speaker changes, so it is translated again",
   speakers: "Speakers", speakers_hint: "who speaks; name them, hear them, merge one split in two",
   speaker_n: "Speaker {s}", speaker_name_n: "Name of speaker {s}", hear_speaker: "Hear {s}",
@@ -255,6 +259,10 @@ const es: Record<Key, string> = {
   dl_srt_orig: "Subtítulos originales", dl_srt_orig_hint: "SRT, las frases originales",
 
   several_voices: "Varias voces", several_voices_hint: "cada persona conserva su voz",
+  review_first: "Revisar la traducción antes", review_first_hint: "se detiene antes de la voz para que la leas y la corrijas",
+  status_review: "A revisar", job_review: "Traducción lista para revisar", review_link: "Revisar",
+  review_notice: "La traducción está lista. Léela y corrige lo que quieras abajo; la voz empieza cuando continúes.",
+  continue_dub: "Continuar el doblaje", save_continue: "Guardar y continuar",
   several_voices_retranslate: "las frases se cortan de nuevo donde cambia quien habla, así que se traduce otra vez",
   speakers: "Hablantes", speakers_hint: "quién habla; ponles nombre, escúchalos, fusiona uno partido en dos",
   speaker_n: "Hablante {s}", speaker_name_n: "Nombre del hablante {s}", hear_speaker: "Escuchar a {s}",

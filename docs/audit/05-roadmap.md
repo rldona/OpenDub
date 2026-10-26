@@ -52,7 +52,7 @@ Estas decisiones son del propietario, todas del 2026-10-25:
 | 1 · Medir lo que falta | T-26 Escucha comparativa en un vídeo largo con música y en uno de varias voces | P1 | M | §8 de la auditoría 2 |
 | | T-27 Fidelidad de la traducción completa | P1 | S | G-005 |
 | 2 · Traducir sin depender de la suscripción | T-28 Backend de traducción en Ollama (hecho) | P1 | L | Decisión 3 |
-| | T-29 Revisar la traducción antes de sintetizar | P2 | M | Backlog 10 |
+| | T-29 Revisar la traducción antes de sintetizar (hecho) | P2 | M | Backlog 10 |
 | 3 · Calidad de voz | T-30 Clonar con la voz de cada frase (experimental) | P2 | M | Backlog 11 |
 | | T-31 Decidir el motor *Automático* (resuelto por T-38) | P3 | M | G-016 |
 | 4 · Mantenimiento | T-32 Errores de fase con código, en español | P2 | M | G-010 |
@@ -71,7 +71,7 @@ Estas decisiones son del propietario, todas del 2026-10-25:
   varias voces de T-26.
 
 **Orden sugerido:**
-1. T-26, T-27, T-28, T-36, T-37 y T-38 están hechos; T-31 lo resolvió T-38.
+1. T-26, T-27, T-28, T-29, T-36, T-37 y T-38 están hechos; T-31 lo resolvió T-38.
 2. T-27 antes que T-28: su juez de fidelidad es lo que valida Ollama frente a Sonnet.
 3. T-32 y T-33 cuando haya un hueco: no dependen de nada.
 
@@ -252,6 +252,15 @@ Estas decisiones son del propietario, todas del 2026-10-25:
 - **Aceptación:**
   - Un test de que la voz no empieza hasta continuar.
   - Una prueba en la web con un vídeo real.
+- **Resultado (2026-10-26):**
+  - `opendub dub --review` y, en la web, «Revisar la traducción antes» en el formulario.
+    El trabajo para tras traducir (`pipeline.ReviewPending`) y queda «A revisar».
+  - En la página del vídeo, un aviso con «Continuar el doblaje» y, al editar,
+    «Guardar y continuar». Mientras se revisa no se ofrece regenerar sobre el doblaje
+    anterior: la voz se hace entera, desde la traducción editada.
+  - Test de extremo a extremo: la voz no empieza hasta continuar y dice la frase
+    editada. Probado en la web con `rwF-X5STYks`: se paró, se corrigió una frase, se
+    continuó sin volver a traducir y la versión nueva la dice corregida.
 
 ## Fase 3 · Calidad de voz
 

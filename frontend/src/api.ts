@@ -2,7 +2,7 @@
 
 export type Engine = "chatterbox" | "indextts" | "cosyvoice";
 export type EngineChoice = Engine | "auto";
-export type Status = "pending" | "queued" | "running" | "done" | "error" | "cancelled";
+export type Status = "pending" | "queued" | "running" | "done" | "review" | "error" | "cancelled";
 
 export interface JobOptions {
   url: string;
@@ -13,6 +13,7 @@ export interface JobOptions {
   bg_volume: number;
   keep_translation: boolean;
   multi_speaker?: boolean; // several voices: diarize and give each speaker their own voice
+  review?: boolean; // stop after the translation, to edit it before the voice ("review" status)
 }
 
 export interface JobSummary {
@@ -257,5 +258,6 @@ export const media = {
 export async function redub(id: string, fallback: JobOptions, overrides: Partial<JobOptions> = {}) {
   const saved = await api.job(id).catch(() => null);
   const base = saved?.options ?? fallback;
-  return api.submit({ ...base, ...overrides, url: id });
+  // a review is asked for each time: a job saved with it doesn't make every later dub stop
+  return api.submit({ ...base, review: false, ...overrides, url: id });
 }

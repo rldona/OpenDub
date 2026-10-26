@@ -37,18 +37,20 @@ class JobOptions:
     url: str
     separate: bool = True  # keep the music: mix over the separated background
     tts: str = "clone"  # edge | clone
-    engine: str = "chatterbox"  # chatterbox | indextts | cosyvoice | auto (experimental)
+    engine: str = "auto"  # auto (CosyVoice with several voices, Chatterbox with one) | chatterbox | indextts | cosyvoice
     voice: str = "es-ES-AlvaroNeural"  # edge-tts voice (also the cloned voice's last resort)
     bg_volume: float = 0.0  # dB of the background: the separated one, or the original audio
     keep_translation: bool = False  # another engine on the same translation: only TTS and mix are redone
     retouch: list[int] | None = None  # a retouch: edited sentences and these new takes (see pipeline.retouch)
     multi_speaker: bool = False  # several voices: diarize and give each speaker their own voice
+    review: bool = False  # stop after the translation: the job ends "review", to edit it and go on
 
     def settings(self, work_root: Path) -> Settings:
         volume = {"music_volume_db": self.bg_volume} if self.separate else {"bg_volume_db": self.bg_volume}
         return Settings(work_root=work_root, separate=self.separate, tts=self.tts, engine=self.engine,
                         voice=self.voice, keep_translation=self.keep_translation, multi_speaker=self.multi_speaker,
-                        retouch=tuple(self.retouch) if self.retouch is not None else None, **volume)
+                        retouch=tuple(self.retouch) if self.retouch is not None else None, review=self.review,
+                        **volume)
 
 
 Runner = Callable[[str, Settings], Any]
@@ -58,7 +60,7 @@ Runner = Callable[[str, Settings], Any]
 class Job:
     id: str
     options: JobOptions
-    status: str = "queued"  # queued | running | done | error
+    status: str = "queued"  # queued | running | done | review | error | cancelled
     error: str | None = None
     created: str = field(default_factory=lambda: datetime.now().isoformat(timespec="seconds"))
     finished: str | None = None
@@ -75,7 +77,7 @@ class Job:
 
     def set_status(self, status: str, error: str | None = None) -> None:
         self.status, self.error = status, error
-        if status in ("done", "error", "cancelled"):
+        if status in ("done", "review", "error", "cancelled"):
             self.finished = datetime.now().isoformat(timespec="seconds")
         self.add({"type": "status", "status": status, **({"error": error} if error else {})})
 
@@ -205,6 +207,8 @@ class JobManager:
         self._save(job)
         try:
             self.runner(job.options.url, job.options.settings(self.work_root))
+        except pipeline.ReviewPending:
+            job.set_status("review")
         except Cancelled:
             job.set_status("cancelled")
         except SystemExit as e:  # the phases stop with SystemExit and a readable message

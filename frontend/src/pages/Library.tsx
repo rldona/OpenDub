@@ -51,6 +51,7 @@ function NewDub({ onSubmitted }: { onSubmitted: () => void }) {
   const [separate, setSeparate] = useState(defaults.separate);
   const [volume, setVolume] = useState(defaults.bg_volume);
   const [multi, setMulti] = useState<boolean | null>(null); // null: the default, on when Nemotron is installed
+  const [review, setReview] = useState(false); // stop after the translation (T-29)
   const [diarizer, setDiarizer] = useState<{ installed: boolean; setup: string | null } | null>(null);
   useEffect(() => {
     api.status().then((s) => setDiarizer(s.diarizer)).catch(() => undefined);
@@ -73,7 +74,7 @@ function NewDub({ onSubmitted }: { onSubmitted: () => void }) {
     }
     setBusy(true);
     try {
-      await api.submit({ ...defaults, url: url.trim(), tts, engine, separate, bg_volume: volume, multi_speaker: several });
+      await api.submit({ ...defaults, url: url.trim(), tts, engine, separate, bg_volume: volume, multi_speaker: several, review });
       setUrl("");
       setError(null);
       refresh();
@@ -124,6 +125,7 @@ function NewDub({ onSubmitted }: { onSubmitted: () => void }) {
         <summary style={{ cursor: "pointer" }}>
           {t("more_options")} · {separate ? t("options_music", { db: volume }) : t("options_original", { db: volume })}
           {several ? ` · ${t("several_voices").toLowerCase()}` : ""}
+          {review ? ` · ${t("review_first").toLowerCase()}` : ""}
         </summary>
         <div className="row" style={{ marginTop: 12, gap: "12px 28px" }}>
           <label className="row" style={{ gap: 8, cursor: diarizer?.installed ? "pointer" : "default", color: "var(--text)" }}
@@ -132,6 +134,12 @@ function NewDub({ onSubmitted }: { onSubmitted: () => void }) {
               onChange={(e) => setMulti(e.target.checked)} />
             {t("several_voices")}
             <span className="faint">· {diarizer && !diarizer.installed ? t("not_installed") : t("several_voices_hint")}</span>
+          </label>
+          <label className="row" style={{ gap: 8, cursor: "pointer", color: "var(--text)" }}>
+            <input type="checkbox" checked={review} style={{ accentColor: "var(--accent)" }}
+              onChange={(e) => setReview(e.target.checked)} />
+            {t("review_first")}
+            <span className="faint">· {t("review_first_hint")}</span>
           </label>
           <label className="row" style={{ gap: 8, cursor: "pointer", color: "var(--text)" }}>
             <input type="checkbox" checked={separate} style={{ accentColor: "var(--accent)" }}
@@ -173,7 +181,7 @@ export function NowDubbing() {
   }
   const heading = job.status === "queued" ? t("queued_now") : job.status === "running" ? t("dubbing_now")
     : job.status === "error" ? t("job_failed", { msg: job.error ?? "" })
-    : job.status === "cancelled" ? t("job_cancelled") : t("job_done");
+    : job.status === "cancelled" ? t("job_cancelled") : job.status === "review" ? t("job_review") : t("job_done");
   async function cancel() {
     if (!confirm(t("cancel_confirm", { v: job!.title ?? job!.id }))) return;
     await api.cancel(job!.id).catch(() => undefined);
@@ -193,12 +201,15 @@ export function NowDubbing() {
           </div>
         </div>
         {job.engine && <EngineTag engine={job.engine === "auto" ? null : job.engine} extra={job.engine === "auto" ? t("auto") : undefined} />}
-        <span className="num" style={{ fontSize: 20, fontWeight: 700 }}>{Math.floor(f * 100)}%</span>
+        {job.status !== "review" && <span className="num" style={{ fontSize: 20, fontWeight: 700 }}>{Math.floor(f * 100)}%</span>}
         {live && <button type="button" className="btn danger" onClick={() => void cancel()}>{t("cancel_job")}</button>}
+        {job.status === "review" && <a className="btn primary" href={`#/video/${job.id}`}>{t("review_link")}</a>}
       </div>
-      <div className="progress" role="progressbar" aria-valuenow={Math.floor(f * 100)} aria-valuemin={0} aria-valuemax={100}>
-        <div style={{ width: `${(f * 100).toFixed(1)}%` }} />
-      </div>
+      {job.status !== "review" && (
+        <div className="progress" role="progressbar" aria-valuenow={Math.floor(f * 100)} aria-valuemin={0} aria-valuemax={100}>
+          <div style={{ width: `${(f * 100).toFixed(1)}%` }} />
+        </div>
+      )}
       <Steps job={job} />
       {job.logs.length > 0 && (
         <div>
@@ -300,6 +311,9 @@ function VideoTable({ videos, onChanged }: { videos: Video[] | null; onChanged: 
                     <td>
                       <span className="row" style={{ gap: 8 }}>
                         <StatusBadge status={v.status} />
+                        {v.status === "review" && (
+                          <a className="btn" style={{ height: 30 }} href={`#/video/${v.id}`}>{t("review_link")}</a>
+                        )}
                         {(v.status === "error" || v.status === "pending" || v.status === "cancelled") && (
                           <button type="button" className="btn" style={{ height: 30 }} onClick={() => start(v.id)}>
                             {v.status === "pending" ? t("start_dub") : t("retry")}

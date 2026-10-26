@@ -122,3 +122,30 @@ def test_the_translate_and_tts_phases_take_several_voices(work, monkeypatch):
     wd.mark_done("diarize", {"x": 1})
     assert runner.invoke(cli.app, ["tts", VID, *w, "--multi-speaker"]).exit_code == 0
     assert seen["translate"].multi_speaker and seen["tts"].multi_speaker
+
+
+def test_a_dub_stops_for_review_and_goes_on_with_the_edits(work, monkeypatch):
+    """T-29: --review stops after the translation; the voice starts only when the dub goes on,
+    and it speaks the translation as edited (the web's editor saves it like this)."""
+    from typer.testing import CliRunner
+
+    from opendub import tts
+    from opendub.cli import app
+    from opendub.models import load_segments
+    from opendub.web import videos
+    from opendub.workdir import WorkDir
+
+    spoken = []
+    real = tts.run
+    monkeypatch.setattr(tts, "run", lambda wd, settings, force=False: spoken.append(1) or real(wd, settings, force))
+    runner = CliRunner()
+    r = runner.invoke(app, ["dub", VID, "--work", str(work), "--review"])
+    assert r.exit_code == 0, r.output
+    wd = WorkDir(work, VID)
+    assert wd.has("translate") and not wd.has("tts") and not spoken and not wd.output.exists()
+    videos.save_translation(wd, [{"id": 2, "text": "Revisada antes de la voz."}])
+    r = runner.invoke(app, ["dub", VID, "--work", str(work)])
+    assert r.exit_code == 0, r.output
+    assert spoken and load_segments(wd.translation)[1].text == "Revisada antes de la voz."
+    clip = next(c for c in json.loads(wd.tts_index.read_text())["clips"] if c["id"] == 2)
+    assert clip["text"] == "Revisada antes de la voz." and wd.output.exists()

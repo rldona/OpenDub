@@ -54,6 +54,9 @@ class Settings:
     style_file: Path | None = None
     # A retouch instead of a dub: speak again the edited sentences and these new takes, then mix
     retouch: tuple[int, ...] | None = None
+    # Stop after the translation, to review it before the voice (pipeline.ReviewPending); dubbing
+    # again without it goes on from the voice, over the translation as edited
+    review: bool = False
     rate: str = "-10%"  # native edge-tts rate (more negative = slower)
     min_tempo: float = 0.9  # < 1 slows down clips that end well before their sentence (tts.fill_gaps)
     max_tempo: float = 1.25

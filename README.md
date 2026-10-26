@@ -105,6 +105,7 @@ Common `dub` options:
 | `--engine` | `auto` | Cloning engine for `--tts clone`: `auto` (CosyVoice when several people speak, Chatterbox for one voice; see below), `chatterbox`, `indextts` or `cosyvoice` |
 | `--min-factor` | `0.7` | `indextts`, `cosyvoice`: lowest duration factor before shortening a sentence that doesn't fit |
 | `--keep-translation` | off | Reuses the existing translation even if it was made for another engine: only TTS and the mix are redone |
+| `--review` | off | Stops after the translation, to read and edit it (`translation.json`, or the web's editor) before the voice; the same command without it goes on from there |
 | `--style` | none | Extra `style.json` (register, variant, glossary, notes; see below) over `work/style.json` and the video's own |
 | `--clone-ref` | none | Fixed Spanish recording to clone from when a cloned clip fails the quality check |
 | `--bg-volume` | `-15` | Volume of the original audio, in dB |
@@ -216,7 +217,9 @@ A local dashboard to dub without the command line, in English or Spanish, dark
 or light, with a choice of accent color (Preferences):
 
 - **Library**: paste a YouTube link, pick the voice (cloned or stock), the
-  engine (*Automatic* by default) and whether to keep the music; follow the
+  engine (*Automatic* by default) and whether to keep the music, or to review the
+  translation first (the dub stops before the voice, *To review*, and goes on from
+  the video's page once it is edited); follow the
   running dub phase by phase, and find every video with its versions, the
   latest one, its issues and its status.
 - **Video**: the player, a timeline with each issue where it happens (click to

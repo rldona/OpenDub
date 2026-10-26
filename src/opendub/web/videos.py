@@ -83,7 +83,7 @@ def video_ids(work_root: Path) -> list[str]:
 
 
 def status(wd: WorkDir, manager: JobManager) -> tuple[str, str | None]:
-    """(pending | queued | running | done | error, error message)."""
+    """(pending | queued | running | done | review | error | cancelled, error message)."""
     job = manager.get(wd.path.name)
     saved = manager.saved(wd.path.name)
     state = job.status if job else (saved or {}).get("status")
@@ -96,6 +96,8 @@ def status(wd: WorkDir, manager: JobManager) -> tuple[str, str | None]:
         return "error", error
     if state == "cancelled" and not newer:
         return "cancelled", None
+    if state == "review" and not newer:  # stopped after the translation, to edit it before the voice
+        return "review", None
     return ("done" if finished else "pending"), None
 
 
@@ -271,6 +273,7 @@ def translation(wd: WorkDir, manager: JobManager) -> dict[str, Any] | None:
     texts = {s.id: s.text for s in translated}
     speaker_of = {s.id: s.speaker for s in translated}
     edited = set((_read_json(wd.translation_edits) or {}))
+    reviewing = status(wd, manager)[0] == "review"
     pace = _speaking_rate(wd, manager)
     segments = []
     for i, seg in enumerate(originals):
@@ -285,7 +288,8 @@ def translation(wd: WorkDir, manager: JobManager) -> dict[str, Any] | None:
     return {"segments": segments, "chars_per_second": pace.cps if pace else None,
             "needs_regeneration": not (wd.has("tts") and wd.has("mix")),
             # edited since the latest dub: what a retouch speaks again
-            "pending": sorted(retouch.pending_edits(wd)) if wd.output.exists() else [],
+            # under review the dub goes on with the whole translation: nothing to retouch over the old one
+            "pending": sorted(retouch.pending_edits(wd)) if wd.output.exists() and not reviewing else [],
             # the voice clips a retouch needs may have been deleted to save space (storage.py)
             "clips_available": tts.clips_exist(wd)}
 

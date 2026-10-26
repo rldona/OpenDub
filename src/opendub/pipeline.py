@@ -21,6 +21,11 @@ from .log import log, phase
 from .media import require_ffmpeg
 from .workdir import WorkDir
 
+
+class ReviewPending(Exception):
+    """A dub asked to stop after the translation (--review): it is ready to read and edit."""
+
+
 # Phase names, in order, as `phase()` reports them
 PHASES = ["Download", "Transcription", "Separation", "Translation", "TTS", "Mix"]
 
@@ -39,6 +44,9 @@ def dub(url: str, settings: Settings, output: Path | None = None, force: bool = 
     rate (measured from the separated vocals) caps the translation length. With
     several voices it runs first, with the diarization (inside the same phase),
     since the transcription splits sentences where the speaker changes.
+
+    With `settings.review` it stops after the translation (ReviewPending); dubbing
+    again without it goes on from the voice, the translation as it was left.
     """
     if settings.retouch is not None:
         return retouch(url, settings, output)
@@ -67,6 +75,8 @@ def _dub(url: str, wd: WorkDir, settings: Settings, output: Path | None, force: 
                 separate_mod.run(wd, settings)
         with phase("Translation"):
             translate_mod.run(wd, settings)
+        if settings.review:  # leaving the GPU's hold frees what the translation loaded
+            raise ReviewPending(f"Translation ready to review: {wd.translation}")
         with phase("TTS"):
             tts_mod.run(wd, settings)
     with phase("Mix"):

@@ -70,6 +70,14 @@ MinFactor = Annotated[
         "(it goes down to 0.5 only after that)",
     ),
 ]
+Review = Annotated[
+    bool,
+    typer.Option(
+        "--review",
+        help="Stop after the translation, to read and edit it (translation.json, or the web's editor) before the "
+        "voice; run `dub` again without --review to go on from there",
+    ),
+]
 KeepTranslation = Annotated[
     bool,
     typer.Option(
@@ -540,6 +548,7 @@ def dub(
     music_volume: MusicVolume = 0.0,
     loudness: Loudness = -16.0,
     output: Output = None,
+    review: Review = False,
     force: Force = False,
 ) -> None:
     """Full pipeline: download → transcription → (separation) → translation → TTS → mix.
@@ -555,8 +564,12 @@ def dub(
         min_tempo=min_tempo, shorten=shorten, max_tempo=max_tempo,
         bg_volume_db=bg_volume, mute_original=mute_original,
         separate=separate, separator=separator, music_volume_db=music_volume, loudness_lufs=loudness or None,
+        review=review,
     )
-    pipeline.dub(url, settings, output=output, force=force)
+    try:
+        pipeline.dub(url, settings, output=output, force=force)
+    except pipeline.ReviewPending as e:
+        log.info(f"{e}. Edit it, then run the same command without --review to dub it.")
 
 
 if __name__ == "__main__":
