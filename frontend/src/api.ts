@@ -14,6 +14,7 @@ export interface JobOptions {
   keep_translation: boolean;
   multi_speaker?: boolean; // several voices: diarize and give each speaker their own voice
   review?: boolean; // stop after the translation, to edit it before the voice ("review" status)
+  then?: Engine[]; // engines to dub with next, one after another (each its own version)
 }
 
 export interface JobSummary {

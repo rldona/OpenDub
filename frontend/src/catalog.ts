@@ -1,6 +1,6 @@
 // What the page says about each cloning engine: name, license, where it runs and its
 // benchmark figures (docs/v2-plan.md, docs/bench/results), per test voice.
-import type { Engine } from "./api";
+import type { Engine, EngineChoice } from "./api";
 import type { Key } from "./i18n";
 
 export interface VoiceFigures {
@@ -53,3 +53,18 @@ export function engineShort(id: string | null | undefined): string {
 }
 
 export const STOCK_VOICES = ["es-ES-AlvaroNeural", "es-ES-ElviraNeural", "es-MX-JorgeNeural", "es-MX-DaliaNeural"];
+
+/** The engines picked for a dub after clicking `id`: Automatic alone, or one or more engines, dubbed one after
+ *  another in this list's order (never none). Pure: tested in catalog.test.ts. */
+export function togglePick(picked: EngineChoice[], id: EngineChoice): EngineChoice[] {
+  if (id === "auto") return ["auto"];
+  if (picked.includes("auto")) return [id];
+  const next = picked.includes(id) ? picked.filter((p) => p !== id) : [...picked, id];
+  if (!next.length) return picked;
+  return ENGINES.map((e) => e.id).filter((e) => next.includes(e));
+}
+
+/** A pick as the job's engine and the ones that follow it. */
+export function pickOptions(picked: EngineChoice[]): { engine: EngineChoice; then: Engine[] } {
+  return { engine: picked[0], then: picked.slice(1).filter((p): p is Engine => p !== "auto") };
+}

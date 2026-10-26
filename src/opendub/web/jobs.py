@@ -17,7 +17,7 @@ import re
 import threading
 import time
 from collections.abc import Callable
-from dataclasses import asdict, dataclass, field
+from dataclasses import asdict, dataclass, field, replace
 from datetime import datetime
 from pathlib import Path
 from typing import Any
@@ -45,6 +45,7 @@ class JobOptions:
     retouch: list[int] | None = None  # a retouch: edited sentences and these new takes (see pipeline.retouch)
     multi_speaker: bool = False  # several voices: diarize and give each speaker their own voice
     review: bool = False  # stop after the translation: the job ends "review", to edit it and go on
+    then: list[str] = field(default_factory=list)  # engines to dub the video with next, one after another
 
     def settings(self, work_root: Path) -> Settings:
         # the one volume the page sets: the separated background's, or the original audio's
@@ -240,3 +241,6 @@ class JobManager:
             log.removeHandler(handler)
             self._save(job)
             pipeline.release_models()  # don't keep GPU memory between jobs
+        if job.status == "done" and job.options.then:  # the next engine, at the end of the queue
+            following = job.options.then
+            self.submit(replace(job.options, engine=following[0], then=following[1:], review=False))

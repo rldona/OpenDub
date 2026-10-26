@@ -654,3 +654,25 @@ def test_the_translation_goes_out_as_subtitles_and_comes_back(tmp_path):
     bad = c.post(f"/videos/{VID}/translation/import", json={"name": "x.vtt", "text": "WEBVTT\n\n00:01:00.000 --> 00:01:01.000\nSobra."})
     assert bad.status_code == 422 and bad.json()["detail"]["code"] == "bad_subtitles"
     assert c.get(f"/videos/{VID}/translation/export/docx").status_code == 404
+
+
+def test_several_engines_dub_one_after_another_and_a_failure_stops_the_rest(tmp_path):
+    fake = FakePipeline()
+    c = client(tmp_path, fake)
+    r = c.post("/jobs", json={"url": VID, "engine": "chatterbox", "then": ["indextts", "cosyvoice"]})
+    assert r.status_code == 200 and r.json()["options"]["then"] == ["indextts", "cosyvoice"]
+    end = time.monotonic() + 5
+    while len(fake.runs) < 3 and time.monotonic() < end:
+        time.sleep(0.02)
+    wait_status(c, VID)
+    assert [s.engine for _, s in fake.runs] == ["chatterbox", "indextts", "cosyvoice"]
+    assert c.get(f"/jobs/{VID}").json()["options"]["then"] == []
+
+    failing = FakePipeline(fail_in="TTS")
+    c = client(tmp_path / "again", failing)
+    c.post("/jobs", json={"url": VID, "engine": "indextts", "then": ["cosyvoice"]})
+    assert wait_status(c, VID)["status"] == "error"
+    time.sleep(0.2)
+    assert [s.engine for _, s in failing.runs] == ["indextts"]  # the rest isn't dubbed
+
+    assert c.post("/jobs", json={"url": VID, "tts": "edge", "then": ["cosyvoice"]}).status_code == 422

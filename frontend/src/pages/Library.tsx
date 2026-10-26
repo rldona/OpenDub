@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState, type FormEvent } from "react";
 import { api, redub, type EngineChoice, type JobOptions, type Video } from "../api";
 import { useEngines } from "../App";
-import { ENGINES, engineShort } from "../catalog";
+import { ENGINES, engineShort, pickOptions, togglePick } from "../catalog";
 import { EngineTag, StatusBadge, Thumb } from "../components";
 import { clock, duration, when } from "../format";
 import { overall, PHASES, timing, useJobs, useNow, type LiveJob } from "../job";
@@ -47,7 +47,8 @@ function NewDub({ onSubmitted }: { onSubmitted: () => void }) {
   const { refresh } = useJobs();
   const [url, setUrl] = useState("");
   const [tts, setTts] = useState(defaults.tts);
-  const [engine, setEngine] = useState<EngineChoice>(defaults.engine);
+  // Automatic, or one or more engines: each makes its own version, one after another
+  const [picked, setPicked] = useState<EngineChoice[]>([defaults.engine]);
   const [separate, setSeparate] = useState(defaults.separate);
   const [volume, setVolume] = useState(defaults.bg_volume);
   const [multi, setMulti] = useState<boolean | null>(null); // null: the default, on when Nemotron is installed
@@ -63,7 +64,9 @@ function NewDub({ onSubmitted }: { onSubmitted: () => void }) {
   const installed = (id: EngineChoice) => engines?.find((e) => e.id === id)?.installed ?? true;
   const missing = (engines ?? []).filter((e) => !e.installed && e.id !== "auto");
   const note = tts === "edge" ? t("note_stock", { v: prefs.voice })
-    : engine === "auto" ? t("note_auto") : t(ENGINES.find((e) => e.id === engine)!.note);
+    : picked[0] === "auto" ? t("note_auto")
+    : picked.length > 1 ? t("note_several_engines", { n: picked.length })
+    : t(ENGINES.find((e) => e.id === picked[0])!.note);
 
   async function submit(e: FormEvent) {
     e.preventDefault();
@@ -73,7 +76,8 @@ function NewDub({ onSubmitted }: { onSubmitted: () => void }) {
     }
     setBusy(true);
     try {
-      await api.submit({ ...defaults, url: url.trim(), tts, engine, separate, bg_volume: volume, multi_speaker: several });
+      const engines = tts === "clone" ? pickOptions(picked) : { engine: picked[0], then: [] };
+      await api.submit({ ...defaults, url: url.trim(), tts, ...engines, separate, bg_volume: volume, multi_speaker: several });
       setUrl("");
       setError(null);
       refresh();
@@ -101,10 +105,10 @@ function NewDub({ onSubmitted }: { onSubmitted: () => void }) {
           <button type="button" role="radio" aria-checked={tts === "edge"} onClick={() => setTts("edge")}>{t("voice_stock")}</button>
         </div>
         {tts === "clone" && (
-          <div className="row" role="radiogroup" aria-label={t("engine")} style={{ gap: 6 }}>
+          <div className="row" role="group" aria-label={t("engine")} style={{ gap: 6 }}>
             {(["auto", ...ENGINES.map((e) => e.id)] as EngineChoice[]).map((id) => (
-              <button key={id} type="button" role="radio" className="chip" aria-checked={engine === id}
-                disabled={!installed(id)} onClick={() => setEngine(id)}
+              <button key={id} type="button" role="checkbox" className="chip" aria-checked={picked.includes(id)}
+                disabled={!installed(id)} onClick={() => setPicked(togglePick(picked, id))}
                 title={installed(id) ? undefined : engines?.find((e) => e.id === id)?.setup ?? undefined}>
                 {id !== "auto" && <span className={`dot ${id}`} />}
                 {id === "auto" ? t("auto") : engineShort(id)}
@@ -191,6 +195,8 @@ export function NowDubbing() {
           </a>
           <div className="small muted">
             {parts.join(" · ")}
+            {job.then.length > 0 && (job.status === "running" || job.status === "queued")
+              && ` · ${t("then_engines", { e: job.then.map((e) => engineShort(e)).join(", ") })}`}
             {queued.length > 0 && ` · ${t("in_queue", { n: queued.length })}`}
           </div>
         </div>

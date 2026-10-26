@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { api, redub, type EngineChoice, type Video } from "../api";
 import { useEngines } from "../App";
-import { ENGINES, engineInfo } from "../catalog";
+import { ENGINES, engineInfo, pickOptions, togglePick } from "../catalog";
 import { Icon } from "../components";
 import { useJobs } from "../job";
 import { usePrefs } from "../prefs";
@@ -21,9 +21,10 @@ export function RedubDialog({ video, watching, onClose, onStarted }: {
   const defaults = useDefaultOptions();
   const { refresh } = useJobs();
   const ref = useRef<HTMLDialogElement>(null);
-  const [engine, setEngine] = useState<EngineChoice>(() => {
+  // one or more engines (each its own version, one after another), or Automatic
+  const [picked, setPicked] = useState<EngineChoice[]>(() => {
     const other = ENGINES.find((e) => e.id !== watching);
-    return other?.id ?? "auto";
+    return [other?.id ?? "auto"];
   });
   const [keep, setKeep] = useState(true);
   const before = video.several_voices; // how the latest dub was made
@@ -56,11 +57,13 @@ export function RedubDialog({ video, watching, onClose, onStarted }: {
   }, [video]);
 
   const installed = (id: EngineChoice) => engines?.find((e) => e.id === id)?.installed ?? true;
-  const label = engine === "auto" ? t("auto") : engineInfo(engine)!.name;
+  const label = picked.length > 1 ? t("redub_with_n", { n: picked.length })
+    : t("redub_with", { e: picked[0] === "auto" ? t("auto") : engineInfo(picked[0])!.name });
 
   async function start() {
     try {
-      await redub(video.id, defaults, { tts: "clone", engine, keep_translation: keep && !retranslates, multi_speaker: several });
+      await redub(video.id, defaults, { tts: "clone", ...pickOptions(picked), keep_translation: keep && !retranslates,
+        multi_speaker: several });
       refresh();
       onStarted();
     } catch (err) {
@@ -83,7 +86,8 @@ export function RedubDialog({ video, watching, onClose, onStarted }: {
           <legend style={{ padding: 0, marginBottom: 10, fontWeight: 650 }}>{t("engine")}</legend>
           <div className="grid-2">
             <label className="radio-card">
-              <input type="radio" name="redub-engine" checked={engine === "auto"} disabled={!installed("auto")} onChange={() => setEngine("auto")} />
+              <input type="checkbox" checked={picked.includes("auto")} disabled={!installed("auto")}
+                onChange={() => setPicked(togglePick(picked, "auto"))} />
               <span className="stack" style={{ gap: 2 }}>
                 <span className="title">{t("auto")}</span>
                 <span className="small muted">{t("note_auto")}</span>
@@ -97,7 +101,8 @@ export function RedubDialog({ video, watching, onClose, onStarted }: {
               const ok = installed(e.id);
               return (
                 <label key={e.id} className="radio-card" title={ok ? undefined : engines?.find((x) => x.id === e.id)?.setup ?? undefined}>
-                  <input type="radio" name="redub-engine" checked={engine === e.id} disabled={!ok} onChange={() => setEngine(e.id)} />
+                  <input type="checkbox" checked={picked.includes(e.id)} disabled={!ok}
+                    onChange={() => setPicked(togglePick(picked, e.id))} />
                   <span className="stack" style={{ gap: 2 }}>
                     <span className="title"><span className={`dot ${e.id}`} />{e.name} <span className="small faint" style={{ fontWeight: 400 }}>{e.license}</span></span>
                     <span className="small muted">{t(e.note)}</span>
@@ -139,7 +144,7 @@ export function RedubDialog({ video, watching, onClose, onStarted }: {
           <span className="small muted">{t("all_kept")}</span>
           <div className="row" style={{ gap: 8 }}>
             <button type="button" className="btn" onClick={() => ref.current?.close()}>{t("cancel")}</button>
-            <button type="button" className="btn primary" onClick={start}>{t("redub_with", { e: label })}</button>
+            <button type="button" className="btn primary" onClick={start}>{label}</button>
           </div>
         </div>
       </div>

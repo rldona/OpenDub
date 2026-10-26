@@ -250,7 +250,8 @@ A local dashboard to dub without the command line, in English or Spanish, dark
 or light, with a choice of accent color (Preferences):
 
 - **Library**: paste a YouTube link, pick the voice (cloned or stock), the
-  engine (*Automatic* by default) and whether to keep the music; a dub goes from
+  engine (*Automatic* by default, or tick several to get a version with each, dubbed
+  one after another) and whether to keep the music; a dub goes from
   the link to the finished video without stopping (reviewing the translation before
   the voice is the CLI's `--review`); follow the
   running dub phase by phase, and find every video with its versions, the

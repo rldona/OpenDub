@@ -21,6 +21,7 @@ export interface LiveJob {
   errorCode: string | null; // errors.PhaseError: errors.ts says it in the page's language
   errorParams: Record<string, string> | null;
   engine: string;
+  then: string[]; // the engines that dub this video next
   phases: Partial<Record<Phase, { state: PhaseState; seconds?: number }>>;
   active: Phase | null;
   task: { task: string; completed: number; total: number | null } | null;
@@ -57,6 +58,7 @@ export function newJob(summary: JobSummary): LiveJob {
   return {
     id: summary.id, title: null, status: summary.status, error: summary.error,
     errorCode: summary.error_code ?? null, errorParams: summary.error_params ?? null, engine: summary.options.engine,
+    then: summary.options.then ?? [],
     phases: {}, active: null, task: null, logs: [], startedAt: null, finishedAt: null, segments: null,
     clipsDone: 0, lastCompleted: 0, firstPassAt: null, laterBatches: 0, phaseFrac: {},
   };

@@ -53,6 +53,8 @@ class JobRequest(BaseModel):
     keep_translation: bool = False
     multi_speaker: bool = False  # several voices (needs `setup-engine nemotron`)
     review: bool = False  # stop after the translation, to edit it before the voice
+    # engines to dub with after `engine`, one after another, each its own version (several at once)
+    then: list[Literal["chatterbox", "indextts", "cosyvoice"]] = Field(default_factory=list, max_length=3)
 
 
 class SubtitlesUpload(BaseModel):
@@ -160,10 +162,14 @@ def create_app(work_root: Path = Path("work"), runner: Runner | None = None,
     @app.post("/jobs")
     def create_job(req: JobRequest) -> dict:
         if req.tts == "clone":
-            engine = next(e for e in videos.engines() if e["id"] == req.engine)
-            if not engine["installed"]:
-                raise fail(422, "not_installed", f"{engine['name']} is not installed. Install it with: {engine['setup']}",
-                           engine=engine["name"], cmd=engine["setup"])
+            for choice in [req.engine, *req.then]:
+                engine = next(e for e in videos.engines() if e["id"] == choice)
+                if not engine["installed"]:
+                    raise fail(422, "not_installed",
+                               f"{engine['name']} is not installed. Install it with: {engine['setup']}",
+                               engine=engine["name"], cmd=engine["setup"])
+        elif req.then:
+            raise fail(422, "not_cloned", "Dubbing with several engines needs the cloned voice")
         if req.multi_speaker and not videos.diarizer()["installed"]:
             raise fail(422, "no_diarizer", f"Several voices need Nemotron 3 Diarization. Install it with: "
                                           f"{videos.diarizer()['setup']}", cmd=videos.diarizer()["setup"])
