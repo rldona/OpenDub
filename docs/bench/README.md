@@ -168,6 +168,45 @@ wrong term is animation jargon ("aftermath" as «secuelas»). The judge is anoth
 the same family as the translator, which may share its blind spots; it measures, it
 doesn't certify.
 
+## Local translators
+
+`translators.py` (T-28) translates the corpus with each translator exactly as a dub would
+(blocks of 30, the previous context, each sentence's budget at the pace of the voice that
+would speak it), on a copy of each video's folder, and writes time, length and budget
+overruns to `results/translators.json`. `fidelity.py --file` then judges each one.
+
+```bash
+uv run python docs/bench/translators.py 17kBVfGjI8c rwF-X5STYks VD6xJq8NguY 7mCTaTJ0kDo KS837a-TFRc R4zlpwwEpnY \
+    --translator cli:claude-sonnet-5-5 --translator ollama:qwen3.6:35b-a3b-coding --translator ollama:gemma3:27b
+```
+
+Six videos (26 Oct 2026), RTX 5080 16 GB, models at Q4_K_M:
+
+| | Sonnet 5.5 | Qwen3.6-35B-A3B | Gemma 3 27B |
+|---|---|---|---|
+| Fits in 16 GB | — | MoE, 3B active | no: 23% in RAM |
+| Time, six videos | 310 s | 381 s | 3,713 s, and failed the podcast |
+| Spanish/original length | 0.85–0.98 | 0.77–1.07 | 1.00–1.12 |
+| Over budget / over 1.25× | 180 / 36 of 764 | 216 / 69 of 764 | (five videos) 316 / 118 of 579 |
+| Meaning kept · nuanced · lost (281) | 271 · 8 · 2 | 244 · 30 · 7 | (221) 205 · 12 · 4 |
+| Terms wrong | 3 of 118 | 5 of 112 | 8 of 108 |
+
+Dubbed with Chatterbox (`dub_metrics.py --work`, the same pace and rules):
+
+| | Sonnet | Qwen |
+|---|---|---|
+| Two short videos: shortened · not fitting · late voice | 0 · 0 · 0 s | 1 · 1 · 14 s |
+| `VD6xJq8NguY` (11 min): shortened · not fitting | 7 · 3 | 16 · 6 |
+| `VD6xJq8NguY`: late voice · mean delay | 46 s · 0.16 s | 168 s · 0.31 s |
+
+- **Gemma 3 27B is out:** it doesn't fit the GPU, takes twelve times as long, ignores the
+  budget (10% longer than the original) and lost the ids of a block three times running.
+- **Qwen3.6-35B-A3B works** and is nearly as fast as Sonnet, but it drops more nuances
+  and overshoots its budget twice as often, which the voice phase pays for. It is the
+  default of `--backend ollama`; Sonnet stays the default translator.
+- Gemma 3 12B and Qwen3 14B, which fit the GPU, were not tried: Qwen3.6, a mixture of
+  experts, already runs at Sonnet's speed, so speed doesn't call for them.
+
 ## Audio
 
 `audio/` holds the reference cuts (from the original videos), the generated

@@ -51,7 +51,7 @@ Estas decisiones son del propietario, todas del 2026-10-25:
 |---|---|---|---|---|
 | 1 · Medir lo que falta | T-26 Escucha comparativa en un vídeo largo con música y en uno de varias voces | P1 | M | §8 de la auditoría 2 |
 | | T-27 Fidelidad de la traducción completa | P1 | S | G-005 |
-| 2 · Traducir sin depender de la suscripción | T-28 Backend de traducción en Ollama | P1 | L | Decisión 3 |
+| 2 · Traducir sin depender de la suscripción | T-28 Backend de traducción en Ollama (hecho) | P1 | L | Decisión 3 |
 | | T-29 Revisar la traducción antes de sintetizar | P2 | M | Backlog 10 |
 | 3 · Calidad de voz | T-30 Clonar con la voz de cada frase (experimental) | P2 | M | Backlog 11 |
 | | T-31 Decidir el motor *Automático* (resuelto por T-38) | P3 | M | G-016 |
@@ -71,8 +71,7 @@ Estas decisiones son del propietario, todas del 2026-10-25:
   varias voces de T-26.
 
 **Orden sugerido:**
-1. T-26, T-27, T-36, T-37 y T-38 están hechos; T-31 lo resolvió T-38. Lo siguiente,
-   T-28 (Ollama).
+1. T-26, T-27, T-28, T-36, T-37 y T-38 están hechos; T-31 lo resolvió T-38.
 2. T-27 antes que T-28: su juez de fidelidad es lo que valida Ollama frente a Sonnet.
 3. T-32 y T-33 cuando haya un hueco: no dependen de nada.
 
@@ -225,6 +224,20 @@ Estas decisiones son del propietario, todas del 2026-10-25:
   - Si ningún modelo local alcanza a Sonnet, se dice así y la API queda como
     alternativa.
 - **Depende de:** T-27.
+
+- **Resultado (2026-10-26, [docs/bench/README.md](../bench/README.md#local-translators)):**
+  - `--backend ollama` traduce y acorta con el mismo prompt y esquema, y descarga el
+    modelo de la GPU al acabar cada fase (también si falla), con test.
+  - **Gemma 3 27B, descartado:** no cabe en la GPU (23 % en RAM), tarda doce veces más,
+    traduce un 10 % más largo de lo que cabe y falló un bloque del pódcast.
+  - **Qwen3.6-35B-A3B** (el que ya tenía el propietario, en lugar de Qwen3-30B-A3B, por
+    espacio en disco): casi tan rápido como Sonnet; fidelidad 87 % frente a 96 %
+    (7 frases pierden el sentido frente a 2, de 281); el doble de frases muy por encima
+    del presupuesto. Doblado: los cortos sin errores (una frase que no cabe) y el vídeo
+    con música con 168 s de voz a destiempo frente a 46 s.
+  - Queda como modelo por defecto de `--backend ollama`; **Sonnet sigue siendo el
+    traductor por defecto**. La web sigue con Claude (elegir backend en la web, si hace
+    falta, va aparte).
 
 ### T-29 · Revisar la traducción antes de sintetizar (P2, M)
 

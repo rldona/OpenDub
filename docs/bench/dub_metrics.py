@@ -2,6 +2,7 @@
 
     uv run python docs/bench/dub_metrics.py 17kBVfGjI8c rwF-X5STYks KS837a-TFRc [--versions all|latest]
     uv run python docs/bench/dub_metrics.py KS837a-TFRc/20261025-141750-chatterbox   (one version)
+    uv run python docs/bench/dub_metrics.py rwF-X5STYks --work work/_bench/qwen_dub/ollama_x --label qwen
 
 For each kept version (work/<id>/outputs/<version>.mp4 with its tts.json), into
 docs/bench/results/dubs/<id>__<version>.json:
@@ -136,18 +137,23 @@ def measure(vid: str, version: str, model_name: str | None) -> dict:
 
 
 def main() -> None:
+    global WORK
     parser = argparse.ArgumentParser()
     parser.add_argument("videos", nargs="+", help="<id> (its latest or all versions) or <id>/<version>")
     parser.add_argument("--versions", choices=("latest", "all"), default="latest")
     parser.add_argument("--whisper", default="small")
     parser.add_argument("--no-asr", action="store_true")
+    parser.add_argument("--work", type=Path, default=WORK, help="another work folder (a bench copy)")
+    parser.add_argument("--label", help="added to the result's file name, to tell a copy's dubs apart")
     args = parser.parse_args()
+    WORK = args.work
     RESULTS.mkdir(parents=True, exist_ok=True)
     for arg in args.videos:
         vid, _, one = arg.partition("/")
         for version in [one] if one else versions(vid, args.versions):
             row = measure(vid, version, None if args.no_asr else args.whisper)
-            (RESULTS / f"{vid}__{version}.json").write_text(json.dumps(row, indent=1))
+            name = f"{vid}__{version}" + (f"__{args.label}" if args.label else "")
+            (RESULTS / f"{name}.json").write_text(json.dumps(row, indent=1))
             print(json.dumps(row))
 
 

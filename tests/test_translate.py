@@ -240,3 +240,61 @@ def test_style_files_merge_and_check():
     assert [t.source for t in style.misses(st.terms, "Add the VFX slash.", "Añade los efectos del corte.")] == ["VFX", "Slash"]
     with pytest.raises(ValueError):
         style.parse({"register": "vos"})
+
+
+def _fake_ollama(calls, fail_on=None):
+    """Ollama's HTTP API: /api/chat answers each block; /api/generate with keep_alive 0 unloads."""
+    def fake(settings, path, body, timeout):
+        calls.append((path, body))
+        if path == "/api/generate":
+            return {"done": True}
+        segs = json.loads(body["messages"][1]["content"])["segments"]
+        if fail_on and segs[0]["id"] >= fail_on:
+            raise RuntimeError("Ollama answered 500: out of memory")
+        return {"message": {"content": json.dumps({"segments": [{"id": s["id"], "text": f"Local {s['id']}."} for s in segs]})}}
+    return fake
+
+
+def test_ollama_translates_with_the_same_prompt_and_schema_then_unloads(wd, monkeypatch):
+    calls = []
+    monkeypatch.setattr(translate, "_ollama", _fake_ollama(calls))
+    monkeypatch.setattr(translate, "_call_cli", lambda *a: pytest.fail("Claude was asked"))
+    monkeypatch.setattr(translate, "check_claude_reachable", lambda: pytest.fail("Claude was checked"))
+    settings = Settings(backend="ollama", ollama_model="qwen3:30b-a3b", batch_size=4, chars_per_second=15)
+    result = translate.run(wd, settings)
+    assert [s.text for s in result] == [f"Local {i}." for i in range(1, 8)]
+    chats = [b for p, b in calls if p == "/api/chat"]
+    assert len(chats) == 2 and chats[0]["model"] == "qwen3:30b-a3b" and chats[0]["format"] == translate.SCHEMA
+    assert chats[0]["messages"][0]["content"].startswith("You are a professional dubbing translator")
+    assert calls[-1] == ("/api/generate", {"model": "qwen3:30b-a3b", "keep_alive": 0})  # GPU freed for the voice
+    assert settings.translator() == "ollama:qwen3:30b-a3b"
+
+
+def test_ollama_is_unloaded_even_when_a_block_fails(wd, monkeypatch):
+    calls = []
+    monkeypatch.setattr(translate, "_ollama", _fake_ollama(calls, fail_on=5))
+    with pytest.raises(SystemExit, match="Ollama did not return"):
+        translate.run(wd, Settings(backend="ollama", ollama_model="m", batch_size=4, chars_per_second=15))
+    assert calls[-1][0] == "/api/generate"
+
+
+def test_ollama_shortens_and_unloads_beside_the_voice_model(monkeypatch):
+    calls = []
+
+    def fake(settings, path, body, timeout):
+        calls.append(path)
+        return {"done": True} if path == "/api/generate" else {"message": {"content": json.dumps(
+            {"segments": [{"id": 3, "text": "Corta."}]})}}
+
+    monkeypatch.setattr(translate, "_ollama", fake)
+    items = [(3, "Original long text.", "Traducción demasiado larga.", 12)]
+    assert translate.shorten(items, "es-ES-AlvaroNeural", Settings(backend="ollama")) == {3: "Corta."}
+    assert calls == ["/api/chat", "/api/generate"]
+
+
+def test_claude_keeps_its_cache_key_and_never_calls_ollama(wd, monkeypatch):
+    monkeypatch.setattr(translate, "_ollama", lambda *a: pytest.fail("Ollama was called"))
+    monkeypatch.setattr(translate, "_call_cli", lambda system, prompt, model: (
+        {"segments": [{"id": s["id"], "text": "x"} for s in json.loads(prompt)["segments"]]}, 0.0))
+    translate.run(wd, Settings(batch_size=10, chars_per_second=15))
+    assert Settings().translator() == "claude-sonnet-5-5"

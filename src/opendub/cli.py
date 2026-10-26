@@ -41,9 +41,14 @@ Subs = Annotated[
 ]
 WhisperModel = Annotated[str, typer.Option("--whisper-model", help="faster-whisper model")]
 Backend = Annotated[
-    str, typer.Option("--backend", help="cli (subscription via Claude Code) or api (ANTHROPIC_API_KEY)")
+    str, typer.Option("--backend", help="cli (subscription via Claude Code), api (ANTHROPIC_API_KEY) "
+                      "or ollama (a local model, at OLLAMA_HOST)")
 ]
-ClaudeModel = Annotated[str, typer.Option("--model", help="Claude model used to translate")]
+ClaudeModel = Annotated[
+    str | None,
+    typer.Option("--model", help="Model that translates: a Claude model (default claude-sonnet-5-5), or with "
+                 "--backend ollama an Ollama one (default qwen3.6:35b-a3b, or OPENDUB_OLLAMA_MODEL)"),
+]
 Voice = Annotated[str, typer.Option("--voice", help="edge-tts voice (es-ES-…, es-MX-…)")]
 Tts = Annotated[
     str,
@@ -208,12 +213,22 @@ def transcribe(
         transcribe_mod.run(wd, settings, force=force)
 
 
+def _claude(backend: str, model: str | None) -> str:
+    """--model when it is a Claude model (the default one otherwise)."""
+    return model if model and backend != "ollama" else Settings.claude_model
+
+
+def _ollama(backend: str, model: str | None) -> str:
+    """--model when it is an Ollama model (the default one, or OPENDUB_OLLAMA_MODEL, otherwise)."""
+    return model if model and backend == "ollama" else Settings().ollama_model
+
+
 @app.command()
 def translate(
     url: Url,
     work: WorkRoot = Path("work"),
     backend: Backend = "cli",
-    model: ClaudeModel = "claude-sonnet-5-5",
+    model: ClaudeModel = None,
     voice: Voice = "es-ES-AlvaroNeural",
     tts: Tts = "edge",
     engine: Engine = "auto",
@@ -227,7 +242,7 @@ def translate(
     """Translate the segments into Spanish with Claude. Requires `transcribe` (and `separate` with --tts clone or
     --multi-speaker)."""
     settings = Settings(
-        work_root=work, backend=backend, claude_model=model, voice=voice, tts=tts, engine=engine, batch_size=batch_size,
+        work_root=work, backend=backend, claude_model=_claude(backend, model), ollama_model=_ollama(backend, model), voice=voice, tts=tts, engine=engine, batch_size=batch_size,
         chars_per_second=chars_per_second, rate=rate, style_file=style, multi_speaker=multi_speaker,
     )
     wd = _setup(url, settings)
@@ -256,7 +271,7 @@ def tts(
     max_tempo: MaxTempo = 1.25,
     shorten: Shorten = True,
     backend: Backend = "cli",
-    model: ClaudeModel = "claude-sonnet-5-5",
+    model: ClaudeModel = None,
     style: StyleFile = None,
     multi_speaker: MultiSpeaker = False,
     force: Force = False,
@@ -266,7 +281,7 @@ def tts(
     settings = Settings(
         work_root=work, voice=voice, tts=tts, engine=engine, min_factor=min_factor, clone_ref=clone_ref,
         whisper_model=whisper_model, rate=rate,
-        min_tempo=min_tempo, max_tempo=max_tempo, shorten=shorten, backend=backend, claude_model=model,
+        min_tempo=min_tempo, max_tempo=max_tempo, shorten=shorten, backend=backend, claude_model=_claude(backend, model), ollama_model=_ollama(backend, model),
         style_file=style, multi_speaker=multi_speaker,
     )
     wd = _setup(url, settings)
@@ -355,7 +370,7 @@ def retouch(
     max_tempo: MaxTempo = 1.25,
     shorten: Shorten = True,
     backend: Backend = "cli",
-    model: ClaudeModel = "claude-sonnet-5-5",
+    model: ClaudeModel = None,
     bg_volume: BgVolume = -15.0,
     mute_original: MuteOriginal = False,
     separate: Separate = False,
@@ -369,7 +384,7 @@ def retouch(
     """
     settings = Settings(
         work_root=work, clone_ref=clone_ref, min_factor=min_factor, whisper_model=whisper_model, voice=voice,
-        rate=rate, max_tempo=max_tempo, shorten=shorten, backend=backend, claude_model=model,
+        rate=rate, max_tempo=max_tempo, shorten=shorten, backend=backend, claude_model=_claude(backend, model), ollama_model=_ollama(backend, model),
         bg_volume_db=bg_volume, mute_original=mute_original, separate=separate, music_volume_db=music_volume,
         loudness_lufs=loudness or None, retouch=tuple(take or ()),
     )
@@ -503,7 +518,7 @@ def dub(
     subs: Subs = "manual",
     whisper_model: WhisperModel = "small",
     backend: Backend = "cli",
-    model: ClaudeModel = "claude-sonnet-5-5",
+    model: ClaudeModel = None,
     voice: Voice = "es-ES-AlvaroNeural",
     tts: Tts = "edge",
     engine: Engine = "auto",
@@ -534,7 +549,7 @@ def dub(
     """
     settings = Settings(
         work_root=work, source_lang=source_lang, max_height=max_height,
-        subs=subs, whisper_model=whisper_model, backend=backend, claude_model=model,
+        subs=subs, whisper_model=whisper_model, backend=backend, claude_model=_claude(backend, model), ollama_model=_ollama(backend, model),
         voice=voice, tts=tts, engine=engine, min_factor=min_factor, clone_ref=clone_ref,
         keep_translation=keep_translation, multi_speaker=multi_speaker, style_file=style, batch_size=batch_size, chars_per_second=chars_per_second, rate=rate,
         min_tempo=min_tempo, shorten=shorten, max_tempo=max_tempo,

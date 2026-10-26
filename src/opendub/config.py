@@ -17,8 +17,11 @@ class Settings:
     source_lang: str | None = None  # None = whatever YouTube reports
     subs: str = "manual"  # manual | auto | none: accepted subtitle sources
     whisper_model: str = "small"
-    backend: str = "cli"  # cli (subscription via Claude Code) | api
+    backend: str = "cli"  # cli (subscription via Claude Code) | api | ollama (a local model)
     claude_model: str = "claude-sonnet-5-5"
+    # --backend ollama: Qwen3.6-35B-A3B, the local model that held up against Sonnet (docs/bench, T-28)
+    ollama_model: str = field(default_factory=lambda: os.environ.get("OPENDUB_OLLAMA_MODEL") or "qwen3.6:35b-a3b")
+    ollama_host: str = field(default_factory=lambda: os.environ.get("OLLAMA_HOST") or "http://127.0.0.1:11434")
     batch_size: int = 30  # segments per translation call
     # Speaking rate used to compute max_chars; None = calibrate it with the voice
     chars_per_second: float | None = None
@@ -66,3 +69,7 @@ class Settings:
     anthropic_api_key: str | None = field(
         default_factory=lambda: os.environ.get("ANTHROPIC_API_KEY") or None
     )
+
+    def translator(self) -> str:
+        """The model that translates and shortens: Claude's, or the local one with --backend ollama."""
+        return f"ollama:{self.ollama_model}" if self.backend == "ollama" else self.claude_model

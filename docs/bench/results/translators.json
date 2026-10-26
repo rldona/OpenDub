@@ -1,0 +1,201 @@
+{
+ "cli:claude-sonnet-5-5": {
+  "rwF-X5STYks": {
+   "video": "rwF-X5STYks",
+   "translator": "cli:claude-sonnet-5-5",
+   "segments": 17,
+   "seconds": 8,
+   "ratio": 0.965,
+   "over_budget": 4,
+   "over_budget_share": 0.235,
+   "over_1_25": 0,
+   "several_voices": false
+  },
+  "17kBVfGjI8c": {
+   "video": "17kBVfGjI8c",
+   "translator": "cli:claude-sonnet-5-5",
+   "segments": 24,
+   "seconds": 7,
+   "ratio": 0.964,
+   "over_budget": 0,
+   "over_budget_share": 0.0,
+   "over_1_25": 0,
+   "several_voices": true
+  },
+  "VD6xJq8NguY": {
+   "video": "VD6xJq8NguY",
+   "translator": "cli:claude-sonnet-5-5",
+   "segments": 111,
+   "seconds": 42,
+   "ratio": 0.981,
+   "over_budget": 31,
+   "over_budget_share": 0.279,
+   "over_1_25": 4,
+   "several_voices": false
+  },
+  "7mCTaTJ0kDo": {
+   "video": "7mCTaTJ0kDo",
+   "translator": "cli:claude-sonnet-5-5",
+   "segments": 228,
+   "seconds": 89,
+   "ratio": 0.863,
+   "over_budget": 59,
+   "over_budget_share": 0.259,
+   "over_1_25": 15,
+   "several_voices": false
+  },
+  "KS837a-TFRc": {
+   "video": "KS837a-TFRc",
+   "translator": "cli:claude-sonnet-5-5",
+   "segments": 199,
+   "seconds": 73,
+   "ratio": 0.85,
+   "over_budget": 53,
+   "over_budget_share": 0.266,
+   "over_1_25": 12,
+   "several_voices": false
+  },
+  "R4zlpwwEpnY": {
+   "video": "R4zlpwwEpnY",
+   "translator": "cli:claude-sonnet-5-5",
+   "segments": 185,
+   "seconds": 91,
+   "ratio": 0.88,
+   "over_budget": 33,
+   "over_budget_share": 0.178,
+   "over_1_25": 5,
+   "several_voices": true
+  }
+ },
+ "ollama:qwen3.6:35b-a3b-coding": {
+  "17kBVfGjI8c": {
+   "video": "17kBVfGjI8c",
+   "translator": "ollama:qwen3.6:35b-a3b-coding",
+   "segments": 24,
+   "seconds": 20,
+   "ratio": 1.069,
+   "over_budget": 3,
+   "over_budget_share": 0.125,
+   "over_1_25": 0,
+   "several_voices": true
+  },
+  "rwF-X5STYks": {
+   "video": "rwF-X5STYks",
+   "translator": "ollama:qwen3.6:35b-a3b-coding",
+   "segments": 17,
+   "seconds": 13,
+   "ratio": 0.899,
+   "over_budget": 2,
+   "over_budget_share": 0.118,
+   "over_1_25": 1,
+   "several_voices": false
+  },
+  "VD6xJq8NguY": {
+   "video": "VD6xJq8NguY",
+   "translator": "ollama:qwen3.6:35b-a3b-coding",
+   "segments": 111,
+   "seconds": 58,
+   "ratio": 1.014,
+   "over_budget": 42,
+   "over_budget_share": 0.378,
+   "over_1_25": 5,
+   "several_voices": false
+  },
+  "7mCTaTJ0kDo": {
+   "video": "7mCTaTJ0kDo",
+   "translator": "ollama:qwen3.6:35b-a3b-coding",
+   "segments": 228,
+   "seconds": 105,
+   "ratio": 0.771,
+   "over_budget": 55,
+   "over_budget_share": 0.241,
+   "over_1_25": 19,
+   "several_voices": false
+  },
+  "KS837a-TFRc": {
+   "video": "KS837a-TFRc",
+   "translator": "ollama:qwen3.6:35b-a3b-coding",
+   "segments": 199,
+   "seconds": 86,
+   "ratio": 0.835,
+   "over_budget": 65,
+   "over_budget_share": 0.327,
+   "over_1_25": 33,
+   "several_voices": false
+  },
+  "R4zlpwwEpnY": {
+   "video": "R4zlpwwEpnY",
+   "translator": "ollama:qwen3.6:35b-a3b-coding",
+   "segments": 185,
+   "seconds": 99,
+   "ratio": 0.921,
+   "over_budget": 49,
+   "over_budget_share": 0.265,
+   "over_1_25": 11,
+   "several_voices": true
+  }
+ },
+ "ollama:gemma3:27b": {
+  "17kBVfGjI8c": {
+   "video": "17kBVfGjI8c",
+   "translator": "ollama:gemma3:27b",
+   "segments": 24,
+   "seconds": 118,
+   "ratio": 1.117,
+   "over_budget": 5,
+   "over_budget_share": 0.208,
+   "over_1_25": 0,
+   "several_voices": true
+  },
+  "rwF-X5STYks": {
+   "video": "rwF-X5STYks",
+   "translator": "ollama:gemma3:27b",
+   "segments": 17,
+   "seconds": 77,
+   "ratio": 1.116,
+   "over_budget": 12,
+   "over_budget_share": 0.706,
+   "over_1_25": 2,
+   "several_voices": false
+  },
+  "VD6xJq8NguY": {
+   "video": "VD6xJq8NguY",
+   "translator": "ollama:gemma3:27b",
+   "segments": 111,
+   "seconds": 515,
+   "ratio": 1.107,
+   "over_budget": 63,
+   "over_budget_share": 0.568,
+   "over_1_25": 14,
+   "several_voices": false
+  },
+  "7mCTaTJ0kDo": {
+   "video": "7mCTaTJ0kDo",
+   "translator": "ollama:gemma3:27b",
+   "segments": 228,
+   "seconds": 1055,
+   "ratio": 1.083,
+   "over_budget": 148,
+   "over_budget_share": 0.649,
+   "over_1_25": 52,
+   "several_voices": false
+  },
+  "KS837a-TFRc": {
+   "video": "KS837a-TFRc",
+   "translator": "ollama:gemma3:27b",
+   "segments": 199,
+   "seconds": 800,
+   "ratio": 1.001,
+   "over_budget": 88,
+   "over_budget_share": 0.442,
+   "over_1_25": 50,
+   "several_voices": false
+  },
+  "R4zlpwwEpnY": {
+   "video": "R4zlpwwEpnY",
+   "translator": "ollama:gemma3:27b",
+   "failed": "Ollama did not return a valid response for ids 151–180 after 3 attempts (the ids it returned never matched)",
+   "seconds": 1148
+  }
+ }
+}

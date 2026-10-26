@@ -79,8 +79,16 @@ There are two ways to translate:
   ```
 - **API (`--backend api`)**: copy `.env.example` to `.env` and fill in
   `ANTHROPIC_API_KEY`. The same translation, billed per token instead of by the
-  subscription: the way to go on if the subscription can't be used for this. A
-  local backend (Ollama) is planned, so a dub needn't depend on either.
+  subscription: the way to go on if the subscription can't be used for this.
+- **Local model (`--backend ollama`)**: the same prompt on a model served by
+  [Ollama](https://ollama.com) (`OLLAMA_HOST`, by default `http://127.0.0.1:11434`),
+  so a dub needn't depend on Claude at all. The default model is Qwen3.6-35B-A3B
+  (`ollama pull qwen3.6:35b-a3b`; another with `--model` or `OPENDUB_OLLAMA_MODEL`
+  in `.env`). It also shortens what doesn't fit, and the model is unloaded from
+  the GPU before the voice phase needs it. Set against Sonnet on six videos
+  (docs/bench/README.md) it is as fast but less faithful (87% of sentences kept
+  whole against 96%) and less precise with the length, so more sentences are
+  shortened and late: Sonnet stays the default.
 
 ## Usage
 
@@ -107,7 +115,7 @@ Common `dub` options:
 | `--subs` | `manual` | `manual`: manual subtitles or whisper · `auto`: auto-generated ones too · `none`: always whisper |
 | `--source-lang` | YouTube's | Original language (whisper detects it when unknown) |
 | `--whisper-model` | `small` | faster-whisper model (`medium`, `large-v3`… are slower) |
-| `--backend` / `--model` | `cli` / `claude-sonnet-5-5` | How and with which model to translate |
+| `--backend` / `--model` | `cli` / `claude-sonnet-5-5` | How and with which model to translate: `cli`, `api` or `ollama` (default model `qwen3.6:35b-a3b`) |
 | `--rate` | `-10%` | Native edge-tts speaking rate (more negative = slower, without stretching the audio) |
 | `--chars-per-second` | calibrated | Speaking rate used to cap each translation's length; measured with the chosen voice by default |
 | `--shorten` / `--no-shorten` | on | If a sentence doesn't fit even at `--max-tempo`, ask Claude for a shorter version and re-synthesize it |

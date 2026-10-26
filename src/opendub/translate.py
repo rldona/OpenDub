@@ -234,6 +234,51 @@ def _call_api(system: str, prompt: str, model: str, api_key: str | None) -> tupl
     return json.loads(text), 0.0
 
 
+OLLAMA_TIMEOUT_S = 900  # a 30-sentence block with part of the model in RAM takes minutes
+
+
+def _ollama(settings: Settings, path: str, body: dict[str, Any] | None, timeout: float) -> dict[str, Any]:
+    import urllib.error
+    import urllib.request
+
+    url = settings.ollama_host.rstrip("/") + path
+    data = json.dumps(body).encode() if body is not None else None
+    request = urllib.request.Request(url, data=data, headers={"Content-Type": "application/json"})
+    try:
+        with urllib.request.urlopen(request, timeout=timeout) as response:
+            return json.loads(response.read())
+    except urllib.error.HTTPError as e:
+        raise RuntimeError(f"Ollama answered {e.code}: {e.read()[:300].decode(errors='replace')}") from None
+    except (urllib.error.URLError, OSError) as e:
+        raise SystemExit(f"Can't reach Ollama at {settings.ollama_host}: {e}. Is it running (`ollama serve`)?") from None
+
+
+def _call_ollama(system: str, prompt: str, settings: Settings) -> tuple[dict[str, Any], float]:
+    """The same prompt and JSON schema on a local model (Ollama's structured outputs)."""
+    data = _ollama(settings, "/api/chat", {
+        "model": settings.ollama_model,
+        "messages": [{"role": "system", "content": system}, {"role": "user", "content": prompt}],
+        "format": SCHEMA,
+        "stream": False,
+        "think": False,  # reasoning models (Qwen3): the answer only, not minutes of thinking first
+        "options": {"temperature": 0.3, "num_ctx": 16384},
+    }, OLLAMA_TIMEOUT_S)
+    try:
+        return json.loads(data["message"]["content"]), 0.0
+    except (KeyError, json.JSONDecodeError) as e:
+        raise RuntimeError(f"Unexpected answer from Ollama: {e}") from None
+
+
+def release_ollama(settings: Settings) -> None:
+    """Unload the model from the GPU (Ollama keeps it loaded for minutes): the voice phase needs the memory."""
+    if settings.backend != "ollama":
+        return
+    try:
+        _ollama(settings, "/api/generate", {"model": settings.ollama_model, "keep_alive": 0}, 60)
+    except (RuntimeError, SystemExit) as e:
+        log.warning(f"Could not unload the Ollama model: {e}")
+
+
 CLAUDE_HOST = ("api.anthropic.com", 443)
 _reachable: bool | None = None  # checked once per process
 
@@ -258,7 +303,8 @@ def check_claude_reachable() -> None:
 
 def _ask(system: str, prompt: str, expected: list[int], settings: Settings) -> tuple[dict[int, str], float]:
     """Call the backend and check that exactly the requested ids come back, with retries."""
-    check_claude_reachable()
+    if settings.backend != "ollama":
+        check_claude_reachable()
     cost = 0.0
     last: Exception | None = None
     for attempt in range(1, MAX_ATTEMPTS + 1):
@@ -266,6 +312,8 @@ def _ask(system: str, prompt: str, expected: list[int], settings: Settings) -> t
         try:
             if settings.backend == "cli":
                 out, c = _call_cli(system, prompt, settings.claude_model)
+            elif settings.backend == "ollama":
+                out, c = _call_ollama(system, prompt, settings)
             else:
                 out, c = _call_api(system, prompt, settings.claude_model, settings.anthropic_api_key)
             cost += c
@@ -273,11 +321,12 @@ def _ask(system: str, prompt: str, expected: list[int], settings: Settings) -> t
             if sorted(got) == sorted(expected) and all(got.values()):
                 return got, cost
             log.warning(f"Ids do not match (expected {expected[0]}–{expected[-1]}), retry {attempt}")
-        except (RuntimeError, subprocess.TimeoutExpired) as e:
+        except (RuntimeError, subprocess.TimeoutExpired, TimeoutError) as e:
             last = e
             log.warning(f"Attempt {attempt} failed: {e}")
     why = f": {last}" if last else " (the ids it returned never matched)"
-    raise SystemExit(f"Claude did not return a valid response for ids {expected[0]}–{expected[-1]} "
+    who = "Ollama" if settings.backend == "ollama" else "Claude"
+    raise SystemExit(f"{who} did not return a valid response for ids {expected[0]}–{expected[-1]} "
                      f"after {MAX_ATTEMPTS} attempts{why}")
 
 
@@ -302,7 +351,10 @@ def shorten(
         system += SPEAKER_RULE
     payload: Any = {"glossary": _glossary(terms), "items": listed} if terms else listed
     prompt = json.dumps(payload, ensure_ascii=False, indent=1)
-    got, _ = _ask(system, prompt, [i for i, *_ in items], settings)
+    try:
+        got, _ = _ask(system, prompt, [i for i, *_ in items], settings)
+    finally:
+        release_ollama(settings)  # shortening runs in the voice phase, beside the voice model
     # a shorter version that came back empty or garbled (U+FFFD) is worse than none
     bad = [i for i, text in got.items() if not text.strip() or "\ufffd" in text]
     if bad:
@@ -345,8 +397,8 @@ def keep_edits(wd: WorkDir, originals: list[Segment], result: list[Segment], pac
 
 
 def run(wd: WorkDir, settings: Settings, force: bool = False) -> list[Segment]:
-    if settings.backend not in ("cli", "api"):
-        raise SystemExit(f"--backend must be cli or api (not {settings.backend!r})")
+    if settings.backend not in ("cli", "api", "ollama"):
+        raise SystemExit(f"--backend must be cli, api or ollama (not {settings.backend!r})")
     segments = speakers_mod.apply(wd, load_segments(wd.segments))  # with the speakers corrected by hand
     meta = json.loads(wd.meta.read_text(encoding="utf-8"))
     source_code = (meta.get("language") or "en").split("-")[0]
@@ -368,7 +420,7 @@ def run(wd: WorkDir, settings: Settings, force: bool = False) -> list[Segment]:
         pace = Pace(settings.chars_per_second) if settings.chars_per_second else voice_rate(wd, settings)
     cps = pace.cps
     params = {
-        "model": settings.claude_model,
+        "model": settings.translator(),
         "batch": settings.batch_size,
         "chars_per_second": cps,
         **({"overhead_s": pace.overhead} if pace.overhead else {}),  # cloned voices (see tts.Pace)
@@ -397,7 +449,7 @@ def run(wd: WorkDir, settings: Settings, force: bool = False) -> list[Segment]:
     slots = [_slot(segments, i) for i in range(len(segments))]
     pairs = list(zip(segments, slots))
     blocks = [pairs[i : i + settings.batch_size] for i in range(0, len(pairs), settings.batch_size)]
-    log.info(f"{len(segments)} segments in {len(blocks)} blocks · backend {settings.backend} · {settings.claude_model}")
+    log.info(f"{len(segments)} segments in {len(blocks)} blocks · backend {settings.backend} · {settings.translator()}")
     if paces:
         log.info("Speaking rate for max_chars per speaker: " + ", ".join(
             f"{spk} {p.cps:.1f} chars/s ({genders.get(spk) or '?'})" for spk, p in sorted(paces.items())))
@@ -411,31 +463,34 @@ def run(wd: WorkDir, settings: Settings, force: bool = False) -> list[Segment]:
     translated: dict[int, str] = {}
     total_cost = 0.0
     asked = 0
-    with Progress(
-        "[progress.description]{task.description}", BarColumn(), MofNCompleteColumn(),
-        TimeElapsedColumn(), console=console, transient=True,
-    ) as progress:
-        task = progress.add_task("Translating blocks", total=len(blocks))
-        for n, block in enumerate(blocks):
-            terms = style_mod.matching(used, [s.text for s, _ in block])
-            system = _system(SYSTEM_PROMPT, style, terms, source=source_name, target=target)
-            if paces:
-                system += SPEAKERS_RULE
-            key = params_hash({"model": settings.claude_model, "system": system,
-                               "segments": _block_segments(block, pace, paces, genders), "glossary": _glossary(terms)})
-            path = block_dir / f"{key}.json"
-            if path.exists() and not force:
-                got = {int(k): v for k, v in json.loads(path.read_text(encoding="utf-8")).items()}
-            else:
-                prev = [s for s, _ in pairs[: n * settings.batch_size]][-CONTEXT_SEGMENTS:]
-                context = [(s.text, translated[s.id]) for s in prev]
-                prompt = _user_prompt(block, context, pace, terms, paces, genders)
-                got, cost = _ask(system, prompt, [s.id for s, _ in block], settings)
-                asked += 1
-                total_cost += cost
-                write_text_atomic(path, json.dumps(got, ensure_ascii=False, indent=1))
-            translated.update(got)
-            progress.advance(task)
+    try:
+        with Progress(
+            "[progress.description]{task.description}", BarColumn(), MofNCompleteColumn(),
+            TimeElapsedColumn(), console=console, transient=True,
+        ) as progress:
+            task = progress.add_task("Translating blocks", total=len(blocks))
+            for n, block in enumerate(blocks):
+                terms = style_mod.matching(used, [s.text for s, _ in block])
+                system = _system(SYSTEM_PROMPT, style, terms, source=source_name, target=target)
+                if paces:
+                    system += SPEAKERS_RULE
+                key = params_hash({"model": settings.translator(), "system": system,
+                                   "segments": _block_segments(block, pace, paces, genders), "glossary": _glossary(terms)})
+                path = block_dir / f"{key}.json"
+                if path.exists() and not force:
+                    got = {int(k): v for k, v in json.loads(path.read_text(encoding="utf-8")).items()}
+                else:
+                    prev = [s for s, _ in pairs[: n * settings.batch_size]][-CONTEXT_SEGMENTS:]
+                    context = [(s.text, translated[s.id]) for s in prev]
+                    prompt = _user_prompt(block, context, pace, terms, paces, genders)
+                    got, cost = _ask(system, prompt, [s.id for s, _ in block], settings)
+                    asked += 1
+                    total_cost += cost
+                    write_text_atomic(path, json.dumps(got, ensure_ascii=False, indent=1))
+                translated.update(got)
+                progress.advance(task)
+    finally:
+        release_ollama(settings)  # the voice phase comes next and needs the GPU memory
 
     result = keep_edits(wd, segments, [replace(s, text=translated[s.id]) for s in segments], pace)
     save_segments(wd.translation, result)

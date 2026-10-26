@@ -1,0 +1,30 @@
+{
+ "video": "17kBVfGjI8c",
+ "version": "20261026-130728-chatterbox",
+ "engine": "chatterbox",
+ "shortened": 0,
+ "clips": 24,
+ "sped_up": 1,
+ "max_tempo": 1.047,
+ "not_fitting": 0,
+ "edge": 0,
+ "max_delay_s": 0.11,
+ "mean_delay_s": 0.008,
+ "late_voice_s": 0,
+ "fill": 0.905,
+ "under_80": 4,
+ "by_speaker": {
+  "A": {
+   "fill": 0.905,
+   "under_80": 4
+  }
+ },
+ "lufs": -16.0,
+ "true_peak_db": -1.3,
+ "asr_clips": 24,
+ "cer_mean": 0.003,
+ "cer_p90": 0.008,
+ "cer_over_0_3": 0,
+ "p_es_mean": 0.989,
+ "whisper": "small"
+}

@@ -488,13 +488,13 @@ def cached_rate(work_root: Path, engine: str, ref: Path | None, voice: str, rate
 
 def voice_rate(wd: WorkDir, settings: Settings) -> Pace:
     """Pace of the voice the video will be dubbed with."""
-    if settings.tts == "clone":  # Voice.clone resolves the engine (auto needs the reference)
+    if settings.tts == "clone":  # Voice.clone resolves the engine (auto, one voice: Chatterbox)
         return cloned_speaking_rate(settings, Voice.clone(settings, reference.reference(wd)))
     resolve_engine(settings)  # validates --tts
     return Pace(speaking_rate(settings.work_root, settings.voice, settings.rate))
 
 
-# --engine; Settings.engine defaults to chatterbox. chatterbox-es (the es-ES finetune) is a CLI-only
+# --engine; Settings.engine defaults to auto. chatterbox-es (the es-ES finetune) is a CLI-only
 # variant for the blind listening, not offered on the web page
 CLONE_ENGINES = ("chatterbox", "indextts", "cosyvoice", "chatterbox-es")
 CHATTERBOX = {"chatterbox": "v3", "chatterbox-es": "es-es"}  # engine → clone variant
@@ -714,7 +714,7 @@ def _params(settings: Settings, segments: list[Segment], engine: str, ref: Path 
         "min_tempo": settings.min_tempo,
         "slowing": "placed",  # tts.fill_gaps: slowed where the mix places each clip, not clip by clip
         "max_tempo": settings.max_tempo,
-        "shorten": settings.claude_model if settings.shorten else None,
+        "shorten": settings.translator() if settings.shorten else None,
         "texts": [(s.id, s.start, s.text) for s in segments],
     }
     if ref is not None:
