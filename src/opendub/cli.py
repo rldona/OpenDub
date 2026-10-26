@@ -66,7 +66,7 @@ Engine = Annotated[
     typer.Option(
         "--engine",
         help="Cloning engine for --tts clone: auto (CosyVoice when several people speak, Chatterbox for one voice), "
-        "chatterbox, indextts, cosyvoice, or chatterbox-es (the es-ES finetune, for comparisons)",
+        "chatterbox, indextts or cosyvoice",
     ),
 ]
 MinFactor = Annotated[

@@ -27,19 +27,16 @@ MODEL = "chatterbox-multilingual-v3"
 HF_REPO = "ResembleAI/chatterbox"
 HF_REV = "5bb1f6ee58e50c3b8d408bc82a6d3740c2db6e18"  # the weights benchmarked (docs/v2-plan.md)
 T3_MODEL = "v3"
-# The es-ES finetune (--engine chatterbox-es): an evaluation variant for the blind listening. It lost
-# to V3 by ear in the first benchmark (docs/v2-plan.md, Phase C) and is compared again on whole dubs
-MODEL_ES = "chatterbox-multilingual-es-es"
-HF_REPO_ES = "ResembleAI/Chatterbox-Multilingual-es-es"
-HF_REV_ES = "7262b364e3222ba9446c9289e7485eadc47ed902"
-VARIANTS = {"v3": MODEL, "es-es": MODEL_ES}
+# The es-ES finetune (ResembleAI/Chatterbox-Multilingual-es-es) was a CLI variant for comparisons,
+# retired on 26 Oct 2026: it lost to V3 by ear twice (docs/v2-plan.md; 3.17 against 3.83 on whole dubs)
+VARIANTS = {"v3": MODEL}
 SAMPLE_RATE = 24000
 QC_MAX_CER = 0.3  # whisper character error rate above which a clip is redone
 # On very short texts one misheard word swings the rate: "Ups, llénalo" failed on a fine clip
 QC_SHORT_CHARS, QC_SHORT_MAX_CER = 20, 0.6
 INSTALL_HINT = "Install the optional dependencies with: uv sync --extra clone"
 
-_models: dict[str, object] = {}  # one per variant (v3, es-es)
+_models: dict[str, object] = {}  # one per variant (only v3 now)
 _whisper: dict[str, Any] = {}  # quality-check model, loaded once per run (several check rounds)
 
 
@@ -66,11 +63,8 @@ def _load(variant: str = "v3"):
                              engine="Chatterbox", cmd="uv sync --extra clone")
         device = _device()
         log.info(f"Loading {VARIANTS[variant]} ({device})…")
-        if variant == "es-es":
-            _models[variant] = ChatterboxMultilingualTTS.from_local(_checkpoints_es(), device,
-                                                                    t3_model="t3_es_es.safetensors")
-        else:  # what from_pretrained does, at a fixed revision instead of its "main"
-            _models[variant] = ChatterboxMultilingualTTS.from_local(_checkpoints(), device, t3_model=T3_MODEL)
+        # what from_pretrained does, at a fixed revision instead of its "main"
+        _models[variant] = ChatterboxMultilingualTTS.from_local(_checkpoints(), device, t3_model=T3_MODEL)
     return _models[variant]
 
 
@@ -84,36 +78,6 @@ def _checkpoints() -> Path:
     files = ["ve.pt", _resolve_multilingual_t3_model(T3_MODEL), "s3gen.pt", "grapheme_mtl_merged_expanded_v1.json",
              "conds.pt", "Cangjie5_TC.json"]
     return Path(snapshot_download(HF_REPO, revision=HF_REV, allow_patterns=files, token=os.getenv("HF_TOKEN")))
-
-
-def _checkpoints_es() -> Path:
-    """The es-ES finetune assembled as the benchmark did: V3's voice encoder and conditionals,
-    the finetune's T3 and tokenizer, and its s3gen_v3 with the two buffers it omits rebuilt."""
-    import os
-
-    import torch
-    from huggingface_hub import hf_hub_download
-
-    d = Path.home() / ".cache" / "opendub" / f"chatterbox-es-es-{HF_REV_ES[:12]}"
-    d.mkdir(parents=True, exist_ok=True)
-    token = os.getenv("HF_TOKEN")
-    files = {"ve.pt": (HF_REPO, HF_REV), "conds.pt": (HF_REPO, HF_REV), "Cangjie5_TC.json": (HF_REPO, HF_REV),
-             "t3_es_es.safetensors": (HF_REPO_ES, HF_REV_ES),
-             "grapheme_mtl_merged_expanded_v1.json": (HF_REPO_ES, HF_REV_ES)}
-    for name, (repo, rev) in files.items():
-        if not (d / name).exists():
-            (d / name).symlink_to(hf_hub_download(repo, name, revision=rev, token=token))
-    if not (d / "s3gen.pt").exists():
-        from chatterbox.models.s3gen import S3Gen
-
-        state = torch.load(hf_hub_download(HF_REPO_ES, "s3gen_v3.pt", revision=HF_REV_ES, token=token),
-                           map_location="cpu", weights_only=True)
-        fresh = S3Gen().state_dict()
-        missing, unexpected = set(fresh) - set(state), set(state) - set(fresh)
-        if unexpected or not missing <= {"tokenizer._mel_filters", "tokenizer.window"}:
-            raise RuntimeError(f"Unexpected es-ES s3gen: missing {sorted(missing)}, unexpected {sorted(unexpected)}")
-        torch.save(state | {k: fresh[k] for k in missing}, d / "s3gen.pt")
-    return d
 
 
 def unload() -> None:

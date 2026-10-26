@@ -31,7 +31,7 @@ _ISSUE_LINES = [
 ]
 ENGINE_NAMES = {"chatterbox": "Chatterbox V3", "indextts": "IndexTTS-2.5", "cosyvoice": "CosyVoice 3",
                 "chatterbox-es": "Chatterbox es-ES"}
-WEB_ENGINES = ("chatterbox", "indextts", "cosyvoice")  # chatterbox-es is a CLI-only evaluation variant
+WEB_ENGINES = ("chatterbox", "indextts", "cosyvoice")  # chatterbox-es: versions made by the retired es-ES finetune
 
 
 def engines(settings: Settings | None = None) -> list[dict[str, Any]]:

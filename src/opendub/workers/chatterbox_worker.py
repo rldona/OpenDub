@@ -28,7 +28,7 @@ def main() -> None:
     t0 = time.monotonic()
     from opendub import clone
 
-    variant = sys.argv[1] if len(sys.argv) > 1 else "v3"  # v3 | es-es
+    variant = sys.argv[1] if len(sys.argv) > 1 else "v3"  # the only one since the es-ES finetune was retired
     clone._load(variant)
     import torch
 

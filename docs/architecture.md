@@ -97,8 +97,8 @@ flowchart TD
 - **A hung engine** (`engines.speak`): each clip has a timeout that grows with its
   text; past it the worker is killed and started again once, then the clip is left
   as a short beep the quality check flags, and the dub goes on.
-- **Variants**: `chatterbox-es`, the es-ES finetune, is a CLI-only engine name for
-  comparisons (`docs/bench/listening`); its versions are named after it.
+- **Variants**: `chatterbox-es`, the es-ES finetune, was a CLI-only engine for
+  comparisons, retired after losing to V3 by ear twice; its old versions keep the name.
 
 ## Several voices
 

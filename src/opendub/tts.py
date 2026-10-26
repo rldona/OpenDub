@@ -506,10 +506,9 @@ def voice_rate(wd: WorkDir, settings: Settings) -> Pace:
     return Pace(speaking_rate(settings.work_root, settings.voice, settings.rate))
 
 
-# --engine; Settings.engine defaults to auto. chatterbox-es (the es-ES finetune) is a CLI-only
-# variant for the blind listening, not offered on the web page
-CLONE_ENGINES = ("chatterbox", "indextts", "cosyvoice", "chatterbox-es")
-CHATTERBOX = {"chatterbox": "v3", "chatterbox-es": "es-es"}  # engine → clone variant
+# --engine; Settings.engine defaults to auto
+CLONE_ENGINES = ("chatterbox", "indextts", "cosyvoice")
+CHATTERBOX = {"chatterbox": "v3"}  # engine → clone variant
 # Engines that scale a clip's duration themselves (a duration factor): their clips are
 # fitted to the slot natively, down to --min-factor, before shortening and atempo
 NATIVE_DURATION = ("indextts", "cosyvoice")
@@ -547,7 +546,7 @@ def native_duration(engine: str) -> bool:
 def _engine_module(engine: str):
     from . import clone, cosyvoice, indextts
 
-    return {"chatterbox": clone, "chatterbox-es": clone, "indextts": indextts, "cosyvoice": cosyvoice}[engine]
+    return {"chatterbox": clone, "indextts": indextts, "cosyvoice": cosyvoice}[engine]
 
 
 def calibration_factor(engine: str) -> float:
