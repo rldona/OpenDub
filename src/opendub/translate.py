@@ -151,11 +151,11 @@ def _block_segments(
     out = []
     for s, slot in block:
         item: dict[str, Any] = {"id": s.id, "duration_s": round(slot, 1),
-                                "max_chars": (paces or {}).get(s.speaker, pace).max_chars(slot), "text": s.text}
+                                "max_chars": (paces or {}).get(s.speaker or "", pace).max_chars(slot), "text": s.text}
         if paces:
             item["speaker"] = s.speaker
-            if (genders or {}).get(s.speaker):
-                item["gender"] = genders[s.speaker]
+            if gender := (genders or {}).get(s.speaker or ""):
+                item["gender"] = gender
         out.append(item)
     return out
 
@@ -412,10 +412,11 @@ def run(wd: WorkDir, settings: Settings, force: bool = False) -> list[Segment]:
     if settings.keep_translation and wd.has("translate") and wd.translation.exists():
         log.info("Keeping the existing translation (made for another voice's pace, fitted in TTS)")
         return load_segments(wd.translation)
-    paces, genders = {}, {}
+    paces: dict[str, Pace] = {}
+    genders: dict[str, str | None] = {}
     if multi_speaker(settings, segments):  # several voices: each sentence capped at its speaker's pace
         genders = speaker_genders(wd)
-        paces = ({spk: Pace(settings.chars_per_second) for spk in {s.speaker for s in segments}}
+        paces = ({spk: Pace(settings.chars_per_second) for spk in {s.speaker for s in segments if s.speaker}}
                  if settings.chars_per_second else speaker_paces(wd, settings, segments))
         pace = paces[min(paces)]  # A, who speaks most, for the logs
     else:
@@ -501,7 +502,7 @@ def run(wd: WorkDir, settings: Settings, force: bool = False) -> list[Segment]:
                       json.dumps(style_mod.snapshot(style, [s.text for s in segments]), ensure_ascii=False))
 
     over = [
-        (s, slot) for s, slot in zip(result, slots) if len(s.text) > paces.get(s.speaker, pace).max_chars(slot) * 1.25
+        (s, slot) for s, slot in zip(result, slots) if len(s.text) > paces.get(s.speaker or "", pace).max_chars(slot) * 1.25
     ]
     ratio = sum(len(s.text) for s in result) / sum(len(s.text) for s in segments)
     log.info(f"ES/original length: {ratio:.0%} · probably too long: {len(over)}")

@@ -322,7 +322,10 @@ def create_app(work_root: Path = Path("work"), runner: Runner | None = None,
             videos.save_translation(wd, [e.model_dump() for e in edits])
         except KeyError as e:
             raise fail(422, "no_segment", f"No segment {e.args[0]}", id=e.args[0]) from e
-        return videos.translation(wd, manager)
+        data = videos.translation(wd, manager)
+        if data is None:  # its files went away meanwhile
+            raise fail(404, "not_translated", "Not translated yet")
+        return data
 
     @app.post("/videos/{vid}/retouch")
     def retouch(vid: str, req: RetouchRequest) -> dict:

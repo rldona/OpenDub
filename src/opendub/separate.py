@@ -54,8 +54,10 @@ def split_stems(stems: dict[str, np.ndarray]) -> tuple[np.ndarray, np.ndarray]:
     """(vocals, background), where background is the sum of every non-vocal stem."""
     if "vocals" not in stems:
         raise ValueError(f"The model returned no vocals stem (got {', '.join(stems)})")
-    background = sum(audio for name, audio in stems.items() if name != "vocals")
-    return stems["vocals"], background
+    others = [audio for name, audio in stems.items() if name != "vocals"]
+    if not others:
+        raise ValueError("The model returned only the vocals stem")
+    return stems["vocals"], np.sum(others, axis=0)
 
 
 @contextmanager

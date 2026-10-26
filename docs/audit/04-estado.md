@@ -83,7 +83,7 @@ código; los que siguen abiertos dicen qué falta y dónde.
 | G-021 Memoria de la separación | Cerrado | T-24 |
 | G-022 Clips en bruto sin límite | Cerrado por decisión | Se borran a mano desde la web (T-08); P9 descarta el borrado automático |
 | G-023 Biblioteca lenta | Cerrado | T-22 |
-| G-024 ruff y mypy | **Parcial** | Están en la CI (T-17), pero quedan 36 errores de mypy en la lista |
+| G-024 ruff y mypy | **Cerrado** (T-33) | Están en la CI (T-17) y mypy ya no da ningún error: la lista quedó vacía |
 | G-025 Test de extremo a extremo | Cerrado | T-15 |
 | G-026 Tests de frontend | Cerrado | T-18 |
 | G-027 Revisión de los pesos | Cerrado | T-10 |
@@ -123,7 +123,7 @@ lo indican.
      YouTube, sin red, Claude inalcanzable, motor o diarizador no instalado,
      clips borrados), igual que la API con `fail()`. El texto técnico quedaría
      solo como detalle.
-2. **Reducir la lista de mypy** (resto de G-024).
+2. **Reducir la lista de mypy** (resto de G-024). **Cerrado por T-33.**
    - **Qué falta:** 36 errores, casi todos `Path | None` pasados donde se espera
      `Path` (referencias de voz) y tipos de `**dict` en `web/jobs.py`.
    - **Propuesta:** corregirlos por módulos. `tools/mypy_baseline.py --update`

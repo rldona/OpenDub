@@ -120,6 +120,12 @@ class Voice:
     # calibrated pace is the clip's, and it is the first fallback when the clip fails the check
     pace_ref: Path | None = None
 
+    def cloned_ref(self) -> Path:
+        """The reference of a cloned voice: every one has it (only edge-tts voices don't)."""
+        if self.ref is None:
+            raise ValueError(f"A {self.engine} voice without a reference")
+        return self.ref
+
     @classmethod
     def edge(cls, settings: Settings) -> Voice:
         return cls("edge", settings.voice, settings.rate)
@@ -277,7 +283,7 @@ def _raw_path(wd: WorkDir, voice: Voice, text: str) -> Path:
         from . import clone
 
         # "spoken-v1": cloned voices get figures written out (spoken.py); older clips said them wrong
-        raw = f"{engine_model(voice.engine)}\n{clone.file_hash(voice.ref)}\n{voice.seed}\nspoken-v1\n{text}"
+        raw = f"{engine_model(voice.engine)}\n{clone.file_hash(voice.cloned_ref())}\n{voice.seed}\nspoken-v1\n{text}"
         if native_duration(voice.engine):
             raw += f"\n{voice.factor:.3f}"
         return wd.tts_dir / "raw" / f"{hashlib.sha256(raw.encode()).hexdigest()[:16]}.wav"
@@ -321,7 +327,7 @@ def _synthesize_jobs(jobs: list[tuple[str, Path, Voice]], settings: Settings) ->
         task = progress.add_task("Cloning voice", total=len(cloned))
         # Chatterbox clips go to its process pool, several at a time (clone.synthesize_batch), per variant
         for engine, variant in CHATTERBOX.items():
-            batch = [(spell_numbers(text), voice.ref, voice.seed, path) for text, path, voice in cloned
+            batch = [(spell_numbers(text), voice.cloned_ref(), voice.seed, path) for text, path, voice in cloned
                      if voice.engine == engine]
             if batch:
                 clone.synthesize_batch(batch, settings.work_root / "chatterbox.log", lambda: progress.advance(task),
@@ -332,10 +338,10 @@ def _synthesize_jobs(jobs: list[tuple[str, Path, Voice]], settings: Settings) ->
                 continue
             if voice.engine == "indextts":
                 indextts.synthesize(settings.indextts_dir, settings.work_root / "indextts.log",
-                                    said, voice.ref, path, voice.factor, voice.seed)
+                                    said, voice.cloned_ref(), path, voice.factor, voice.seed)
             elif voice.engine == "cosyvoice":
                 cosyvoice.synthesize(settings.cosyvoice_dir, settings.work_root / "cosyvoice.log",
-                                     said, voice.ref, path, voice.factor, voice.seed)
+                                     said, voice.cloned_ref(), path, voice.factor, voice.seed)
             progress.advance(task)
 
 
@@ -415,7 +421,7 @@ def cloned_speaking_rate(settings: Settings, voice: Voice) -> Pace:
         voice = replace(voice, ref=voice.pace_ref, pace_ref=None)
     cache = settings.work_root / "voice_rates.json"
     rates = json.loads(cache.read_text()) if cache.exists() else {}
-    key = cloned_rate_key(voice.engine, voice.ref)
+    key = cloned_rate_key(voice.engine, voice.cloned_ref())
     if key not in rates:
         samples = _calibrate(settings, replace(voice, factor=factor, seed=SEED), CALIBRATION_SENTENCES + CALIBRATION_EXTRA)
         rates[key] = asdict(fit_pace(samples))
@@ -768,7 +774,7 @@ def run(wd: WorkDir, settings: Settings, force: bool = False) -> list[Clip]:
     seeds = retouch_mod.takes(wd) if cloned else {}
     voices, engine, ref, by_speaker = voices_mod.segment_voices(wd, settings, segments, seeds)
     params = _params(settings, segments, engine, ref, seeds, by_speaker)
-    ref_f0 = reference.mean_f0(ref) if cloned else None
+    ref_f0 = reference.mean_f0(ref) if ref is not None else None
     choice = None
     if cloned:
         # logged (and kept in tts.json) to later relate the engine choice to the voices

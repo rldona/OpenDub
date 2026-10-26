@@ -23,9 +23,10 @@ REF_MIN, REF_MAX = 10.0, 15.0  # seconds of reference audio
 REF_SPEAKER_MIN = 6.0  # several voices: a speaker with less clean speech is not cloned (stock voice)
 
 
-def _window(segments: list[Segment]) -> tuple[tuple[float, float], tuple] | None:
+def _window(segments: list[Segment]) -> tuple[tuple[float, float], tuple[bool, float]] | None:
     """((start, end), key) of the best window of consecutive segments, or None."""
-    best, best_key = None, None
+    best: tuple[float, float] | None = None
+    best_key: tuple[bool, float] | None = None
     for i, first in enumerate(segments):
         for j in range(i, len(segments)):
             span = segments[j].end - first.start
@@ -35,7 +36,7 @@ def _window(segments: list[Segment]) -> tuple[tuple[float, float], tuple] | None
             key = (span >= REF_MIN, speech / span if span >= REF_MIN else span)
             if best_key is None or key > best_key:
                 best, best_key = (first.start, segments[j].end), key
-    return (best, best_key) if best else None
+    return (best, best_key) if best and best_key else None
 
 
 def pick_reference(segments: list[Segment]) -> tuple[float, float]:

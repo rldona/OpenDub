@@ -69,7 +69,7 @@ def _split(start: float, end: float, text: str) -> list[tuple[float, float, list
 
 
 def _srt(cues: list[tuple[float, float, str]]) -> str:
-    blocks = []
+    blocks: list[str] = []
     for start, end, text in cues:
         for a, b, lines in _split(start, end, text):
             blocks.append(f"{len(blocks) + 1}\n{_time(a)} --> {_time(b)}\n" + "\n".join(lines) + "\n")

@@ -47,11 +47,13 @@ class JobOptions:
     review: bool = False  # stop after the translation: the job ends "review", to edit it and go on
 
     def settings(self, work_root: Path) -> Settings:
-        volume = {"music_volume_db": self.bg_volume} if self.separate else {"bg_volume_db": self.bg_volume}
+        # the one volume the page sets: the separated background's, or the original audio's
+        music = self.bg_volume if self.separate else Settings.music_volume_db
+        original = Settings.bg_volume_db if self.separate else self.bg_volume
         return Settings(work_root=work_root, separate=self.separate, tts=self.tts, engine=self.engine,
                         voice=self.voice, keep_translation=self.keep_translation, multi_speaker=self.multi_speaker,
                         retouch=tuple(self.retouch) if self.retouch is not None else None, review=self.review,
-                        **volume)
+                        music_volume_db=music, bg_volume_db=original)
 
 
 Runner = Callable[[str, Settings], Any]

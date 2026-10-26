@@ -28,6 +28,7 @@ import subprocess
 import tempfile
 from collections import Counter
 from pathlib import Path
+from typing import Any
 
 from . import media
 from .config import Settings
@@ -91,9 +92,9 @@ def keep_speakers(turns: list, min_speech: float = MIN_SPEECH_S) -> tuple[list, 
     if not ranked and talk:  # nobody reaches it (a short video): the main voice is still a speaker
         ranked = [talk.most_common(1)[0][0]]
     names = {s: "ABCDEFGH"[i] for i, s in enumerate(ranked)}
-    kept_turns = [[a, b, names[s]] for a, b, s in turns if s in names]
-    kept = {names[s]: round(talk[s], 1) for s in ranked}
-    dropped = {s: round(t, 1) for s, t in talk.items() if s not in names}
+    kept_turns: list = [[a, b, names[s]] for a, b, s in turns if s in names]
+    kept: dict[str, float] = {names[s]: round(talk[s], 1) for s in ranked}
+    dropped: dict[str, float] = {s: round(t, 1) for s, t in talk.items() if s not in names}
     return kept_turns, kept, dropped
 
 
@@ -155,7 +156,8 @@ def run(wd: WorkDir, settings: Settings, force: bool = False) -> dict:
             raise SystemExit(f"Diarization failed: {(result.stderr or '').strip()[-800:]}")
         raw = json.loads(out.read_text())
     turns, kept, dropped = keep_speakers(raw["turns"])
-    speakers = {s: {"seconds": t, "f0_hz": _pitch(wd.vocals, turns, s)} for s, t in kept.items()}
+    speakers: dict[str, dict[str, Any]] = {s: {"seconds": t, "f0_hz": _pitch(wd.vocals, turns, s)}
+                                           for s, t in kept.items()}
     data = {"model": MODEL, "turns": turns, "speakers": speakers, "dropped": dropped,
             "seconds": raw.get("seconds"), "device": raw.get("device")}
     write_text_atomic(wd.diarization, json.dumps(data, indent=1))

@@ -90,3 +90,8 @@ def test_separating_by_chunks_gives_the_whole_separation(tmp_path, seconds):
     assert got_v.shape == audio.shape and got_b.shape == audio.shape
     assert np.abs(got_v - whole_v).max() < 1e-3  # linear and pointwise: exactly the same
     assert np.abs(got_b - whole_b).max() < 2e-3  # the smoothed stem differs only at the window edges, faded
+
+
+def test_split_stems_needs_more_than_the_vocals():
+    with pytest.raises(ValueError, match="only the vocals"):
+        separate.split_stems({"vocals": np.ones((2, 4), dtype=np.float32)})

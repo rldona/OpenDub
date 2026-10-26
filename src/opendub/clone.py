@@ -15,6 +15,7 @@ import re
 import unicodedata
 import wave
 from pathlib import Path
+from typing import Any
 
 import numpy as np
 
@@ -39,7 +40,7 @@ QC_SHORT_CHARS, QC_SHORT_MAX_CER = 20, 0.6
 INSTALL_HINT = "Install the optional dependencies with: uv sync --extra clone"
 
 _models: dict[str, object] = {}  # one per variant (v3, es-es)
-_whisper: dict[str, object] = {}  # quality-check model, loaded once per run (several check rounds)
+_whisper: dict[str, Any] = {}  # quality-check model, loaded once per run (several check rounds)
 
 
 def file_hash(path: Path) -> str:

@@ -159,7 +159,7 @@ def _speaker(group: list[Piece]) -> str | None:
     talk: dict[str | None, float] = {}
     for p in group:
         talk[p.speaker] = talk.get(p.speaker, 0.0) + max(p.end - p.start, 0.01)
-    return max(talk, key=talk.get) if talk else None
+    return max(talk, key=lambda s: talk[s]) if talk else None
 
 
 def _assign_speakers(pieces: list[Piece], turns: list) -> None:

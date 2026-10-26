@@ -56,7 +56,7 @@ Estas decisiones son del propietario, todas del 2026-10-25:
 | 3 · Calidad de voz | T-30 Clonar con la voz de cada frase (hecho: empate) | P2 | M | Backlog 11 |
 | | T-31 Decidir el motor *Automático* (resuelto por T-38) | P3 | M | G-016 |
 | 4 · Mantenimiento | T-32 Errores de fase con código, en español (hecho) | P2 | M | G-010 |
-| | T-33 Reducir la lista de mypy | P2 | S | G-024 |
+| | T-33 Reducir la lista de mypy (hecho) | P2 | S | G-024 |
 | | T-34 Subtítulos con hablante (ASS y WebVTT) | P3 | S | Backlog 12 |
 | | T-35 LAN: redes de confianza y token persistente opcional | P3 | S | Pendiente 6 |
 | 1 · Medir lo que falta (nuevo) | T-36 Llenar el hueco cuando sobra (hecho: no se oye) | P1 | M | T-26 (§9 de la auditoría 2) |
@@ -331,6 +331,11 @@ Estas decisiones son del propietario, todas del 2026-10-25:
 - **Aceptación:** `mypy-baseline.txt` vacío, o con los que queden justificados uno a
   uno.
 - **Cierra:** G-024.
+- **Resultado (2026-10-26):** `mypy-baseline.txt` vacío. Casi todo eran anotaciones; donde
+  la corrección toca el comportamiento hay test: una voz clonada siempre tiene referencia
+  (`Voice.cloned_ref`), una entrada rara del manifiesto no cuenta como hecha, un modelo
+  que solo devuelve la voz falla claro, y el volumen de la página va al fondo sobre el
+  que se mezcla. Las tuberías del proceso de un motor se guardan al arrancarlo.
 
 ### T-34 · Subtítulos con hablante (P3, S)
 

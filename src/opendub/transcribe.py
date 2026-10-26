@@ -118,11 +118,12 @@ def _whisper(wd: WorkDir, model_name: str, lang: str | None) -> tuple[list[Piece
 def run(wd: WorkDir, settings: Settings, force: bool = False) -> list[Segment]:
     meta = json.loads(wd.meta.read_text(encoding="utf-8"))
     source = _choose_source(meta, settings.subs)
-    params = {"source": source, "whisper_model": settings.whisper_model if source == "whisper" else None}
+    params: dict[str, Any] = {"source": source,
+                              "whisper_model": settings.whisper_model if source == "whisper" else None}
     # "segments-v2": fragments joined to their sentence (segments.join_fragments). Videos cut
     # before it keep their segments, so their translation and its hand edits stay valid;
     # --force cuts them again
-    legacy = dict(params)
+    legacy: dict[str, Any] | None = dict(params)
     params["segments"] = 2
     turns = None
     if settings.multi_speaker:
@@ -156,7 +157,7 @@ def run(wd: WorkDir, settings: Settings, force: bool = False) -> list[Segment]:
         f"mean duration {sum(durs) / len(durs):.1f}s, max {max(durs):.1f}s"
     )
     if turns:
-        per = {}
+        per: dict[str | None, int] = {}
         for seg in segments:
             per[seg.speaker] = per.get(seg.speaker, 0) + 1
         log.info("Sentences per speaker: " + ", ".join(f"{k} {v}" for k, v in sorted(per.items(), key=str)))

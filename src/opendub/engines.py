@@ -57,6 +57,8 @@ class Worker:
             [str(python), "-I", str(script), *args], cwd=cwd,
             stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=self._stderr, text=True, bufsize=1,
         )
+        assert self.proc.stdin is not None and self.proc.stdout is not None  # both are PIPE
+        self._in, self._out = self.proc.stdin, self.proc.stdout
         hello = self._read()
         accel = ", accelerated" if hello.get("accel") else ""
         log.info(f"{name} loaded in {hello['load_s']}s ({hello['device']}{accel})")
@@ -65,10 +67,10 @@ class Worker:
     def _read(self, timeout: float | None = None) -> dict:
         if timeout is not None:
             # one request, one reply line: nothing is left buffered between them, so select is reliable
-            ready, _, _ = select.select([self.proc.stdout], [], [], timeout)
+            ready, _, _ = select.select([self._out], [], [], timeout)
             if not ready:
                 raise WorkerTimeout(f"The {self.name} worker didn't answer in {timeout:.0f} s")
-        line = self.proc.stdout.readline()
+        line = self._out.readline()
         if not line:
             raise RuntimeError(f"The {self.name} worker stopped (see {self.log_path})")
         return json.loads(line)
@@ -78,8 +80,8 @@ class Worker:
         self._next_id += 1
         req = {"id": self._next_id, "text": text, "ref": str(ref.resolve()), "out": str(out.resolve()),
                "duration_factor": factor, "seed": seed, **extra}
-        self.proc.stdin.write(json.dumps(req, ensure_ascii=False) + "\n")
-        self.proc.stdin.flush()
+        self._in.write(json.dumps(req, ensure_ascii=False) + "\n")
+        self._in.flush()
         reply = self._read(timeout)
         if not reply.get("ok"):
             raise RuntimeError(f"{self.name} failed on {text[:40]!r}: {reply.get('error')} (see {self.log_path})")
@@ -92,7 +94,7 @@ class Worker:
 
     def close(self) -> None:
         if self.proc.poll() is None:
-            self.proc.stdin.close()
+            self._in.close()
             try:
                 self.proc.wait(timeout=30)
             except subprocess.TimeoutExpired:

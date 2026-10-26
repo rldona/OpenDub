@@ -119,12 +119,13 @@ def _segment_voices(
     cloned = settings.tts == "clone"
     ref = reference.reference(wd) if cloned else None
     engine = tts.resolve_engine(settings, ref)  # also validates --tts and --engine
-    base = tts.Voice.clone(settings, ref) if cloned else tts.Voice.edge(settings)
-    if cloned:
+    base = tts.Voice.edge(settings)
+    if ref is not None:
         # the last resort speaks with a stock voice of the speaker's gender, not --voice's: a woman's
         # clip said by Álvaro in the middle of her cloned voice. Only the fallback: the translation
         # prompts don't get a gender with one voice
-        base = replace(base, stock=stock_voice(settings.voice, gender_of(reference.mean_f0(ref))))
+        base = replace(tts.Voice.clone(settings, ref),
+                       stock=stock_voice(settings.voice, gender_of(reference.mean_f0(ref))))
     return {s.id: replace(base, seed=seeds.get(s.id, tts.SEED)) for s in segments}, engine, ref, {}
 
 

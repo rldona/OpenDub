@@ -134,7 +134,7 @@ class WorkDir:
 
     def is_done(self, step: str, params: dict[str, Any]) -> bool:
         entry = self._read().get(step)
-        return bool(entry) and entry["hash"] == params_hash(params)
+        return isinstance(entry, dict) and entry.get("hash") == params_hash(params)
 
     def has(self, step: str) -> bool:
         return step in self._read()
