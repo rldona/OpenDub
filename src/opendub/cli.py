@@ -440,6 +440,58 @@ def export(
     log.info(f"Exported: [bold]{path}[/]")
 
 
+@app.command("subs-export")
+def subs_export(
+    url: Url,
+    fmt: Annotated[
+        str,
+        typer.Option("--format", "-f", help="ass (each line's Actor is its speaker), vtt (<v Name>) or srt (no "
+                     "speaker): the translation, one cue per sentence at the original's times"),
+    ] = "ass",
+    work: WorkRoot = Path("work"),
+    output: Output = None,
+) -> None:
+    """Export the translation as subtitles with who says each sentence, to correct it in a subtitle editor."""
+    import shutil
+
+    from . import subtitles
+
+    wd = WorkDir(work, download_mod.video_id(url), create=False)
+    if not wd.translation.exists():
+        raise typer.BadParameter("This video isn't translated yet")
+    try:
+        path = subtitles.export(wd, fmt)
+    except ValueError as e:
+        raise typer.BadParameter(str(e)) from e
+    if output:
+        output.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copyfile(path, output)
+        path = output
+    log.info(f"Exported: [bold]{path}[/]")
+
+
+@app.command("subs-import")
+def subs_import(
+    url: Url,
+    file: Annotated[Path, typer.Argument(help="The corrected subtitles (.ass, .vtt or .srt)", exists=True)],
+    work: WorkRoot = Path("work"),
+) -> None:
+    """Read corrected subtitles back into the translation: texts as hand edits, names as speakers. Then
+    `retouch` speaks the changed sentences again (or `dub` the whole video)."""
+    from . import subtitles
+
+    wd = WorkDir(work, download_mod.video_id(url), create=False)
+    if not wd.translation.exists():
+        raise typer.BadParameter("This video isn't translated yet")
+    try:
+        with wd.lock("opendub subs-import"):
+            done = subtitles.import_cues(wd, subtitles.parse(file.name, file.read_text(encoding="utf-8-sig")))
+    except ValueError as e:
+        raise typer.BadParameter(str(e)) from e
+    log.info(f"Imported {file.name}: {len(done['texts'])} text(s) changed, "
+             f"{len(done['speakers'])} sentence(s) given to another speaker")
+
+
 @app.command()
 def web(
     work: WorkRoot = Path("work"),

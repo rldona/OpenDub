@@ -640,3 +640,17 @@ def test_a_common_failure_keeps_its_code_for_the_page(tmp_path):
     assert json.loads((tmp_path / "work" / VID / "job.json").read_text())["error_code"] == "claude_unreachable"
     video = c.get(f"/videos/{VID}").json()
     assert video["status"] == "error" and video["error_code"] == "claude_unreachable"
+
+
+def test_the_translation_goes_out_as_subtitles_and_comes_back(tmp_path):
+    c = client(tmp_path, FakePipeline())
+    make_video(tmp_path / "work")
+    r = c.get(f"/videos/{VID}/translation/export/vtt")
+    assert r.status_code == 200 and r.headers["content-type"].startswith("text/vtt")
+    fixed = r.text.replace("¿Pero por qué?", "Pero ¿por qué?")
+    r = c.post(f"/videos/{VID}/translation/import", json={"name": "fixed.vtt", "text": fixed})
+    assert r.status_code == 200 and r.json()["imported"] == {"texts": [2], "speakers": []}
+    assert next(s for s in r.json()["translation"]["segments"] if s["id"] == 2)["text"] == "Pero ¿por qué?"
+    bad = c.post(f"/videos/{VID}/translation/import", json={"name": "x.vtt", "text": "WEBVTT\n\n00:01:00.000 --> 00:01:01.000\nSobra."})
+    assert bad.status_code == 422 and bad.json()["detail"]["code"] == "bad_subtitles"
+    assert c.get(f"/videos/{VID}/translation/export/docx").status_code == 404

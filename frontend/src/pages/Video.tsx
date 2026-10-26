@@ -220,6 +220,20 @@ export function VideoPage({ id }: { id: string }) {
     }
   }
 
+  /** Corrected subtitles from a subtitle editor: their texts and speakers into the translation. */
+  async function importSubs(file: File) {
+    if (edits.size && !confirm(t("subs_import_unsaved"))) return;
+    try {
+      const r = await api.importSubtitles(id, file.name, await file.text());
+      setEdits(new Map());
+      setTranslation(r.translation);
+      setSpeakers(r.speakers);
+      setNote(t("subs_imported", { t: r.imported.texts.length, s: r.imported.speakers.length }));
+    } catch (err) {
+      setNote(errorText(err, t));
+    }
+  }
+
   /** After a review: the same job without stopping; the translation, as edited, is cached. */
   async function goOn() {
     try {
@@ -393,6 +407,17 @@ export function VideoPage({ id }: { id: string }) {
         <section className="stack" aria-labelledby="translation" style={{ gap: 12 }}>
           <div className="spread">
             <h2 id="translation">{t("translation")}</h2>
+            <div className="row small muted" style={{ gap: 8 }}>
+              <span>{t("subs_export")}</span>
+              {(["ass", "vtt", "srt"] as const).map((f) => (
+                <a key={f} href={media.subtitles(id, f)} download title={t(`subs_${f}_hint`)}>{f === "vtt" ? "WebVTT" : f.toUpperCase()}</a>
+              ))}
+              <label className="btn" style={{ height: 30, cursor: busy ? "default" : "pointer" }} aria-disabled={busy}>
+                {t("subs_import")}
+                <input type="file" accept=".ass,.ssa,.vtt,.srt" hidden disabled={busy}
+                  onChange={(e) => { const f = e.target.files?.[0]; e.target.value = ""; if (f) void importSubs(f); }} />
+              </label>
+            </div>
             <div className="row" role="group" aria-label={t("show")} style={{ gap: 6 }}>
               <button type="button" className="chip" aria-pressed={filter === "all"} onClick={() => setFilter("all")}>{t("filter_all", { n: segments.length })}</button>
               <button type="button" className="chip warn" aria-pressed={filter === "issues"} onClick={() => setFilter("issues")}>{t("filter_issues", { n: issuesById.size })}</button>

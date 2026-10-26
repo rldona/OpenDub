@@ -57,7 +57,7 @@ Estas decisiones son del propietario, todas del 2026-10-25:
 | | T-31 Decidir el motor *Automático* (resuelto por T-38) | P3 | M | G-016 |
 | 4 · Mantenimiento | T-32 Errores de fase con código, en español (hecho) | P2 | M | G-010 |
 | | T-33 Reducir la lista de mypy (hecho) | P2 | S | G-024 |
-| | T-34 Subtítulos con hablante (ASS y WebVTT) | P3 | S | Backlog 12 |
+| | T-34 Subtítulos con hablante (ASS y WebVTT) (hecho) | P3 | S | Backlog 12 |
 | | T-35 LAN: redes de confianza y token persistente opcional | P3 | S | Pendiente 6 |
 | 1 · Medir lo que falta (nuevo) | T-36 Llenar el hueco cuando sobra (hecho: no se oye) | P1 | M | T-26 (§9 de la auditoría 2) |
 | | T-37 Seguir el ritmo de quien habla (hecho: empate) | P1 | M | T-36 (§10 de la auditoría 2) |
@@ -344,6 +344,11 @@ Estas decisiones son del propietario, todas del 2026-10-25:
   - Importar una traducción corregida fuera, en esos formatos.
   - Sirve para corregir con un editor de subtítulos cuando el de la web se queda corto.
 - **Aceptación:** ida y vuelta sin perder tiempos, textos ni hablantes, con test.
+- **Resultado (2026-10-26):** `subs-export` (ASS con *Actor*, WebVTT con `<v Nombre>`, SRT
+  sin hablante) y `subs-import`, y lo mismo en la página del vídeo. Una línea por frase
+  con los tiempos del original; al importar, los textos entran como ediciones a mano y
+  los nombres como hablantes, y un fichero que no encaja no guarda nada. Test de ida y
+  vuelta en WebVTT y ASS (los tiempos de ASS, a la centésima del formato).
 
 ### T-35 · LAN: redes de confianza y token persistente opcional (P3, S)
 

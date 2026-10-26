@@ -55,6 +55,11 @@ class JobRequest(BaseModel):
     review: bool = False  # stop after the translation, to edit it before the voice
 
 
+class SubtitlesUpload(BaseModel):
+    name: str = Field(min_length=1, max_length=200)  # its extension says the format (.ass, .vtt, .srt)
+    text: str = Field(max_length=5_000_000)
+
+
 class RetouchRequest(BaseModel):
     takes: list[int] = []  # sentences to speak again with another take; edited ones always are
 
@@ -308,6 +313,39 @@ def create_app(work_root: Path = Path("work"), runner: Runner | None = None,
         if data is None:
             raise fail(404, "not_translated", "Not translated yet")
         return data
+
+    @app.get("/videos/{vid}/translation/export/{fmt}")
+    def export_translation(vid: str, fmt: str) -> FileResponse:
+        """The translation as subtitles with who says each sentence (ass, vtt) or without (srt)."""
+        from .. import subtitles
+
+        wd = folder(vid)
+        if fmt not in subtitles.FORMATS:
+            raise fail(404, "unknown_format", "Unknown format")
+        if not wd.translation.exists():
+            raise fail(404, "not_translated", "Not translated yet")
+        path = subtitles.export(wd, fmt)
+        media_type = {"ass": "text/x-ssa", "vtt": "text/vtt"}.get(fmt, "application/x-subrip")
+        return FileResponse(path, media_type=media_type, filename=f"{vid}.{path.name}")
+
+    @app.post("/videos/{vid}/translation/import")
+    def import_translation(vid: str, upload: SubtitlesUpload) -> dict:
+        """Corrected subtitles back into the translation: texts as hand edits, names as speakers."""
+        from .. import subtitles
+
+        wd = folder(vid)
+        job = manager.get(vid)
+        if job and job.status in ACTIVE:
+            raise fail(409, "dubbing", "This video is being dubbed; edit it when the job ends")
+        if not wd.translation.exists():
+            raise fail(404, "not_translated", "Not translated yet")
+        ensure_free(wd)
+        try:
+            done = subtitles.import_cues(wd, subtitles.parse(upload.name, upload.text.lstrip("\ufeff")))
+        except ValueError as e:  # an unknown format, a cue with no sentence, a name that is no speaker
+            raise fail(422, "bad_subtitles", str(e)) from e
+        return {"imported": done, "translation": videos.translation(wd, manager),
+                "speakers": videos.speakers_info(wd)}
 
     @app.put("/videos/{vid}/translation")
     def put_translation(vid: str, edits: list[SegmentEdit]) -> dict:

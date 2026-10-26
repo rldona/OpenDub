@@ -193,6 +193,22 @@ uv run opendub export KS837a-TFRc -f mkv            # the latest dub; --version 
 | `srt` | Spanish subtitles of what the voice says, timed where the mix placed each clip, in screens of up to two lines |
 | `srt-orig` | The original sentences at their original timestamps |
 
+To correct the translation in a subtitle editor (Subtitle Edit, Aegisub…) when the
+web's editor falls short, export it with who says each sentence and read it back:
+
+```bash
+uv run opendub subs-export KS837a-TFRc -f ass       # or vtt (<v Name>), srt (no speaker)
+uv run opendub subs-import KS837a-TFRc fixed.ass    # texts as hand edits, names as speakers
+uv run opendub retouch KS837a-TFRc                  # speak the changed sentences again
+```
+
+One cue per sentence at the original's times; ASS puts the speaker in each line's
+Actor, WebVTT in a `<v Name>` span (and the sentence's id as the cue's). Importing
+matches each cue to its sentence (by that id, else by its start time), and stops
+without saving anything if a cue matches no sentence or a name is no speaker. The
+video page has the same: *Subtitles: ASS · WebVTT · SRT* and *Import…* over the
+translation.
+
 Nothing is re-encoded: an MKV of a 19-minute video takes under a second. Each
 export is kept next to its version (`outputs/<version>.mkv`…), is deleted with it,
 and is offered by the web page's **Download** menu too.

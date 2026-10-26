@@ -7,7 +7,8 @@ import { isKey, type Key } from "./i18n";
 type T = (key: Key, vars?: Record<string, string | number>) => string;
 
 // codes whose message names what was wrong (a style field, a speaker): it is kept as the detail
-const WITH_DETAIL = new Set(["not_youtube", "cannot_retouch", "no_speaker", "invalid_speakers", "invalid_style"]);
+const WITH_DETAIL = new Set(["not_youtube", "cannot_retouch", "no_speaker", "invalid_speakers", "invalid_style",
+  "bad_subtitles"]);
 
 export function errorText(err: unknown, t: T): string {
   if (err instanceof ApiError && err.status === 0) return t("unreachable");

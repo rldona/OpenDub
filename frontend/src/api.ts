@@ -223,6 +223,10 @@ export const api = {
   translation: (id: string) => call<Translation>(`/videos/${id}/translation`),
   saveTranslation: (id: string, edits: { id: number; text: string }[]) =>
     call<Translation>(`/videos/${id}/translation`, { method: "PUT", body: JSON.stringify(edits) }),
+  /** Corrected subtitles (.ass, .vtt, .srt) back into the translation: texts as hand edits, names as speakers. */
+  importSubtitles: (id: string, name: string, text: string) =>
+    call<{ imported: { texts: number[]; speakers: number[] }; translation: Translation; speakers: Speaker[] }>(
+      `/videos/${id}/translation/import`, { method: "POST", body: JSON.stringify({ name, text }) }),
   speakers: (id: string) => call<Speaker[]>(`/videos/${id}/speakers`),
   renameSpeaker: (id: string, speaker: string, name: string) =>
     call<Speaker[]>(`/videos/${id}/speakers/${speaker}`, { method: "PUT", body: JSON.stringify({ name }) }),
@@ -256,6 +260,8 @@ export const media = {
   /** A version as srt (the dubbed voice), srt-orig, mkv (both audio tracks and subtitles) or m4a. */
   exported: (id: string, version: string | null, format: ExportFormat) =>
     `/videos/${id}/outputs/${encodeURIComponent(version ?? "latest")}/export/${format}`,
+  /** The translation as subtitles: ass and vtt with who says each sentence, srt without. */
+  subtitles: (id: string, format: "ass" | "vtt" | "srt") => `/videos/${id}/translation/export/${format}`,
 };
 
 /** Dub a video again with its last options, changed by `overrides`. */
