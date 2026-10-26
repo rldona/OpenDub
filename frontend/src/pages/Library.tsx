@@ -51,7 +51,6 @@ function NewDub({ onSubmitted }: { onSubmitted: () => void }) {
   const [separate, setSeparate] = useState(defaults.separate);
   const [volume, setVolume] = useState(defaults.bg_volume);
   const [multi, setMulti] = useState<boolean | null>(null); // null: the default, on when Nemotron is installed
-  const [review, setReview] = useState(false); // stop after the translation (T-29)
   const [diarizer, setDiarizer] = useState<{ installed: boolean; setup: string | null } | null>(null);
   useEffect(() => {
     api.status().then((s) => setDiarizer(s.diarizer)).catch(() => undefined);
@@ -74,7 +73,7 @@ function NewDub({ onSubmitted }: { onSubmitted: () => void }) {
     }
     setBusy(true);
     try {
-      await api.submit({ ...defaults, url: url.trim(), tts, engine, separate, bg_volume: volume, multi_speaker: several, review });
+      await api.submit({ ...defaults, url: url.trim(), tts, engine, separate, bg_volume: volume, multi_speaker: several });
       setUrl("");
       setError(null);
       refresh();
@@ -125,7 +124,6 @@ function NewDub({ onSubmitted }: { onSubmitted: () => void }) {
         <summary style={{ cursor: "pointer" }}>
           {t("more_options")} · {separate ? t("options_music", { db: volume }) : t("options_original", { db: volume })}
           {several ? ` · ${t("several_voices").toLowerCase()}` : ""}
-          {review ? ` · ${t("review_first").toLowerCase()}` : ""}
         </summary>
         <div className="row" style={{ marginTop: 12, gap: "12px 28px" }}>
           <label className="row" style={{ gap: 8, cursor: diarizer?.installed ? "pointer" : "default", color: "var(--text)" }}
@@ -134,12 +132,6 @@ function NewDub({ onSubmitted }: { onSubmitted: () => void }) {
               onChange={(e) => setMulti(e.target.checked)} />
             {t("several_voices")}
             <span className="faint">· {diarizer && !diarizer.installed ? t("not_installed") : t("several_voices_hint")}</span>
-          </label>
-          <label className="row" style={{ gap: 8, cursor: "pointer", color: "var(--text)" }}>
-            <input type="checkbox" checked={review} style={{ accentColor: "var(--accent)" }}
-              onChange={(e) => setReview(e.target.checked)} />
-            {t("review_first")}
-            <span className="faint">· {t("review_first_hint")}</span>
           </label>
           <label className="row" style={{ gap: 8, cursor: "pointer", color: "var(--text)" }}>
             <input type="checkbox" checked={separate} style={{ accentColor: "var(--accent)" }}

@@ -255,6 +255,8 @@ Estas decisiones son del propietario, todas del 2026-10-25:
   - Una prueba en la web con un vídeo real.
 - **Resultado (2026-10-26):**
   - `opendub dub --review` y, en la web, «Revisar la traducción antes» en el formulario.
+    **Retirado de la web el mismo día (decisión del propietario):** un doblaje de la web
+    va de principio a fin sin pararse; la revisión queda en la CLI.
     El trabajo para tras traducir (`pipeline.ReviewPending`) y queda «A revisar».
   - En la página del vídeo, un aviso con «Continuar el doblaje» y, al editar,
     «Guardar y continuar». Mientras se revisa no se ofrece regenerar sobre el doblaje

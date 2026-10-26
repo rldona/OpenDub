@@ -250,9 +250,9 @@ A local dashboard to dub without the command line, in English or Spanish, dark
 or light, with a choice of accent color (Preferences):
 
 - **Library**: paste a YouTube link, pick the voice (cloned or stock), the
-  engine (*Automatic* by default) and whether to keep the music, or to review the
-  translation first (the dub stops before the voice, *To review*, and goes on from
-  the video's page once it is edited); follow the
+  engine (*Automatic* by default) and whether to keep the music; a dub goes from
+  the link to the finished video without stopping (reviewing the translation before
+  the voice is the CLI's `--review`); follow the
   running dub phase by phase, and find every video with its versions, the
   latest one, its issues and its status.
 - **Video**: the player, a timeline with each issue where it happens (click to
