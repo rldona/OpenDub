@@ -208,13 +208,16 @@ export function VideoPage({ id }: { id: string }) {
     setFocusTerm((n) => n + 1);
   }
 
+  /** A dub was just queued: the library, where it shows running (or what comes next). */
+  const toLibrary = () => { location.hash = "#/"; };
+
   async function applyStyle() {
     const engine = video!.engine;
     const voice = engine && engine !== "edge" ? { tts: "clone" as const, engine: engine as Engine } : { tts: "edge" as const };
     try {
       await redub(id, defaults, { ...voice, keep_translation: false });
       refresh();
-      void load();
+      toLibrary();
     } catch (err) {
       setStyleNote(errorText(err, t));
     }
@@ -239,7 +242,7 @@ export function VideoPage({ id }: { id: string }) {
     try {
       await redub(id, defaults, { review: false });
       refresh();
-      void load();
+      toLibrary();
     } catch (err) {
       setNote(errorText(err, t));
     }
@@ -569,7 +572,7 @@ export function VideoPage({ id }: { id: string }) {
       {dialog && (
         <RedubDialog video={video} watching={detail?.engine ?? null} running={busy ? job?.engine ?? null : null}
           onClose={() => setDialog(false)}
-          onStarted={() => { setDialog(false); setNote(null); void load(); }} />
+          onStarted={() => { setDialog(false); setNote(null); toLibrary(); }} />
       )}
     </>
   );
