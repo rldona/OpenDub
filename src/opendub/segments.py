@@ -228,11 +228,43 @@ def join_fragments(groups: list[list[Piece]], max_dur: float = 12.0) -> list[lis
     return out
 
 
+# A long sentence spoken in one clip doesn't follow the speaker: the voice says it all in
+# one breath and closes its intonation at the end, where the speaker paused two or three
+# times along the way. Past SPLIT_FROM seconds a group can be cut where they pause, or at a
+# comma, into parts of at least PART_MIN seconds. Off by default: heard blind on the
+# two-host podcast it came out even (T-37, docs/audit/03-competencia.md section 11), and a
+# cut at a comma without a pause can land mid-phrase.
+SPLIT_FROM = 6.0
+PART_MIN = 1.5
+PAUSE_S = 0.3  # a gap between words this long is a pause of the speaker's
+COMMA_BONUS = 0.25  # a comma counts as this much pause
+
+
+def split_long(group: list[Piece]) -> list[list[Piece]]:
+    """Cut a group longer than SPLIT_FROM at its best pause or comma, again on each part."""
+    if group[-1].end - group[0].start <= SPLIT_FROM:
+        return [group]
+    best, where = 0.0, 0
+    for i in range(1, len(group)):
+        left, right = group[:i], group[i:]
+        if (left[-1].end - left[0].start < PART_MIN or right[-1].end - right[0].start < PART_MIN
+                or _words(left) <= FRAGMENT_WORDS or _words(right) <= FRAGMENT_WORDS):
+            continue
+        gap = right[0].start - left[-1].end
+        score = gap + (COMMA_BONUS if left[-1].text.rstrip().endswith((",", ";", ":")) else 0.0)
+        if score >= PAUSE_S and score > best:
+            best, where = score, i
+    if not where:
+        return [group]
+    return split_long(group[:where]) + split_long(group[where:])
+
+
 def regroup(
     pieces: list[Piece], max_dur: float = 12.0, max_gap: float = 0.7, min_dur: float = 1.0,
-    turns: list | None = None,
+    turns: list | None = None, split_pauses: bool = False,
 ) -> list[Segment]:
-    """Join pieces into sentences: break at sentence ends, long pauses or past max_dur.
+    """Join pieces into sentences: break at sentence ends, long pauses or past max_dur, and
+    with `split_pauses` long sentences again where the speaker pauses (split_long).
 
     With diarization `turns` ([start, end, speaker]), also where the speaker changes:
     each sentence is one person's, and says whose. Word-level pieces (whisper,
@@ -256,6 +288,8 @@ def regroup(
     if cur:
         groups.append(cur)
     groups = join_fragments(groups, max_dur)
+    if split_pauses:
+        groups = [part for g in groups for part in split_long(g)]
 
     return [
         Segment(

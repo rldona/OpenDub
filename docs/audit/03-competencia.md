@@ -636,6 +636,38 @@ fragmentos): **no se distingue**. Igual en 14, la versión nueva preferida en 1;
 
 **Límites:** un oyente; el diagnóstico de T-37 vuelve a salir después de oír.
 
+## 11. Cortar las frases por las pausas de quien habla (T-37, 2026-10-26)
+
+**Qué se probó:**
+- Las frases del pódcast salen de whisper, cuyas palabras sí traen las pausas. La
+  presentadora hace pausas de unos 0,45 s en las comas, pero el agrupador solo corta con
+  más de 0,7 s, así que sus frases seguían hasta el tope de 12 s.
+- `segments.split_long`: una frase de más de 6 s se corta en su mejor pausa (≥ 0,3 s) o
+  coma, en trozos de al menos 1,5 s y más de tres palabras, y se repite en cada trozo.
+- En el pódcast salen 220 frases en lugar de 185 (5,7 s de media). Se volvió a traducir
+  y doblar con Chatterbox y la ralentización de T-36.
+
+| | Actual | Frases cortadas |
+|---|---|---|
+| Clips acelerados | 51 | 74 |
+| Voz que entra más de 0,5 s tarde | 0,8 s | 46,9 s (máximo 0,65 s) |
+| CER de whisper | 3,1 % | 3,2 % |
+
+**Escucha a ciegas** (`follow-rhythm`, tramo del pódcast, 8 fragmentos): 2,25 frente a
+2,50; preferida la actual en 2, la nueva en 3, igual en 3.
+- Mejora donde el corte cae en una pausa real (f05, de 3 a 4: «…more specifically, |
+  body boarding»).
+- Empeora donde corta una coma sin pausa, a mitad de expresión (f03, de 2 a 1:
+  «…asociado al | punto caliente de Hawái»).
+
+**Lectura:**
+- Dentro del ruido de un oyente y 8 fragmentos. Queda en el código **desactivado**
+  (`regroup(split_pauses=True)`), para medir una regla mejor (solo pausas reales).
+- Dos arreglos de sincronía (T-36 y T-37) no mueven el pódcast de un 2. Lo más probable
+  es que «se nota sintético» sea la voz: Chatterbox lee una conversación espontánea como
+  una narración, y en narración (el vídeo con música) saca 3,4–3,5. Siguiente prueba:
+  el motor (T-38).
+
 ## Anexo · Fuentes
 
 Todas consultadas el 2026-10-25; entre paréntesis, la fecha propia de la página cuando la

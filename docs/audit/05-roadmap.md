@@ -60,7 +60,8 @@ Estas decisiones son del propietario, todas del 2026-10-25:
 | | T-34 Subtítulos con hablante (ASS y WebVTT) | P3 | S | Backlog 12 |
 | | T-35 LAN: redes de confianza y token persistente opcional | P3 | S | Pendiente 6 |
 | 1 · Medir lo que falta (nuevo) | T-36 Llenar el hueco cuando sobra (hecho: no se oye) | P1 | M | T-26 (§9 de la auditoría 2) |
-| | T-37 Seguir el ritmo de quien habla | **P1** | M | T-36 (§10 de la auditoría 2) |
+| | T-37 Seguir el ritmo de quien habla (hecho: empate) | P1 | M | T-36 (§10 de la auditoría 2) |
+| | T-38 El motor en una conversación | **P1** | M | T-37 (§11 de la auditoría 2) |
 
 **Sin ticket, por ser decisiones del propietario:**
 - Usuarios: se revisa tras T-26.
@@ -70,8 +71,8 @@ Estas decisiones son del propietario, todas del 2026-10-25:
   varias voces de T-26.
 
 **Orden sugerido:**
-1. T-26, T-27 y T-36 están hechos. T-37, que salió de T-36, va primero: es lo que hace
-   sonar mal una conversación.
+1. T-26, T-27, T-36 y T-37 están hechos. T-38, que salió de T-37, va primero: el
+   pódcast sigue sonando sintético.
 2. T-27 antes que T-28: su juez de fidelidad es lo que valida Ollama frente a Sonnet.
 3. T-32 y T-33 cuando haya un hueco: no dependen de nada.
 
@@ -167,6 +168,21 @@ Estas decisiones son del propietario, todas del 2026-10-25:
   - Una sesión a ciegas frente a la versión actual en el tramo del pódcast, con la
     versión nueva preferida.
   - Ni el vídeo con música ni la fidelidad (T-27) empeoran.
+- **Resultado (2026-10-26, [§11](03-competencia.md#11-cortar-las-frases-por-las-pausas-de-quien-habla-t-37-2026-10-26)):**
+  empate (2,25 frente a 2,50, preferida 2 frente a 3). Mejora donde corta en una pausa
+  real y empeora donde corta una coma sin pausa. Queda desactivado en el código
+  (`split_pauses`).
+
+### T-38 · El motor en una conversación (P1, M)
+
+- **Origen:** T-37. Ni llenar el hueco ni cortar por las pausas mueven el pódcast de un
+  2; queda la voz.
+- **Prueba:** doblar el pódcast con IndexTTS-2.5 y con CosyVoice 3 (las frases de
+  siempre, cada motor con su propia traducción a su ritmo) y una sesión a ciegas de tres
+  frente a Chatterbox en el tramo de T-26.
+- **Aceptación:** si un motor gana con claridad en conversación, decidir con T-31 cómo
+  se elige (por tipo de vídeo, por voz o a mano). Si ninguno gana, el pódcast queda en
+  el límite de los motores locales y se escribe.
 
 ## Fase 2 · Traducir sin depender de la suscripción
 

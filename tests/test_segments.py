@@ -95,6 +95,38 @@ def test_regroup_splits_on_gap_and_max_duration():
     assert len(long) == 3
 
 
+def _said(text, start, gaps=()):
+    """Word pieces of 0.3 s each; `gaps`: {word index: pause before it}."""
+    out, t = [], start
+    for i, w in enumerate(text.split()):
+        t += dict(gaps).get(i, 0.0)
+        out.append(Piece(t, t + 0.3, w))
+        t += 0.3
+    return out
+
+
+def test_a_long_sentence_is_cut_where_the_speaker_pauses():
+    # the podcast's "So I really like swimming, [0.44] I also like surfing more specifically, [0.46] …"
+    text = ("So I really like swimming, I also like surfing more specifically, body boarding, "
+            "I also love hiking by the coast preferably.")
+    segs = regroup(_said(text, 0.0, {5: 0.44, 11: 0.46}), split_pauses=True)
+    assert len(regroup(_said(text, 0.0, {5: 0.44, 11: 0.46}))) == 1  # off by default
+    assert [s.text for s in segs] == ["So I really like swimming, I also like surfing more specifically,",
+                                      "body boarding, I also love hiking by the coast preferably."]
+    assert all(s.duration <= 6.0 for s in segs)
+
+
+def test_a_long_sentence_without_a_pause_or_comma_stays_whole():
+    segs = regroup(_said("one two three four five six seven eight nine ten eleven twelve thirteen fourteen "
+                         "fifteen sixteen seventeen eighteen nineteen twenty twentyone twentytwo.", 0.0), split_pauses=True)
+    assert len(segs) == 1 and segs[0].duration > 6.0
+
+
+def test_a_short_sentence_is_not_cut_at_its_commas():
+    segs = regroup(_said("Well, first, I think, we should go.", 0.0, {1: 0.5}), split_pauses=True)
+    assert len(segs) == 1
+
+
 def test_regroup_splits_sentences_inside_a_cue():
     segs = regroup([Piece(0, 10, "First sentence here. Second one that is longer.")])
     assert [s.text for s in segs] == ["First sentence here.", "Second one that is longer."]

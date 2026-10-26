@@ -1,0 +1,250 @@
+{
+ "name": "follow-rhythm",
+ "sources": [
+  "before",
+  "split"
+ ],
+ "criteria": [
+  "overall"
+ ],
+ "seed": 3,
+ "videos": [
+  "R4zlpwwEpnY@484-634"
+ ],
+ "answers": {
+  "f01": {
+   "ratings": {
+    "1": {
+     "overall": 2
+    },
+    "2": {
+     "overall": 2
+    }
+   },
+   "prefer": "same"
+  },
+  "f02": {
+   "ratings": {
+    "1": {
+     "overall": 2
+    },
+    "2": {
+     "overall": 2
+    }
+   },
+   "prefer": "same"
+  },
+  "f03": {
+   "ratings": {
+    "1": {
+     "overall": 1
+    },
+    "2": {
+     "overall": 2
+    }
+   },
+   "prefer": "2"
+  },
+  "f04": {
+   "ratings": {
+    "1": {
+     "overall": 2
+    },
+    "2": {
+     "overall": 3
+    }
+   },
+   "prefer": "2"
+  },
+  "f05": {
+   "ratings": {
+    "1": {
+     "overall": 4
+    },
+    "2": {
+     "overall": 3
+    }
+   },
+   "prefer": "1"
+  },
+  "f06": {
+   "ratings": {
+    "1": {
+     "overall": 2
+    },
+    "2": {
+     "overall": 2
+    }
+   },
+   "prefer": "same"
+  },
+  "f07": {
+   "ratings": {
+    "1": {
+     "overall": 2
+    },
+    "2": {
+     "overall": 3
+    }
+   },
+   "prefer": "2"
+  },
+  "f08": {
+   "ratings": {
+    "1": {
+     "overall": 2
+    },
+    "2": {
+     "overall": 4
+    }
+   },
+   "prefer": "2"
+  }
+ },
+ "revealed": {
+  "f01": {
+   "video": "R4zlpwwEpnY",
+   "start": 490.45,
+   "end": 504.07,
+   "versions": {
+    "before": "work/_bench/rhythm/before/R4zlpwwEpnY.mp4",
+    "split": "work/_bench/rhythm/after/R4zlpwwEpnY.mp4"
+   },
+   "ratings": {
+    "before": {
+     "overall": 2
+    },
+    "split": {
+     "overall": 2
+    }
+   },
+   "prefer": "same"
+  },
+  "f02": {
+   "video": "R4zlpwwEpnY",
+   "start": 505.09,
+   "end": 518.15,
+   "versions": {
+    "before": "work/_bench/rhythm/before/R4zlpwwEpnY.mp4",
+    "split": "work/_bench/rhythm/after/R4zlpwwEpnY.mp4"
+   },
+   "ratings": {
+    "before": {
+     "overall": 2
+    },
+    "split": {
+     "overall": 2
+    }
+   },
+   "prefer": "same"
+  },
+  "f03": {
+   "video": "R4zlpwwEpnY",
+   "start": 518.59,
+   "end": 529.87,
+   "versions": {
+    "before": "work/_bench/rhythm/before/R4zlpwwEpnY.mp4",
+    "split": "work/_bench/rhythm/after/R4zlpwwEpnY.mp4"
+   },
+   "ratings": {
+    "split": {
+     "overall": 1
+    },
+    "before": {
+     "overall": 2
+    }
+   },
+   "prefer": "before"
+  },
+  "f04": {
+   "video": "R4zlpwwEpnY",
+   "start": 543.25,
+   "end": 557.11,
+   "versions": {
+    "before": "work/_bench/rhythm/before/R4zlpwwEpnY.mp4",
+    "split": "work/_bench/rhythm/after/R4zlpwwEpnY.mp4"
+   },
+   "ratings": {
+    "split": {
+     "overall": 2
+    },
+    "before": {
+     "overall": 3
+    }
+   },
+   "prefer": "before"
+  },
+  "f05": {
+   "video": "R4zlpwwEpnY",
+   "start": 560.45,
+   "end": 572.33,
+   "versions": {
+    "before": "work/_bench/rhythm/before/R4zlpwwEpnY.mp4",
+    "split": "work/_bench/rhythm/after/R4zlpwwEpnY.mp4"
+   },
+   "ratings": {
+    "split": {
+     "overall": 4
+    },
+    "before": {
+     "overall": 3
+    }
+   },
+   "prefer": "split"
+  },
+  "f06": {
+   "video": "R4zlpwwEpnY",
+   "start": 583.45,
+   "end": 595.23,
+   "versions": {
+    "before": "work/_bench/rhythm/before/R4zlpwwEpnY.mp4",
+    "split": "work/_bench/rhythm/after/R4zlpwwEpnY.mp4"
+   },
+   "ratings": {
+    "before": {
+     "overall": 2
+    },
+    "split": {
+     "overall": 2
+    }
+   },
+   "prefer": "same"
+  },
+  "f07": {
+   "video": "R4zlpwwEpnY",
+   "start": 597.53,
+   "end": 612.41,
+   "versions": {
+    "before": "work/_bench/rhythm/before/R4zlpwwEpnY.mp4",
+    "split": "work/_bench/rhythm/after/R4zlpwwEpnY.mp4"
+   },
+   "ratings": {
+    "before": {
+     "overall": 2
+    },
+    "split": {
+     "overall": 3
+    }
+   },
+   "prefer": "split"
+  },
+  "f08": {
+   "video": "R4zlpwwEpnY",
+   "start": 617.99,
+   "end": 632.57,
+   "versions": {
+    "before": "work/_bench/rhythm/before/R4zlpwwEpnY.mp4",
+    "split": "work/_bench/rhythm/after/R4zlpwwEpnY.mp4"
+   },
+   "ratings": {
+    "before": {
+     "overall": 2
+    },
+    "split": {
+     "overall": 4
+    }
+   },
+   "prefer": "split"
+  }
+ }
+}
