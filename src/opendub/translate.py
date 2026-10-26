@@ -20,6 +20,7 @@ from . import media
 from . import speakers as speakers_mod
 from . import style as style_mod
 from .config import Settings
+from .errors import PhaseError
 from .log import Progress, check_cancelled, console, log
 from .models import Segment, load_segments, save_segments
 from .workdir import WorkDir, params_hash, write_text_atomic
@@ -250,7 +251,8 @@ def _ollama(settings: Settings, path: str, body: dict[str, Any] | None, timeout:
     except urllib.error.HTTPError as e:
         raise RuntimeError(f"Ollama answered {e.code}: {e.read()[:300].decode(errors='replace')}") from None
     except (urllib.error.URLError, OSError) as e:
-        raise SystemExit(f"Can't reach Ollama at {settings.ollama_host}: {e}. Is it running (`ollama serve`)?") from None
+        raise PhaseError("ollama_unreachable", f"Can't reach Ollama at {settings.ollama_host}: {e}. "
+                         "Is it running (`ollama serve`)?", host=settings.ollama_host) from None
 
 
 def _call_ollama(system: str, prompt: str, settings: Settings) -> tuple[dict[str, Any], float]:
@@ -296,8 +298,8 @@ def check_claude_reachable() -> None:
     try:
         socket.create_connection(CLAUDE_HOST, timeout=5).close()
     except OSError as e:
-        raise SystemExit(f"Can't reach Claude ({CLAUDE_HOST[0]}) to translate: {e}. "
-                         "Is there an internet connection?") from None
+        raise PhaseError("claude_unreachable", f"Can't reach Claude ({CLAUDE_HOST[0]}) to translate: {e}. "
+                         "Is there an internet connection?", host=CLAUDE_HOST[0]) from None
     _reachable = True
 
 

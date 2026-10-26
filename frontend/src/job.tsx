@@ -18,6 +18,8 @@ export interface LiveJob {
   title: string | null;
   status: Status;
   error: string | null;
+  errorCode: string | null; // errors.PhaseError: errors.ts says it in the page's language
+  errorParams: Record<string, string> | null;
   engine: string;
   phases: Partial<Record<Phase, { state: PhaseState; seconds?: number }>>;
   active: Phase | null;
@@ -39,6 +41,8 @@ export interface JobEvent {
   t: number;
   status?: Status;
   error?: string;
+  error_code?: string;
+  error_params?: Record<string, string>;
   name?: Phase;
   state?: "start" | "done" | "error";
   seconds?: number;
@@ -51,7 +55,8 @@ export interface JobEvent {
 
 export function newJob(summary: JobSummary): LiveJob {
   return {
-    id: summary.id, title: null, status: summary.status, error: summary.error, engine: summary.options.engine,
+    id: summary.id, title: null, status: summary.status, error: summary.error,
+    errorCode: summary.error_code ?? null, errorParams: summary.error_params ?? null, engine: summary.options.engine,
     phases: {}, active: null, task: null, logs: [], startedAt: null, finishedAt: null, segments: null,
     clipsDone: 0, lastCompleted: 0, firstPassAt: null, laterBatches: 0, phaseFrac: {},
   };
@@ -63,6 +68,10 @@ export function apply(job: LiveJob, e: JobEvent): LiveJob {
   if (e.type === "status" && e.status) {
     j.status = e.status;
     if (e.error) j.error = e.error;
+    if (e.error_code) {
+      j.errorCode = e.error_code;
+      j.errorParams = e.error_params ?? {};
+    }
     if (e.status === "running") j.startedAt = e.t;
     if (e.status === "done" || e.status === "review" || e.status === "error" || e.status === "cancelled") j.finishedAt = e.t;
   } else if (e.type === "phase" && e.name) {

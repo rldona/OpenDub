@@ -22,6 +22,7 @@ import subprocess
 from pathlib import Path
 
 from . import engines
+from .errors import PhaseError
 from .log import log
 
 MODEL = "cosyvoice3-0.5b"
@@ -76,7 +77,8 @@ def synthesize(home: Path, log_path: Path, text: str, ref: Path, out: Path, fact
 def _start(home: Path, log_path: Path) -> engines.Worker:
     repo, python, model_dir = paths(home)
     if not installed(home):
-        raise SystemExit(f"CosyVoice is not installed in {home}. {SETUP_HINT}")
+        raise PhaseError("engine_missing", f"CosyVoice is not installed in {home}. {SETUP_HINT}",
+                         engine="CosyVoice 3", cmd="uv run opendub setup-engine cosyvoice")
     # cwd = repo: the worker imports cosyvoice (and its Matcha-TTS submodule) from there
     return engines.Worker(MODEL, python, WORKER, [str(model_dir)], repo, log_path)
 

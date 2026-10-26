@@ -18,6 +18,7 @@ from dataclasses import asdict, replace
 from . import repair, tts
 from . import voices as voices_mod
 from .config import Settings
+from .errors import PhaseError
 from .log import log
 from .models import load_segments
 from .workdir import WorkDir, write_text_atomic
@@ -71,8 +72,8 @@ def retouch(wd: WorkDir, settings: Settings, new_takes: list[int] | tuple[int, .
     if not (wd.tts_index.exists() and wd.translation.exists()):
         raise SystemExit("Nothing to retouch: this video has no dub yet")
     if not tts.clips_exist(wd):
-        raise SystemExit("The voice clips were deleted to save space: dub the video again (its translation is "
-                         "kept; only the voice and the mix are redone) before retouching it")
+        raise PhaseError("clips_deleted", "The voice clips were deleted to save space: dub the video again "
+                         "(its translation is kept; only the voice and the mix are redone) before retouching it")
     index = tts._index(wd)
     engine = index.get("engine") or "edge"
     cloned = engine != "edge"

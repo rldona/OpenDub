@@ -20,6 +20,7 @@ import subprocess
 from pathlib import Path
 
 from . import engines
+from .errors import PhaseError
 from .log import log
 
 MODEL = "indextts-2.5"
@@ -75,7 +76,8 @@ def synthesize(home: Path, log_path: Path, text: str, ref: Path, out: Path, fact
 def _start(home: Path, log_path: Path) -> engines.Worker:
     repo, python, checkpoints = paths(home)
     if not python.exists() or not (checkpoints / "config.yaml").exists():
-        raise SystemExit(f"IndexTTS is not installed in {home}. {SETUP_HINT}")
+        raise PhaseError("engine_missing", f"IndexTTS is not installed in {home}. {SETUP_HINT}",
+                         engine="IndexTTS-2.5", cmd="uv run opendub setup-engine indextts")
     # cwd = repo: IndexTTS resolves its auxiliary model cache relative to it
     return engines.Worker(MODEL, python, WORKER, [str(checkpoints)], repo, log_path)
 

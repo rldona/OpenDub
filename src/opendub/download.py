@@ -12,6 +12,7 @@ from rich.progress import BarColumn, DownloadColumn, TransferSpeedColumn
 
 from . import media
 from .config import Settings
+from .errors import PhaseError
 from .log import Progress, console, log
 from .media import ffmpeg, probe
 from .workdir import WorkDir, write_text_atomic
@@ -23,20 +24,22 @@ _BASE_OPTS: dict[str, Any] = {"quiet": True, "no_warnings": True, "noprogress": 
 
 
 BOT_CHECK = "Sign in to confirm"
+_ANSI = re.compile(r"\x1b\[[0-9;]*m")
 
 
 def explain(e: Exception) -> SystemExit:
     """A clear message for a failed YouTube request: a bot check, no connection, or the rest."""
-    text = str(e)
+    text = _ANSI.sub("", str(e))  # yt-dlp colours its "ERROR:" for a terminal
     first = next((line for line in text.splitlines() if line.strip()), text)
     if BOT_CHECK in text:
-        return SystemExit("YouTube asked to confirm this isn't a bot and refused the download. It is a temporary "
-                          "block of this connection (often after many downloads in a short time): wait a while "
-                          "and try again.")
+        return PhaseError("youtube_blocked", "YouTube asked to confirm this isn't a bot and refused the download. "
+                          "It is a temporary block of this connection (often after many downloads in a short "
+                          "time): wait a while and try again.")
     network = ("Unable to download", "getaddrinfo", "Name or service not known", "timed out",
                "Connection", "Network is unreachable", "Temporary failure in name resolution")
     if any(n in text for n in network):
-        return SystemExit(f"Can't reach YouTube: is there an internet connection? ({first.strip()[:160]})")
+        return PhaseError("youtube_unreachable",
+                          f"Can't reach YouTube: is there an internet connection? ({first.strip()[:160]})")
     return SystemExit(f"YouTube download failed: {first.strip()[:200]}")
 
 

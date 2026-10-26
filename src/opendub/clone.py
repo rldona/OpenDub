@@ -19,6 +19,7 @@ from pathlib import Path
 import numpy as np
 
 from . import media
+from .errors import PhaseError
 from .log import log
 
 MODEL = "chatterbox-multilingual-v3"
@@ -60,7 +61,8 @@ def _load(variant: str = "v3"):
         try:
             from chatterbox.mtl_tts import ChatterboxMultilingualTTS
         except ImportError:
-            raise SystemExit(f"chatterbox-tts is not installed. {INSTALL_HINT}")
+            raise PhaseError("engine_missing", f"chatterbox-tts is not installed. {INSTALL_HINT}",
+                             engine="Chatterbox", cmd="uv sync --extra clone")
         device = _device()
         log.info(f"Loading {VARIANTS[variant]} ({device})…")
         if variant == "es-es":

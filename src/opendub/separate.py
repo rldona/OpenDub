@@ -28,6 +28,7 @@ from rich.progress import BarColumn, TimeElapsedColumn
 
 from . import media
 from .config import Settings
+from .errors import PhaseError
 from .log import Progress, console, log
 from .workdir import WorkDir
 
@@ -64,7 +65,8 @@ def _separator(backend: str) -> Iterator[Separate]:
         try:
             from demucs_mlx import Separator as MlxSeparator
         except ImportError:
-            raise SystemExit(f"demucs-mlx is not installed. {INSTALL_HINT}")
+            raise PhaseError("engine_missing", f"demucs-mlx is not installed. {INSTALL_HINT}",
+                             engine="demucs-mlx", cmd="uv sync --extra separate")
         log.info(f"Separating with demucs-mlx ({MODEL}, Apple GPU)…")
         with MlxSeparator(model=MODEL, progress=False) as mlx:
             yield lambda audio: {name: np.asarray(s) for name, s in mlx.separate_tensor(audio)[1].items()}
@@ -73,7 +75,8 @@ def _separator(backend: str) -> Iterator[Separate]:
         import torch
         from demucs.api import Separator
     except ImportError:
-        raise SystemExit(f"demucs (PyTorch) is not installed. {INSTALL_HINT}")
+        raise PhaseError("engine_missing", f"demucs (PyTorch) is not installed. {INSTALL_HINT}",
+                         engine="demucs", cmd="uv sync --extra separate")
     device = "cuda" if torch.cuda.is_available() else "cpu"
     name = torch.cuda.get_device_name(0) if device == "cuda" else "CPU"
     log.info(f"Separating with demucs ({MODEL}, {name})…")

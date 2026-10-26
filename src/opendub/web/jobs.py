@@ -25,6 +25,7 @@ from typing import Any
 from .. import media, pipeline
 from ..config import Settings
 from ..download import video_id
+from ..errors import PhaseError
 from ..log import Cancelled, clear_cancel, log, plain, request_cancel, subscribe
 from ..workdir import write_text_atomic
 
@@ -61,7 +62,9 @@ class Job:
     id: str
     options: JobOptions
     status: str = "queued"  # queued | running | done | review | error | cancelled
-    error: str | None = None
+    error: str | None = None  # the English message (the CLI's)
+    error_code: str | None = None  # errors.PhaseError: what the page says in its own language
+    error_params: dict[str, Any] | None = None
     created: str = field(default_factory=lambda: datetime.now().isoformat(timespec="seconds"))
     finished: str | None = None
     events: list[dict[str, Any]] = field(default_factory=list, repr=False)
@@ -75,11 +78,13 @@ class Job:
             self.events.append({**event, "seq": len(self.events), "t": round(time.time(), 3)})
             self._cond.notify_all()
 
-    def set_status(self, status: str, error: str | None = None) -> None:
-        self.status, self.error = status, error
+    def set_status(self, status: str, error: str | None = None, code: str | None = None,
+                   params: dict[str, Any] | None = None) -> None:
+        self.status, self.error, self.error_code, self.error_params = status, error, code, params
         if status in ("done", "review", "error", "cancelled"):
             self.finished = datetime.now().isoformat(timespec="seconds")
-        self.add({"type": "status", "status": status, **({"error": error} if error else {})})
+        coded = {"error_code": code, "error_params": params or {}} if code else {}
+        self.add({"type": "status", "status": status, **({"error": error} if error else {}), **coded})
 
     def wait(self, since: int, timeout: float) -> tuple[list[dict[str, Any]], bool]:
         """Events from `since` on, waiting up to `timeout` for new ones; and whether the job is over."""
@@ -89,8 +94,9 @@ class Job:
             return self.events[since:], self.status not in ACTIVE
 
     def summary(self) -> dict[str, Any]:
-        return {"id": self.id, "status": self.status, "error": self.error, "created": self.created,
-                "finished": self.finished, "options": asdict(self.options)}
+        return {"id": self.id, "status": self.status, "error": self.error, "error_code": self.error_code,
+                "error_params": self.error_params, "created": self.created, "finished": self.finished,
+                "options": asdict(self.options)}
 
 
 class _JobLogHandler(logging.Handler):
@@ -212,7 +218,12 @@ class JobManager:
         except Cancelled:
             job.set_status("cancelled")
         except SystemExit as e:  # the phases stop with SystemExit and a readable message
-            job.set_status("cancelled" if job.cancelling else "error", None if job.cancelling else str(e) or "Stopped")
+            if job.cancelling:
+                job.set_status("cancelled")
+            elif isinstance(e, PhaseError):  # a common failure: the page says it in its language
+                job.set_status("error", str(e), e.error_code, e.params)
+            else:
+                job.set_status("error", str(e) or "Stopped")
         except Exception as e:
             if job.cancelling:  # a child killed by the cancel failed the step it was in
                 job.set_status("cancelled")

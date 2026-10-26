@@ -104,6 +104,8 @@ def status(wd: WorkDir, manager: JobManager) -> tuple[str, str | None]:
 def summary(wd: WorkDir, manager: JobManager) -> dict[str, Any]:
     meta = _read_json(wd.meta) or {}
     state, error = status(wd, manager)
+    job = manager.get(wd.path.name)
+    failed = job.summary() if job else (manager.saved(wd.path.name) or {})  # errors.PhaseError's code, if any
     index = _tts_index(wd) or {}
     clips = index.get("clips") or []
     date = None
@@ -119,6 +121,8 @@ def summary(wd: WorkDir, manager: JobManager) -> dict[str, Any]:
         "uploader": meta.get("uploader"),
         "status": state,
         "error": error,
+        "error_code": failed.get("error_code") if state == "error" else None,
+        "error_params": failed.get("error_params") if state == "error" else None,
         "date": date,
         "engine": index.get("engine"),
         "reference_f0_hz": index.get("reference_f0_hz"),

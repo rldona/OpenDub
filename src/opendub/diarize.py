@@ -31,6 +31,7 @@ from pathlib import Path
 
 from . import media
 from .config import Settings
+from .errors import PhaseError
 from .log import log
 from .media import ffmpeg
 from .workdir import WorkDir, write_text_atomic
@@ -143,8 +144,8 @@ def run(wd: WorkDir, settings: Settings, force: bool = False) -> dict:
         return load(wd)
     python, model = paths(settings.nemotron_dir)
     if not installed(settings.nemotron_dir):
-        raise SystemExit(f"Several voices need Nemotron 3 Diarization, not installed in "
-                         f"{settings.nemotron_dir}. {SETUP_HINT}")
+        raise PhaseError("diarizer_missing", f"Several voices need Nemotron 3 Diarization, not installed in "
+                         f"{settings.nemotron_dir}. {SETUP_HINT}", cmd="uv run opendub setup-engine nemotron")
     log.info("Diarizing with Nemotron 3 Diarization in its own process…")
     with tempfile.TemporaryDirectory() as tmp:
         out = Path(tmp) / "turns.json"

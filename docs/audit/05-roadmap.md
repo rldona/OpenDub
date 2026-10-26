@@ -55,7 +55,7 @@ Estas decisiones son del propietario, todas del 2026-10-25:
 | | T-29 Revisar la traducción antes de sintetizar (hecho) | P2 | M | Backlog 10 |
 | 3 · Calidad de voz | T-30 Clonar con la voz de cada frase (hecho: empate) | P2 | M | Backlog 11 |
 | | T-31 Decidir el motor *Automático* (resuelto por T-38) | P3 | M | G-016 |
-| 4 · Mantenimiento | T-32 Errores de fase con código, en español | P2 | M | G-010 |
+| 4 · Mantenimiento | T-32 Errores de fase con código, en español (hecho) | P2 | M | G-010 |
 | | T-33 Reducir la lista de mypy | P2 | S | G-024 |
 | | T-34 Subtítulos con hablante (ASS y WebVTT) | P3 | S | Backlog 12 |
 | | T-35 LAN: redes de confianza y token persistente opcional | P3 | S | Pendiente 6 |
@@ -312,6 +312,16 @@ Estas decisiones son del propietario, todas del 2026-10-25:
   - Un test por código.
   - Con el navegador en español, un fallo provocado (red cortada) se lee en español.
 - **Cierra:** G-010.
+- **Resultado (2026-10-26):**
+  - `errors.PhaseError`, un `SystemExit` con el mismo mensaje en inglés para la CLI y,
+    además, código y parámetros: `youtube_blocked`, `youtube_unreachable`,
+    `claude_unreachable`, `ollama_unreachable`, `engine_missing`, `diarizer_missing` y
+    `clips_deleted`, lanzados donde ocurren.
+  - El trabajo de la web los guarda (`job.json`, su evento de estado y el resumen del
+    vídeo) y la página los dice en su idioma, con el texto en inglés como detalle.
+  - Un test por código, en su sitio real, y otro de la web.
+  - Probado con un segundo servidor sin salida a internet (un proxy inexistente): con
+    la página en español, «Falló: No hay conexión con YouTube. ¿Hay internet?».
 
 ### T-33 · Reducir la lista de mypy (P2, S)
 

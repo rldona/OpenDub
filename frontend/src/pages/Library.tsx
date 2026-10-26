@@ -6,7 +6,7 @@ import { EngineTag, StatusBadge, Thumb } from "../components";
 import { clock, duration, when } from "../format";
 import { overall, PHASES, timing, useJobs, useNow, type LiveJob } from "../job";
 import { usePrefs } from "../prefs";
-import { errorText } from "../errors";
+import { errorText, jobErrorText } from "../errors";
 
 export function Library() {
   const { t } = usePrefs();
@@ -179,8 +179,9 @@ export function NowDubbing() {
       parts.push(t("took", { t: clock(time.elapsed) }));
     }
   }
+  const failure = jobErrorText(job.error, job.errorCode, job.errorParams, t);
   const heading = job.status === "queued" ? t("queued_now") : job.status === "running" ? t("dubbing_now")
-    : job.status === "error" ? t("job_failed", { msg: job.error ?? "" })
+    : job.status === "error" ? t("job_failed", { msg: failure.text })
     : job.status === "cancelled" ? t("job_cancelled") : job.status === "review" ? t("job_review") : t("job_done");
   async function cancel() {
     if (!confirm(t("cancel_confirm", { v: job!.title ?? job!.id }))) return;
@@ -191,7 +192,8 @@ export function NowDubbing() {
       <div className="row" style={{ gap: "10px 16px" }}>
         <Thumb id={job.id} retry={`${job.status}:${job.active ?? ""}`} style={{ width: 88, flex: "none" }} />
         <div style={{ flex: "999 1 280px", minWidth: 0 }}>
-          <h2 id="now" className={`kicker ${job.status === "error" ? "danger-text" : ""}`}>{heading}</h2>
+          <h2 id="now" className={`kicker ${job.status === "error" ? "danger-text" : ""}`}
+            title={job.status === "error" && failure.detail ? t("detail", { d: failure.detail }) : undefined}>{heading}</h2>
           <a href={`#/video/${job.id}`} style={{ display: "block", color: "var(--text)", fontWeight: 650, textDecoration: "none", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
             {job.title ?? job.id}
           </a>
@@ -320,7 +322,11 @@ function VideoTable({ videos, onChanged }: { videos: Video[] | null; onChanged: 
                           </button>
                         )}
                       </span>
-                      {v.status === "error" && v.error && <div className="small danger-text">{v.error}</div>}
+                      {v.status === "error" && (v.error || v.error_code) && (() => {
+                        const failed = jobErrorText(v.error, v.error_code, v.error_params, t);
+                        return <div className="small danger-text" title={failed.detail ? t("detail", { d: failed.detail }) : undefined}>
+                          {failed.text}</div>;
+                      })()}
                     </td>
                   </tr>
                 );

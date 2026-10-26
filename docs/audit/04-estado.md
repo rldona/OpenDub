@@ -69,7 +69,7 @@ código; los que siguen abiertos dicen qué falta y dónde.
 | G-007 Deriva voz-imagen | Cerrado | T-12 (voz con más de 0,5 s de retraso, por versión) |
 | G-008 Sonoridad | Cerrado | T-07 |
 | G-009 Varias voces sin validar | Cerrado | T-14 |
-| G-010 Mensajes en inglés | **Parcial** | Los errores de la API ya se traducen (T-19), pero el error de una fase sigue llegando en inglés |
+| G-010 Mensajes en inglés | **Cerrado** (T-32) | Los errores de la API (T-19) y los fallos de fase más comunes (T-32) se leen en el idioma de la página |
 | G-011 Idioma por defecto | Cerrado | T-19 |
 | G-012 Redoblaje sin varias voces | Cerrado | `3d59f0b` |
 | G-013 Controles ocultos | Cerrado | T-19 |
@@ -113,7 +113,7 @@ lo indican.
 
 ### P2
 
-1. **Errores de fase en inglés en la web** (resto de G-010).
+1. **Errores de fase en inglés en la web** (resto de G-010). **Cerrado por T-32.**
    - **Qué falta:** cuando un doblaje falla, la web muestra «Falló: …» con el
      mensaje de la fase tal cual, en inglés. Por ejemplo, los `SystemExit` de
      `download.explain`, `translate`, `tts._check_voice` o el motor no instalado.

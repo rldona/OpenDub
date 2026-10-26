@@ -18,3 +18,12 @@ export function errorText(err: unknown, t: T): string {
   // a code this page doesn't know yet, or no code (a proxy's error page, FastAPI's own validation)
   return `${t("err_unknown")} ${t("detail", { d: err instanceof Error ? err.message : String(err) })}`;
 }
+
+/** A failed dub's message: a common failure (its code) in the page's language, the English text
+ *  as its detail; any other failure as the server said it. */
+export function jobErrorText(error: string | null, code: string | null | undefined,
+  params: Record<string, string> | null | undefined, t: T): { text: string; detail: string | null } {
+  const key = `err_phase_${code}`;
+  if (code && isKey(key)) return { text: t(key as Key, params ?? {}), detail: error };
+  return { text: error ?? t("err_unknown"), detail: null };
+}

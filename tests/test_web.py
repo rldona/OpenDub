@@ -621,3 +621,22 @@ def test_a_job_that_asks_for_review_ends_waiting_for_it(tmp_path):
     assert c.post("/jobs", json={"url": VID, "review": True}).status_code == 200
     job = wait_status(c, VID, ("review", "done", "error"))
     assert job["status"] == "review" and job["finished"] and job["options"]["review"] is True
+
+
+def test_a_common_failure_keeps_its_code_for_the_page(tmp_path):
+    from opendub.errors import PhaseError
+
+    def offline(url, settings):
+        raise PhaseError("claude_unreachable", "Can't reach Claude (api.anthropic.com)", host="api.anthropic.com")
+
+    c = client(tmp_path, offline)
+    make_video(tmp_path / "work")  # dubbed before: this time the translation can't reach Claude
+    assert c.post("/jobs", json={"url": VID}).status_code == 200
+    job = wait_status(c, VID)
+    assert job["status"] == "error" and job["error"] == "Can't reach Claude (api.anthropic.com)"
+    assert job["error_code"] == "claude_unreachable" and job["error_params"] == {"host": "api.anthropic.com"}
+    status = [e for e in read_events(c, VID) if e["type"] == "status"][-1]
+    assert status["error_code"] == "claude_unreachable" and status["error_params"] == {"host": "api.anthropic.com"}
+    assert json.loads((tmp_path / "work" / VID / "job.json").read_text())["error_code"] == "claude_unreachable"
+    video = c.get(f"/videos/{VID}").json()
+    assert video["status"] == "error" and video["error_code"] == "claude_unreachable"

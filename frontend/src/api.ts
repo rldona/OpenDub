@@ -20,6 +20,8 @@ export interface JobSummary {
   id: string;
   status: Status;
   error: string | null;
+  error_code?: string | null; // a common phase failure (errors.PhaseError): said in the page's language
+  error_params?: Record<string, string> | null;
   created: string;
   finished: string | null;
   options: JobOptions;
@@ -40,6 +42,8 @@ export interface Video {
   duration: number | null;
   status: Status;
   error: string | null;
+  error_code?: string | null;
+  error_params?: Record<string, string> | null;
   date: string | null;
   engine: string | null;
   reference_f0_hz: number | null;
