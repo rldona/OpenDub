@@ -207,6 +207,25 @@ Dubbed with Chatterbox (`dub_metrics.py --work`, the same pace and rules):
 - Gemma 3 12B and Qwen3 14B, which fit the GPU, were not tried: Qwen3.6, a mixture of
   experts, already runs at Sonnet's speed, so speed doesn't call for them.
 
+## F5-TTS in Spanish (discarded, 26 Oct 2026)
+
+jpgallegoar/F5-Spanish (F5-TTS's base finetuned on 218 h of Spanish, CC-BY-NC-4.0) was
+wired in as an experimental engine and dubbed both short videos. It was light (1.9 GB of
+VRAM, half a second per second of speech), fitted every clip natively and whisper heard
+its clips as Spanish (0.99), but heard blind (`listening/results/f5-taste.json`, 10
+fragments, against IndexTTS and Chatterbox) it came last in every fragment:
+
+| | Mean | Preferred |
+|---|---|---|
+| Chatterbox | 3.6 | 6 (all five of the male voice) |
+| IndexTTS | 3.0 | 4 (four of five of the female voice) |
+| F5-TTS | 2.4 | 0 |
+
+The engine and its venv were removed. The other suggestions of that round: Qwen3-TTS was
+already discarded for its accent (Phase C), GPT-SoVITS has no Spanish, OpenVoice speaks a
+base Spanish voice with the speaker's timbre rather than cloning, and Chatterbox Turbo is
+English only.
+
 ## Audio
 
 `audio/` holds the reference cuts (from the original videos), the generated
