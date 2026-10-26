@@ -11,6 +11,8 @@
  "max_delay_s": 1.01,
  "mean_delay_s": 0.168,
  "late_voice_s": 46.3,
+ "fill": 0.957,
+ "under_80": 13,
  "lufs": -16.0,
  "true_peak_db": -1.9,
  "asr_clips": 111,

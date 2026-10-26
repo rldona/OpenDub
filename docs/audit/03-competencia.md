@@ -584,6 +584,58 @@ del propietario. La ejecución 3 puede empezar.
 del programa real. Además, el defecto del pódcast se diagnosticó **después** de oír, a
 partir de las notas.
 
+## 10. Llenar el hueco y lo que de verdad falla en el pódcast (T-36, 2026-10-26)
+
+**Qué se probó** para llenar el hueco que dejaba la voz B (§9):
+1. **Pedir a la traducción una longitud mínima** (`min_chars`, el 85 % de lo que cabe en
+   la duración del original). Se descartó:
+   - B pasó del 82 % al 83 %; el modelo apenas alarga y, donde alarga, mete relleno
+     («erupción activa», «tanto volcanismo»).
+   - A, con frases más largas, acumuló voz a destiempo (de 0,8 s a 10,2 s).
+   - El español de B ya ocupa casi lo mismo que el inglés (8.438 frente a 8.698
+     caracteres): el hueco viene de la voz, no del texto.
+2. **Ralentizar la voz hasta 0,9 clip a clip.** Llenaba (B al 89,5 %), pero en el vídeo
+   con música la voz a destiempo pasó de 46 s a 284 s: al alargar los clips cortos se
+   come el margen que absorbía los retrasos de los anteriores.
+3. **Ralentizar sabiendo dónde sonará cada clip** (`tts.fill_gaps`, lo que queda): solo
+   si el clip acaba bastante antes que su frase original, nunca por debajo de 0,9 y sin
+   pasar del inicio del siguiente.
+
+| | Antes | Después |
+|---|---|---|
+| Pódcast, B llena (vídeo entero / tramo de la escucha) | 82 % / 76 % | 89 % / 84 % |
+| Pódcast, clips de B bajo el 80 % | 33 | 12 |
+| Música, llena · clips bajo el 80 % | 96 % · 13 | 97 % · 3 |
+| Música, voz a destiempo | 46 s | 46 s |
+| CER de whisper (pódcast / música) | 2,2 % / 1,1 % | 3,1 % / 1,3 % |
+
+**Escucha a ciegas** (`fill-gaps`, antes frente a después, los tramos del §9, 15
+fragmentos): **no se distingue**. Igual en 14, la versión nueva preferida en 1; música
+3,25 frente a 3,50; pódcast 2,29 en las dos.
+
+> Una primera sesión se descartó: las versiones nuevas se mezclaron desde la CLI sin
+> `--separate` y llevaban la voz original por debajo.
+
+**Lectura:**
+- La medida del §9 era cierta, pero **no era lo que hace sonar mal el pódcast**. El
+  cambio se queda (activado por defecto) porque mejora las medidas sin empeorar nada, no
+  porque se oiga.
+- Lo que describe el oyente: «la traducción no acompaña a la persona que habla, se nota
+  sintético». Los datos apuntan a **cómo se cortan las frases**:
+  - OpenDub agrupa en frases de hasta 12 s; B habla con frases largas encadenadas, así
+    que se cortan a los 12 s, a mitad de frase (85 de los 185 fragmentos del vídeo
+    acaban sin cerrar la frase).
+  - Cada fragmento es un clip independiente: la voz cierra la entonación donde se corta
+    y vuelve a empezar.
+  - B hace dos o tres pausas dentro de esos 12 s; el clip doblado lo dice todo seguido y
+    calla.
+  - La réplica, que ganó en el pódcast, coloca cada línea de subtítulo donde empieza:
+    35 trozos de 6 s como mucho en el tramo, frente a los 21 de OpenDub.
+- Pasa al roadmap como **T-37**. Lo que tenga de sintético la propia voz de Chatterbox
+  no lo arregla eso: si tras T-37 sigue sonando así, el límite es el motor.
+
+**Límites:** un oyente; el diagnóstico de T-37 vuelve a salir después de oír.
+
 ## Anexo · Fuentes
 
 Todas consultadas el 2026-10-25; entre paréntesis, la fecha propia de la página cuando la

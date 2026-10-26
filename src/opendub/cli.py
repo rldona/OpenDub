@@ -109,7 +109,7 @@ Shorten = Annotated[
     typer.Option("--shorten/--no-shorten", help="Re-translate shorter whatever does not fit even at --max-tempo"),
 ]
 MinTempo = Annotated[
-    float, typer.Option("--min-tempo", help="Minimum tempo (<1 slows down short clips; 1 = never)")
+    float, typer.Option("--min-tempo", help="Minimum tempo (<1 slows down clips that finish before the original; 1 = never)")
 ]
 MaxTempo = Annotated[float, typer.Option("--max-tempo", help="Maximum atempo speed-up")]
 BgVolume = Annotated[
@@ -252,7 +252,7 @@ def tts(
     clone_ref: CloneRef = None,
     whisper_model: WhisperModel = "small",
     rate: Rate = "-10%",
-    min_tempo: MinTempo = 1.0,
+    min_tempo: MinTempo = 0.9,
     max_tempo: MaxTempo = 1.25,
     shorten: Shorten = True,
     backend: Backend = "cli",
@@ -515,7 +515,7 @@ def dub(
     batch_size: BatchSize = 30,
     chars_per_second: CharsPerSecond = None,
     rate: Rate = "-10%",
-    min_tempo: MinTempo = 1.0,
+    min_tempo: MinTempo = 0.9,
     max_tempo: MaxTempo = 1.25,
     shorten: Shorten = True,
     bg_volume: BgVolume = -15.0,

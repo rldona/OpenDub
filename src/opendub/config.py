@@ -52,7 +52,7 @@ class Settings:
     # A retouch instead of a dub: speak again the edited sentences and these new takes, then mix
     retouch: tuple[int, ...] | None = None
     rate: str = "-10%"  # native edge-tts rate (more negative = slower)
-    min_tempo: float = 1.0  # < 1 allows slowing down short clips to fill their slot
+    min_tempo: float = 0.9  # < 1 slows down clips that end well before their sentence (tts.fill_gaps)
     max_tempo: float = 1.25
     shorten: bool = True  # re-translate shorter whatever does not fit even at max_tempo
     bg_volume_db: float = -15.0

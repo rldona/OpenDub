@@ -15,6 +15,9 @@ For each translated segment:
    as long as possible: another seed → a shorter sentence → the fixed
    reference (`--clone-ref`) → edge-tts as a last resort.
 Whatever still does not fit or fails the check is written to overflow.log.
+6. A clip that finishes well before its sentence did in the original is slowed down,
+   to min_tempo at most, so a fast voice does not leave silences mid-conversation;
+   only as far as it can without pushing the next clip, where the mix will place it.
 
 Steps 4–5 live in repair.py, the voice of each sentence (one, or each speaker's) in
 voices.py, and speaking again only some sentences of a dub in retouch.py.
@@ -138,13 +141,60 @@ class Clip:
     factor: float = 1.0  # duration factor it was spoken with (native duration control)
 
 
-def choose_tempo(duration: float, slot: float, seg_duration: float, min_tempo: float, max_tempo: float) -> float:
-    """atempo factor: speed up if it does not fit; slow down only if min_tempo < 1."""
+def choose_tempo(duration: float, slot: float, max_tempo: float) -> float:
+    """atempo factor: speed up if it does not fit (slowing down is fill_gaps', once all clips are known)."""
     if duration > slot:
         return min(duration / slot, max_tempo)
-    if min_tempo < 1.0 and duration < seg_duration:
-        return max(duration / seg_duration, min_tempo)
     return 1.0
+
+
+FILL_BELOW = 0.95  # a clip filling more of its room than this is left as it is
+
+
+def slow_downs(clips: list[Clip], ends: dict[int, float], min_tempo: float,
+               only: set[int] | None = None) -> dict[int, float]:
+    """Tempo (<1) for the clips that end well before their sentence did in the original (`ends`).
+
+    It walks the clips as mix.place does, so a clip pushed by the one before has less
+    room, and a slowed clip never ends past the next one's timestamp: slowing down
+    must not eat the slack that absorbs a delay. Sped-up and already slowed clips are
+    left as they are, and with `only` (a retouch) so is every other clip.
+    """
+    from .mix import MIN_GAP  # lazy: mix imports this module
+
+    out: dict[int, float] = {}
+    if min_tempo >= 1.0:
+        return out
+    ordered = sorted(clips, key=lambda c: c.start)
+    cursor = 0.0
+    for i, c in enumerate(ordered):
+        start = c.start if c.start >= cursor else cursor + MIN_GAP
+        length = c.duration
+        nxt = ordered[i + 1].start - MIN_GAP if i + 1 < len(ordered) else float("inf")
+        room = min(ends.get(c.id, c.start + c.duration), nxt) - start
+        if c.tempo == 1.0 and (only is None or c.id in only) and length < FILL_BELOW * room:
+            out[c.id] = max(length / room, min_tempo)
+            length /= out[c.id]
+        cursor = start + length
+    return out
+
+
+def fill_gaps(wd: WorkDir, clips: dict[int, Clip], segments: list[Segment], min_tempo: float,
+              only: set[int] | None = None) -> int:
+    """Slow down the clips slow_downs picks (step 6), in place; returns how many."""
+    tempos = slow_downs(list(clips.values()), {s.id: s.end for s in segments}, min_tempo, only)
+    for i, tempo in tempos.items():
+        c = clips[i]
+        _slow(wd.path / c.file, tempo)
+        clips[i] = replace(c, tempo=round(tempo, 3), duration=round(c.duration / tempo, 3))
+    return len(tempos)
+
+
+def _slow(final: Path, tempo: float) -> None:
+    """Play a clip at `tempo`, in place."""
+    slowed = final.with_suffix(".slow.wav")
+    ffmpeg("-i", str(final), "-af", f"atempo={tempo:.4f}", str(slowed))
+    slowed.replace(final)
 
 
 def shorten_target(text: str, clip: Clip, max_tempo: float, overhead: float = 0.0) -> int:
@@ -527,7 +577,7 @@ def _process(seg: Segment, slot: float, raw: Path, out_dir: Path, settings: Sett
     final = out_dir / f"{seg.id:04d}.wav"
     ffmpeg("-i", str(raw), "-af", TRIM, "-ac", "1", "-ar", str(SAMPLE_RATE), str(trimmed))
     raw_dur = _wav_duration(trimmed)
-    tempo = choose_tempo(raw_dur, slot, seg.duration, settings.min_tempo, settings.max_tempo)
+    tempo = choose_tempo(raw_dur, slot, settings.max_tempo)
     if abs(tempo - 1.0) > 0.01:
         ffmpeg("-i", str(trimmed), "-af", f"atempo={tempo:.4f}", str(final))
         trimmed.unlink()
@@ -662,6 +712,7 @@ def _params(settings: Settings, segments: list[Segment], engine: str, ref: Path 
         "voice": settings.voice,
         "rate": check_rate(settings.rate),
         "min_tempo": settings.min_tempo,
+        "slowing": "placed",  # tts.fill_gaps: slowed where the mix places each clip, not clip by clip
         "max_tempo": settings.max_tempo,
         "shorten": settings.claude_model if settings.shorten else None,
         "texts": [(s.id, s.start, s.text) for s in segments],
@@ -748,6 +799,7 @@ def run(wd: WorkDir, settings: Settings, force: bool = False) -> list[Clip]:
     clips = {c.id: c for c in _render_each(wd, jobs, slots, settings, regenerate=force)}
     fell_back, still_bad, n_short, below_floor = repair.fit(repair.Fitting(wd, clips, voices, slots, by_id, settings),
                                                             engine if cloned else "edge")
+    slowed = fill_gaps(wd, clips, segments, settings.min_tempo)
 
     result = [clips[s.id] for s in segments]
     index = {
@@ -773,7 +825,7 @@ def run(wd: WorkDir, settings: Settings, force: bool = False) -> list[Clip]:
     sped = sum(1 for c in result if c.tempo > 1.0)
     chars_per_s = sum(len(c.text) for c in result) / sum(c.raw_duration for c in result)
     log.info(
-        f"Sped up: {sped} · shortened: {n_short} · do not fit: {len(overflows)}"
+        f"Sped up: {sped} · slowed down: {slowed} · shortened: {n_short} · do not fit: {len(overflows)}"
         + (f" (max +{max(c.overflow for c in overflows):.2f}s, see overflow.log)" if overflows else "")
     )
     if native_duration(engine):

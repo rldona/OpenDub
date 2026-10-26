@@ -1,0 +1,454 @@
+{
+ "name": "fill-gaps",
+ "sources": [
+  "before",
+  "slowed"
+ ],
+ "criteria": [
+  "overall"
+ ],
+ "seed": 1,
+ "videos": [
+  "VD6xJq8NguY@263-413",
+  "R4zlpwwEpnY@484-634"
+ ],
+ "answers": {
+  "f01": {
+   "ratings": {
+    "1": {
+     "overall": 4
+    },
+    "2": {
+     "overall": 2
+    }
+   },
+   "prefer": "1"
+  },
+  "f02": {
+   "ratings": {
+    "1": {
+     "overall": 3
+    },
+    "2": {
+     "overall": 3
+    }
+   },
+   "prefer": "same"
+  },
+  "f03": {
+   "ratings": {
+    "1": {
+     "overall": 3
+    },
+    "2": {
+     "overall": 3
+    }
+   },
+   "prefer": "same"
+  },
+  "f04": {
+   "ratings": {
+    "1": {
+     "overall": 3
+    },
+    "2": {
+     "overall": 3
+    }
+   },
+   "prefer": "same"
+  },
+  "f05": {
+   "ratings": {
+    "1": {
+     "overall": 4
+    },
+    "2": {
+     "overall": 4
+    }
+   },
+   "prefer": "same"
+  },
+  "f06": {
+   "ratings": {
+    "1": {
+     "overall": 4
+    },
+    "2": {
+     "overall": 4
+    }
+   },
+   "prefer": "same"
+  },
+  "f07": {
+   "ratings": {
+    "1": {
+     "overall": 4
+    },
+    "2": {
+     "overall": 4
+    }
+   },
+   "prefer": "same"
+  },
+  "f08": {
+   "ratings": {
+    "1": {
+     "overall": 3
+    },
+    "2": {
+     "overall": 3
+    }
+   },
+   "prefer": "same"
+  },
+  "f09": {
+   "ratings": {
+    "1": {
+     "overall": 2
+    },
+    "2": {
+     "overall": 2
+    }
+   },
+   "prefer": "same"
+  },
+  "f10": {
+   "ratings": {
+    "1": {
+     "overall": 2
+    },
+    "2": {
+     "overall": 2
+    }
+   },
+   "prefer": "same"
+  },
+  "f11": {
+   "ratings": {
+    "1": {
+     "overall": 2
+    },
+    "2": {
+     "overall": 2
+    }
+   },
+   "prefer": "same"
+  },
+  "f12": {
+   "ratings": {
+    "1": {
+     "overall": 2
+    },
+    "2": {
+     "overall": 2
+    }
+   },
+   "prefer": "same"
+  },
+  "f13": {
+   "ratings": {
+    "1": {
+     "overall": 2
+    },
+    "2": {
+     "overall": 2
+    }
+   },
+   "prefer": "same"
+  },
+  "f14": {
+   "ratings": {
+    "1": {
+     "overall": 3
+    },
+    "2": {
+     "overall": 3
+    }
+   },
+   "prefer": "same"
+  },
+  "f15": {
+   "ratings": {
+    "1": {
+     "overall": 3
+    },
+    "2": {
+     "overall": 3
+    }
+   },
+   "prefer": "same"
+  }
+ },
+ "revealed": {
+  "f01": {
+   "video": "VD6xJq8NguY",
+   "start": 272.12,
+   "end": 283.32,
+   "versions": {
+    "before": "work/_bench/fill/before/VD6xJq8NguY.mp4",
+    "slowed": "work/_bench/fill/after/VD6xJq8NguY.mp4"
+   },
+   "ratings": {
+    "slowed": {
+     "overall": 4
+    },
+    "before": {
+     "overall": 2
+    }
+   },
+   "prefer": "slowed"
+  },
+  "f02": {
+   "video": "VD6xJq8NguY",
+   "start": 283.32,
+   "end": 296.43,
+   "versions": {
+    "before": "work/_bench/fill/before/VD6xJq8NguY.mp4",
+    "slowed": "work/_bench/fill/after/VD6xJq8NguY.mp4"
+   },
+   "ratings": {
+    "before": {
+     "overall": 3
+    },
+    "slowed": {
+     "overall": 3
+    }
+   },
+   "prefer": "same"
+  },
+  "f03": {
+   "video": "VD6xJq8NguY",
+   "start": 305.36,
+   "end": 315.6,
+   "versions": {
+    "before": "work/_bench/fill/before/VD6xJq8NguY.mp4",
+    "slowed": "work/_bench/fill/after/VD6xJq8NguY.mp4"
+   },
+   "ratings": {
+    "before": {
+     "overall": 3
+    },
+    "slowed": {
+     "overall": 3
+    }
+   },
+   "prefer": "same"
+  },
+  "f04": {
+   "video": "VD6xJq8NguY",
+   "start": 328.83,
+   "end": 339.24,
+   "versions": {
+    "before": "work/_bench/fill/before/VD6xJq8NguY.mp4",
+    "slowed": "work/_bench/fill/after/VD6xJq8NguY.mp4"
+   },
+   "ratings": {
+    "before": {
+     "overall": 3
+    },
+    "slowed": {
+     "overall": 3
+    }
+   },
+   "prefer": "same"
+  },
+  "f05": {
+   "video": "VD6xJq8NguY",
+   "start": 339.24,
+   "end": 349.25,
+   "versions": {
+    "before": "work/_bench/fill/before/VD6xJq8NguY.mp4",
+    "slowed": "work/_bench/fill/after/VD6xJq8NguY.mp4"
+   },
+   "ratings": {
+    "slowed": {
+     "overall": 4
+    },
+    "before": {
+     "overall": 4
+    }
+   },
+   "prefer": "same"
+  },
+  "f06": {
+   "video": "VD6xJq8NguY",
+   "start": 368.74,
+   "end": 379.86,
+   "versions": {
+    "before": "work/_bench/fill/before/VD6xJq8NguY.mp4",
+    "slowed": "work/_bench/fill/after/VD6xJq8NguY.mp4"
+   },
+   "ratings": {
+    "slowed": {
+     "overall": 4
+    },
+    "before": {
+     "overall": 4
+    }
+   },
+   "prefer": "same"
+  },
+  "f07": {
+   "video": "VD6xJq8NguY",
+   "start": 390.37,
+   "end": 401.69,
+   "versions": {
+    "before": "work/_bench/fill/before/VD6xJq8NguY.mp4",
+    "slowed": "work/_bench/fill/after/VD6xJq8NguY.mp4"
+   },
+   "ratings": {
+    "slowed": {
+     "overall": 4
+    },
+    "before": {
+     "overall": 4
+    }
+   },
+   "prefer": "same"
+  },
+  "f08": {
+   "video": "VD6xJq8NguY",
+   "start": 401.69,
+   "end": 412.69,
+   "versions": {
+    "before": "work/_bench/fill/before/VD6xJq8NguY.mp4",
+    "slowed": "work/_bench/fill/after/VD6xJq8NguY.mp4"
+   },
+   "ratings": {
+    "slowed": {
+     "overall": 3
+    },
+    "before": {
+     "overall": 3
+    }
+   },
+   "prefer": "same"
+  },
+  "f09": {
+   "video": "R4zlpwwEpnY",
+   "start": 492.91,
+   "end": 504.07,
+   "versions": {
+    "before": "work/_bench/fill/before/R4zlpwwEpnY.mp4",
+    "slowed": "work/_bench/fill/after/R4zlpwwEpnY.mp4"
+   },
+   "ratings": {
+    "slowed": {
+     "overall": 2
+    },
+    "before": {
+     "overall": 2
+    }
+   },
+   "prefer": "same"
+  },
+  "f10": {
+   "video": "R4zlpwwEpnY",
+   "start": 505.09,
+   "end": 518.15,
+   "versions": {
+    "before": "work/_bench/fill/before/R4zlpwwEpnY.mp4",
+    "slowed": "work/_bench/fill/after/R4zlpwwEpnY.mp4"
+   },
+   "ratings": {
+    "before": {
+     "overall": 2
+    },
+    "slowed": {
+     "overall": 2
+    }
+   },
+   "prefer": "same"
+  },
+  "f11": {
+   "video": "R4zlpwwEpnY",
+   "start": 529.87,
+   "end": 541.81,
+   "versions": {
+    "before": "work/_bench/fill/before/R4zlpwwEpnY.mp4",
+    "slowed": "work/_bench/fill/after/R4zlpwwEpnY.mp4"
+   },
+   "ratings": {
+    "before": {
+     "overall": 2
+    },
+    "slowed": {
+     "overall": 2
+    }
+   },
+   "prefer": "same"
+  },
+  "f12": {
+   "video": "R4zlpwwEpnY",
+   "start": 548.85,
+   "end": 559.97,
+   "versions": {
+    "before": "work/_bench/fill/before/R4zlpwwEpnY.mp4",
+    "slowed": "work/_bench/fill/after/R4zlpwwEpnY.mp4"
+   },
+   "ratings": {
+    "before": {
+     "overall": 2
+    },
+    "slowed": {
+     "overall": 2
+    }
+   },
+   "prefer": "same"
+  },
+  "f13": {
+   "video": "R4zlpwwEpnY",
+   "start": 560.45,
+   "end": 572.33,
+   "versions": {
+    "before": "work/_bench/fill/before/R4zlpwwEpnY.mp4",
+    "slowed": "work/_bench/fill/after/R4zlpwwEpnY.mp4"
+   },
+   "ratings": {
+    "before": {
+     "overall": 2
+    },
+    "slowed": {
+     "overall": 2
+    }
+   },
+   "prefer": "same"
+  },
+  "f14": {
+   "video": "R4zlpwwEpnY",
+   "start": 595.23,
+   "end": 606.87,
+   "versions": {
+    "before": "work/_bench/fill/before/R4zlpwwEpnY.mp4",
+    "slowed": "work/_bench/fill/after/R4zlpwwEpnY.mp4"
+   },
+   "ratings": {
+    "before": {
+     "overall": 3
+    },
+    "slowed": {
+     "overall": 3
+    }
+   },
+   "prefer": "same"
+  },
+  "f15": {
+   "video": "R4zlpwwEpnY",
+   "start": 612.65,
+   "end": 625.03,
+   "versions": {
+    "before": "work/_bench/fill/before/R4zlpwwEpnY.mp4",
+    "slowed": "work/_bench/fill/after/R4zlpwwEpnY.mp4"
+   },
+   "ratings": {
+    "before": {
+     "overall": 3
+    },
+    "slowed": {
+     "overall": 3
+    }
+   },
+   "prefer": "same"
+  }
+ }
+}

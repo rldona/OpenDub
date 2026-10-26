@@ -109,6 +109,7 @@ def retouch(wd: WorkDir, settings: Settings, new_takes: list[int] | tuple[int, .
     f = repair.Fitting(wd, clips, voices, slots, by_id, settings, only=set(ids))
     f.speak([(by_id[i], voices[i]) for i in ids])
     fell_back, still_bad, n_short, below_floor = repair.fit(f, engine)
+    tts.fill_gaps(wd, clips, segments, settings.min_tempo, only=set(ids))
 
     index["clips"] = [asdict(clips[s.id]) for s in segments]
     index["sources"] = {str(s.id): s.text for s in segments}  # every pending edit is spoken now

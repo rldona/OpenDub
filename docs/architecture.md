@@ -75,7 +75,8 @@ flowchart TD
     itts --> fit
     cv --> fit
     fit["Fit to slot<br/>speed factor → Claude shortening → below floor → atempo"] --> qc
-    qc["Quality check · whisper<br/>on failure: another seed → shorter sentence → fixed reference → stock voice"] --> clips
+    qc["Quality check · whisper<br/>on failure: another seed → shorter sentence → fixed reference → stock voice"] --> gaps
+    gaps["Fill gaps<br/>a clip that ends well before the original is slowed down (≥ 0.9),<br/>walking the clips as the mix will place them"] --> clips
     clips["Clips in tts/ + tts.json → mix"]
 ```
 

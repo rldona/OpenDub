@@ -11,18 +11,45 @@ from opendub.models import Segment
 
 
 @pytest.mark.parametrize(
-    "duration, slot, seg_dur, min_tempo, expected",
+    "duration, slot, expected",
     [
-        (2.0, 3.0, 2.5, 1.0, 1.0),  # fits: left untouched
-        (3.3, 3.0, 2.5, 1.0, 1.1),  # sped up just enough
-        (5.0, 3.0, 2.5, 1.0, 1.25),  # does not fit even at the maximum
-        (1.0, 3.0, 2.5, 1.0, 1.0),  # short, not slowed down by default
-        (2.25, 3.0, 2.5, 0.85, 0.9),  # with min_tempo<1 it slows down to fill the segment…
-        (1.0, 3.0, 2.5, 0.85, 0.85),  # …but not below the minimum
+        (2.0, 3.0, 1.0),  # fits: left untouched
+        (3.3, 3.0, 1.1),  # sped up just enough
+        (5.0, 3.0, 1.25),  # does not fit even at the maximum
     ],
 )
-def test_choose_tempo(duration, slot, seg_dur, min_tempo, expected):
-    assert math.isclose(tts.choose_tempo(duration, slot, seg_dur, min_tempo, 1.25), expected)
+def test_choose_tempo(duration, slot, expected):
+    assert math.isclose(tts.choose_tempo(duration, slot, 1.25), expected)
+
+
+def _clip(i, start, duration, tempo=1.0):
+    return tts.Clip(i, start, 10.0, duration, tempo, duration, 0.0, f"tts/{i:04d}.wav")
+
+
+def test_slow_downs_fill_up_to_the_original_end_not_below_the_minimum():
+    clips = [_clip(1, 0.0, 2.25), _clip(2, 10.0, 1.0), _clip(3, 20.0, 2.9)]
+    ends = {1: 2.5, 2: 12.5, 3: 23.0}
+    got = tts.slow_downs(clips, ends, 0.85)
+    assert math.isclose(got[1], 0.9)  # 2.25 s fills its 2.5 s
+    assert got[2] == 0.85  # 1 s would need 0.4: only as far as the minimum
+    assert 3 not in got  # already fills almost all of its 3.1 s
+    assert tts.slow_downs(clips, ends, 1.0) == {}  # --min-tempo 1: never
+
+
+def test_slow_downs_keep_the_slack_that_absorbs_a_delay():
+    # clip 1 runs 0.5 s into clip 2's time: clip 2 starts late and has less room
+    clips = [_clip(1, 0.0, 3.5, tempo=1.25), _clip(2, 3.0, 2.0), _clip(3, 6.0, 2.0)]
+    got = tts.slow_downs(clips, {1: 3.0, 2: 6.0, 3: 8.25}, 0.9)
+    assert 1 not in got  # sped up: never slowed
+    # pushed to 3.58 s, clip 2 may only end at 5.92 s (not at its 6 s): slowed, it ends at 5.8…
+    assert 3.58 + 2.0 / got[2] <= 5.92
+    assert math.isclose(got[3], 0.9)  # …so clip 3 still starts on time and is slowed too
+    assert tts.slow_downs([_clip(1, 0.0, 3.5, tempo=1.25), _clip(2, 3.0, 2.3)], {2: 6.0}, 0.9) == {}  # 2.3 of 2.42 s
+
+
+def test_slow_downs_with_only_touch_those():
+    clips = [_clip(1, 0.0, 1.0), _clip(2, 5.0, 1.0)]
+    assert set(tts.slow_downs(clips, {1: 2.0, 2: 7.0}, 0.9, only={2})) == {2}
 
 
 def test_slots_reach_next_segment_or_media_end():

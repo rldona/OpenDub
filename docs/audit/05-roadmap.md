@@ -59,7 +59,8 @@ Estas decisiones son del propietario, todas del 2026-10-25:
 | | T-33 Reducir la lista de mypy | P2 | S | G-024 |
 | | T-34 Subtítulos con hablante (ASS y WebVTT) | P3 | S | Backlog 12 |
 | | T-35 LAN: redes de confianza y token persistente opcional | P3 | S | Pendiente 6 |
-| 1 · Medir lo que falta (nuevo) | T-36 Llenar el hueco cuando sobra | **P1** | M | T-26 (§9 de la auditoría 2) |
+| 1 · Medir lo que falta (nuevo) | T-36 Llenar el hueco cuando sobra (hecho: no se oye) | P1 | M | T-26 (§9 de la auditoría 2) |
+| | T-37 Seguir el ritmo de quien habla | **P1** | M | T-36 (§10 de la auditoría 2) |
 
 **Sin ticket, por ser decisiones del propietario:**
 - Usuarios: se revisa tras T-26.
@@ -69,8 +70,8 @@ Estas decisiones son del propietario, todas del 2026-10-25:
   varias voces de T-26.
 
 **Orden sugerido:**
-1. T-26 y T-27 están hechos. T-36, que salió de T-26, va primero: es un defecto de
-   calidad audible.
+1. T-26, T-27 y T-36 están hechos. T-37, que salió de T-36, va primero: es lo que hace
+   sonar mal una conversación.
 2. T-27 antes que T-28: su juez de fidelidad es lo que valida Ollama frente a Sonnet.
 3. T-32 y T-33 cuando haya un hueco: no dependen de nada.
 
@@ -145,6 +146,27 @@ Estas decisiones son del propietario, todas del 2026-10-25:
   - Una sesión a ciegas frente a la versión actual en los tramos de T-26.
   - Los vídeos que ya llenaban (la música, la voz A) no empeoran en `dub_metrics.py`.
 - **Antes de** decidir varias voces por defecto en la CLI.
+- **Resultado (2026-10-26, [§10](03-competencia.md#10-llenar-el-hueco-y-lo-que-de-verdad-falla-en-el-pódcast-t-36-2026-10-26)):**
+  - Queda la opción 2, decidida donde la mezcla colocará cada clip (`tts.fill_gaps`,
+    `--min-tempo 0.9` por defecto). La 1 no llenaba y metía relleno.
+  - B llena el 89 % (el 84 % en el tramo de la escucha). No llega al 90 %.
+  - La música no empeora.
+  - A ciegas no se distingue (igual en 14 de 15). La aceptación no se cumple: el hueco
+    no era lo que se oía.
+
+### T-37 · Seguir el ritmo de quien habla (P1, M)
+
+- **Origen:** T-36 ([03-competencia.md §10](03-competencia.md#10-llenar-el-hueco-y-lo-que-de-verdad-falla-en-el-pódcast-t-36-2026-10-26)).
+  En el pódcast «la traducción no acompaña a la persona que habla»:
+  - las frases largas se cortan a los 12 s, a mitad de frase;
+  - cada clip cierra la entonación donde se corta;
+  - la voz no hace las pausas que hace el original.
+- **Prueba:** cortar las frases largas por las pausas y comas del propio hablante, en
+  trozos de hasta 6–7 s, en lugar de a los 12 s. Volver a traducir y doblar el pódcast.
+- **Aceptación:**
+  - Una sesión a ciegas frente a la versión actual en el tramo del pódcast, con la
+    versión nueva preferida.
+  - Ni el vídeo con música ni la fidelidad (T-27) empeoran.
 
 ## Fase 2 · Traducir sin depender de la suscripción
 

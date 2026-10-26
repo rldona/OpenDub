@@ -111,7 +111,7 @@ Common `dub` options:
 | `--rate` | `-10%` | Native edge-tts speaking rate (more negative = slower, without stretching the audio) |
 | `--chars-per-second` | calibrated | Speaking rate used to cap each translation's length; measured with the chosen voice by default |
 | `--shorten` / `--no-shorten` | on | If a sentence doesn't fit even at `--max-tempo`, ask Claude for a shorter version and re-synthesize it |
-| `--max-tempo` / `--min-tempo` | `1.25` / `1.0` | atempo range (`--min-tempo 0.9` allows slowing down by stretching the audio) |
+| `--max-tempo` / `--min-tempo` | `1.25` / `0.9` | atempo range: a clip that ends well before its sentence did in the original is slowed down, without pushing the next one (`--min-tempo 1` never slows down) |
 | `--force` | off | Redoes every phase |
 
 Each phase can also run on its own: `download`, `transcribe`, `translate`, `tts`,

@@ -16,6 +16,14 @@ def no_real_synthesis(monkeypatch):
 
 
 @pytest.fixture(autouse=True)
+def no_real_slowing(monkeypatch):
+    """Faked clips are not real audio: slowing one down only changes its tempo and duration."""
+    from opendub import tts
+
+    monkeypatch.setattr(tts, "_slow", lambda final, tempo: None)
+
+
+@pytest.fixture(autouse=True)
 def no_real_style(monkeypatch, tmp_path_factory):
     """Settings() defaults to work/ in the repo: tests must not pick up the user's work/style.json."""
     from opendub import style

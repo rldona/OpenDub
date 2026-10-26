@@ -9,6 +9,10 @@ docs/bench/results/dubs/<id>__<version>.json:
 - fit: clips, sped up (and the highest tempo), not fitting, shortened, on edge-tts;
 - delays and drift, from the same placement the mix makes (mix.place): the largest and
   mean delay, and the seconds of voice heard more than 0.5 s late;
+- fill: how much of the original's speaking time the dub's voice covers (each clip up to
+  its slot, over the length of its sentence in the original), with the clips under 80%,
+  per speaker when the dub has several voices: a voice that finishes early leaves
+  silences in the middle of a conversation (T-36);
 - loudness: integrated loudness and true peak of the final track (EBU R128);
 - intelligibility on the final track: whisper transcribes, in Spanish, the stretch where
   each clip is heard (over the music, as it is heard) and it is compared with the text
@@ -39,6 +43,7 @@ WORK = Path("work")
 RESULTS = Path(__file__).parent / "results" / "dubs"
 SR = 16000
 LATE_S = 0.5
+UNDER = 0.8
 
 
 def versions(vid: str, which: str) -> list[str]:
@@ -67,6 +72,22 @@ def fit_and_drift(clips: list[Clip]) -> dict:
             "max_delay_s": round(max(delays, default=0.0), 2),
             "mean_delay_s": round(sum(delays) / len(delays), 3) if delays else 0.0,
             "late_voice_s": round(late, 1)}
+
+
+def fill(clips: list[Clip], originals: dict[int, float], speakers: dict[str, str] | None) -> dict:
+    """Share of the original's speaking time the voice covers, whole and per speaker."""
+    def share(group: list[Clip]) -> dict:
+        spoken = sum(min(c.duration, c.slot) for c in group)
+        said = sum(originals[c.id] for c in group)
+        return {"fill": round(spoken / said, 3) if said else None,
+                "under_80": sum(1 for c in group if min(c.duration, c.slot) < UNDER * originals[c.id])}
+
+    clips = [c for c in clips if originals.get(c.id)]
+    row = share(clips)
+    if speakers:
+        row["by_speaker"] = {spk: share([c for c in clips if speakers.get(str(c.id)) == spk])
+                             for spk in sorted(set(speakers.values()))}
+    return row
 
 
 def asr(path: Path, clips: list[Clip], model_name: str) -> dict:
@@ -105,7 +126,10 @@ def measure(vid: str, version: str, model_name: str | None) -> dict:
     clips = [Clip(**c) for c in (index["clips"] if isinstance(index, dict) else index)]
     row = {"video": vid, "version": version, "engine": index.get("engine") if isinstance(index, dict) else None,
            "shortened": (index.get("stats") or {}).get("shortened") if isinstance(index, dict) else None}
-    row |= fit_and_drift(clips) | loudness(out / f"{version}.mp4")
+    originals = {s["id"]: s["end"] - s["start"]
+                 for s in json.loads((WORK / vid / "segments.json").read_text(encoding="utf-8"))}
+    row |= fit_and_drift(clips) | fill(clips, originals, index.get("speakers") if isinstance(index, dict) else None)
+    row |= loudness(out / f"{version}.mp4")
     if model_name:
         row |= asr(out / f"{version}.mp4", clips, model_name)
     return row
