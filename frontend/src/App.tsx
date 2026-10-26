@@ -65,11 +65,13 @@ export function App() {
           <NavLink to="#/preferences" icon="preferences" current={section === "preferences"}>{t("preferences")}</NavLink>
         </nav>
         <main className="content">
-          {route.page === "library" && <Library />}
-          {route.page === "video" && <VideoPage key={route.id} id={route.id} />}
-          {route.page === "compare" && <Compare id={route.id} />}
-          {route.page === "engines" && <Engines />}
-          {route.page === "preferences" && <Preferences />}
+          <div className="page">
+            {route.page === "library" && <Library />}
+            {route.page === "video" && <VideoPage key={route.id} id={route.id} />}
+            {route.page === "compare" && <Compare id={route.id} />}
+            {route.page === "engines" && <Engines />}
+            {route.page === "preferences" && <Preferences />}
+          </div>
         </main>
       </div>
       <Footer />

@@ -16,7 +16,7 @@ export function Preferences() {
   const engines = useEngines();
   const installed = (id: EngineChoice) => engines?.find((e) => e.id === id)?.installed ?? true;
   return (
-    <div className="stack" style={{ gap: 18, maxWidth: 900 }}>
+    <div className="stack" style={{ gap: 18 }}>
       <div>
         <div className="crumbs">{t("setup")} / {t("preferences")}</div>
         <h1>{t("preferences")}</h1>
