@@ -1,0 +1,379 @@
+{
+ "name": "engines-talk",
+ "sources": [
+  "chatterbox",
+  "indextts",
+  "cosyvoice"
+ ],
+ "criteria": [
+  "overall"
+ ],
+ "seed": 4,
+ "videos": [
+  "R4zlpwwEpnY@484-634"
+ ],
+ "answers": {
+  "f01": {
+   "ratings": {
+    "1": {
+     "overall": 3
+    },
+    "2": {
+     "overall": 3
+    },
+    "3": {
+     "overall": 3
+    }
+   },
+   "prefer": "same"
+  },
+  "f02": {
+   "ratings": {
+    "1": {
+     "overall": 3
+    },
+    "2": {
+     "overall": 4
+    },
+    "3": {
+     "overall": 3
+    }
+   },
+   "prefer": "2"
+  },
+  "f03": {
+   "ratings": {
+    "1": {
+     "overall": 3
+    },
+    "2": {
+     "overall": 3
+    },
+    "3": {
+     "overall": 5
+    }
+   },
+   "prefer": "3"
+  },
+  "f04": {
+   "ratings": {
+    "1": {
+     "overall": 5
+    },
+    "2": {
+     "overall": 3
+    },
+    "3": {
+     "overall": 1
+    }
+   },
+   "prefer": "1"
+  },
+  "f05": {
+   "ratings": {
+    "1": {
+     "overall": 5
+    },
+    "2": {
+     "overall": 2
+    },
+    "3": {
+     "overall": 3
+    }
+   },
+   "prefer": "1"
+  },
+  "f06": {
+   "ratings": {
+    "1": {
+     "overall": 4
+    },
+    "2": {
+     "overall": 5
+    },
+    "3": {
+     "overall": 3
+    }
+   },
+   "prefer": "2"
+  },
+  "f07": {
+   "ratings": {
+    "1": {
+     "overall": 3
+    },
+    "2": {
+     "overall": 3
+    },
+    "3": {
+     "overall": 3
+    }
+   },
+   "prefer": "same"
+  },
+  "f08": {
+   "ratings": {
+    "1": {
+     "overall": 4
+    },
+    "2": {
+     "overall": 2
+    },
+    "3": {
+     "overall": 2
+    }
+   },
+   "prefer": "1"
+  },
+  "f09": {
+   "ratings": {
+    "1": {
+     "overall": 4
+    },
+    "2": {
+     "overall": 2
+    },
+    "3": {
+     "overall": 3
+    }
+   },
+   "prefer": "1"
+  },
+  "f10": {
+   "ratings": {
+    "1": {
+     "overall": 4
+    },
+    "2": {
+     "overall": 4
+    },
+    "3": {
+     "overall": 4
+    }
+   },
+   "prefer": "2"
+  }
+ },
+ "revealed": {
+  "f01": {
+   "video": "R4zlpwwEpnY",
+   "start": 490.45,
+   "end": 504.07,
+   "versions": {
+    "chatterbox": "20261026-091627-chatterbox",
+    "indextts": "20261026-100538-indextts",
+    "cosyvoice": "20261026-101919-cosyvoice"
+   },
+   "ratings": {
+    "chatterbox": {
+     "overall": 3
+    },
+    "indextts": {
+     "overall": 3
+    },
+    "cosyvoice": {
+     "overall": 3
+    }
+   },
+   "prefer": "same"
+  },
+  "f02": {
+   "video": "R4zlpwwEpnY",
+   "start": 505.09,
+   "end": 518.15,
+   "versions": {
+    "chatterbox": "20261026-091627-chatterbox",
+    "indextts": "20261026-100538-indextts",
+    "cosyvoice": "20261026-101919-cosyvoice"
+   },
+   "ratings": {
+    "indextts": {
+     "overall": 3
+    },
+    "cosyvoice": {
+     "overall": 4
+    },
+    "chatterbox": {
+     "overall": 3
+    }
+   },
+   "prefer": "cosyvoice"
+  },
+  "f03": {
+   "video": "R4zlpwwEpnY",
+   "start": 518.59,
+   "end": 529.87,
+   "versions": {
+    "chatterbox": "20261026-091627-chatterbox",
+    "indextts": "20261026-100538-indextts",
+    "cosyvoice": "20261026-101919-cosyvoice"
+   },
+   "ratings": {
+    "chatterbox": {
+     "overall": 3
+    },
+    "indextts": {
+     "overall": 3
+    },
+    "cosyvoice": {
+     "overall": 5
+    }
+   },
+   "prefer": "cosyvoice"
+  },
+  "f04": {
+   "video": "R4zlpwwEpnY",
+   "start": 529.87,
+   "end": 541.81,
+   "versions": {
+    "chatterbox": "20261026-091627-chatterbox",
+    "indextts": "20261026-100538-indextts",
+    "cosyvoice": "20261026-101919-cosyvoice"
+   },
+   "ratings": {
+    "cosyvoice": {
+     "overall": 5
+    },
+    "chatterbox": {
+     "overall": 3
+    },
+    "indextts": {
+     "overall": 1
+    }
+   },
+   "prefer": "cosyvoice"
+  },
+  "f05": {
+   "video": "R4zlpwwEpnY",
+   "start": 548.85,
+   "end": 559.97,
+   "versions": {
+    "chatterbox": "20261026-091627-chatterbox",
+    "indextts": "20261026-100538-indextts",
+    "cosyvoice": "20261026-101919-cosyvoice"
+   },
+   "ratings": {
+    "cosyvoice": {
+     "overall": 5
+    },
+    "indextts": {
+     "overall": 2
+    },
+    "chatterbox": {
+     "overall": 3
+    }
+   },
+   "prefer": "cosyvoice"
+  },
+  "f06": {
+   "video": "R4zlpwwEpnY",
+   "start": 560.45,
+   "end": 572.33,
+   "versions": {
+    "chatterbox": "20261026-091627-chatterbox",
+    "indextts": "20261026-100538-indextts",
+    "cosyvoice": "20261026-101919-cosyvoice"
+   },
+   "ratings": {
+    "indextts": {
+     "overall": 4
+    },
+    "cosyvoice": {
+     "overall": 5
+    },
+    "chatterbox": {
+     "overall": 3
+    }
+   },
+   "prefer": "cosyvoice"
+  },
+  "f07": {
+   "video": "R4zlpwwEpnY",
+   "start": 583.45,
+   "end": 595.23,
+   "versions": {
+    "chatterbox": "20261026-091627-chatterbox",
+    "indextts": "20261026-100538-indextts",
+    "cosyvoice": "20261026-101919-cosyvoice"
+   },
+   "ratings": {
+    "chatterbox": {
+     "overall": 3
+    },
+    "indextts": {
+     "overall": 3
+    },
+    "cosyvoice": {
+     "overall": 3
+    }
+   },
+   "prefer": "same"
+  },
+  "f08": {
+   "video": "R4zlpwwEpnY",
+   "start": 595.23,
+   "end": 606.87,
+   "versions": {
+    "chatterbox": "20261026-091627-chatterbox",
+    "indextts": "20261026-100538-indextts",
+    "cosyvoice": "20261026-101919-cosyvoice"
+   },
+   "ratings": {
+    "cosyvoice": {
+     "overall": 4
+    },
+    "chatterbox": {
+     "overall": 2
+    },
+    "indextts": {
+     "overall": 2
+    }
+   },
+   "prefer": "cosyvoice"
+  },
+  "f09": {
+   "video": "R4zlpwwEpnY",
+   "start": 606.87,
+   "end": 617.39,
+   "versions": {
+    "chatterbox": "20261026-091627-chatterbox",
+    "indextts": "20261026-100538-indextts",
+    "cosyvoice": "20261026-101919-cosyvoice"
+   },
+   "ratings": {
+    "cosyvoice": {
+     "overall": 4
+    },
+    "indextts": {
+     "overall": 2
+    },
+    "chatterbox": {
+     "overall": 3
+    }
+   },
+   "prefer": "cosyvoice"
+  },
+  "f10": {
+   "video": "R4zlpwwEpnY",
+   "start": 620.07,
+   "end": 632.57,
+   "versions": {
+    "chatterbox": "20261026-091627-chatterbox",
+    "indextts": "20261026-100538-indextts",
+    "cosyvoice": "20261026-101919-cosyvoice"
+   },
+   "ratings": {
+    "chatterbox": {
+     "overall": 4
+    },
+    "cosyvoice": {
+     "overall": 4
+    },
+    "indextts": {
+     "overall": 4
+    }
+   },
+   "prefer": "cosyvoice"
+  }
+ }
+}

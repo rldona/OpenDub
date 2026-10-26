@@ -18,9 +18,12 @@ export interface Prefs {
 
 const KEY = "opendub.prefs";
 const DEFAULTS: Prefs = {
-  lang: "en", theme: "system", accent: "violet", tts: "clone", engine: "chatterbox", separate: true, bgVolume: 0,
+  lang: "en", theme: "system", accent: "violet", tts: "clone", engine: "auto", separate: true, bgVolume: 0,
   voice: "es-ES-AlvaroNeural",
 };
+// Chatterbox was the default engine until Automatic picked by the dub's voices: a saved Chatterbox
+// from then is that old default, so it becomes Automatic once (ENGINES_V marks prefs saved since)
+const ENGINES_V = 2;
 
 // Spanish when the browser asks for any Spanish (es, es-ES, es-419…), English otherwise
 export function browserLang(languages: readonly string[] = navigator.languages ?? [navigator.language]): Lang {
@@ -34,6 +37,7 @@ function load(): Prefs {
     const saved = JSON.parse(localStorage.getItem(KEY) || "{}");
     const old = localStorage.getItem("ot.lang"); // the old page's setting
     const lang = saved.lang ?? (old === "es" || old === "en" ? old : browserLang());
+    if (saved.enginesV !== ENGINES_V && saved.engine === "chatterbox") delete saved.engine;
     return { ...DEFAULTS, ...saved, lang };
   } catch {
     return { ...DEFAULTS, lang: browserLang() };
@@ -54,7 +58,7 @@ export function PrefsProvider({ children }: { children: ReactNode }) {
     setPrefs((old) => {
       const next = { ...old, ...change };
       try {
-        localStorage.setItem(KEY, JSON.stringify(next));
+        localStorage.setItem(KEY, JSON.stringify({ ...next, enginesV: ENGINES_V }));
       } catch {
         /* kept for this visit only */
       }

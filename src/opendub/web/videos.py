@@ -37,7 +37,8 @@ WEB_ENGINES = ("chatterbox", "indextts", "cosyvoice")  # chatterbox-es is a CLI-
 def engines(settings: Settings | None = None) -> list[dict[str, Any]]:
     """The cloning engines for the selector: ready to use or not, and the command that installs them.
 
-    Automatic uses Chatterbox and IndexTTS (tts.resolve_engine), so it needs both.
+    Automatic needs Chatterbox; it uses CosyVoice when several people speak, if installed
+    (tts.resolve_engine).
     """
     import importlib.util
 
@@ -55,7 +56,7 @@ def engines(settings: Settings | None = None) -> list[dict[str, Any]]:
         "indextts": "uv run opendub setup-engine indextts",
         "cosyvoice": "uv run opendub setup-engine cosyvoice",
     }
-    auto_missing = [e for e in ("chatterbox", "indextts") if not ready[e]]
+    auto_missing = [e for e in ("chatterbox",) if not ready[e]]
     out = [{"id": "auto", "name": "Automatic", "installed": not auto_missing,
             "setup": " && ".join(setup[e] for e in auto_missing) or None}]
     for e in WEB_ENGINES:

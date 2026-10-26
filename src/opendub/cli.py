@@ -53,8 +53,8 @@ Engine = Annotated[
     str,
     typer.Option(
         "--engine",
-        help="Cloning engine for --tts clone: chatterbox, indextts, cosyvoice, chatterbox-es (the es-ES finetune, for comparisons), or auto (by the reference's pitch: "
-        "IndexTTS below 165 Hz, Chatterbox above)",
+        help="Cloning engine for --tts clone: auto (CosyVoice when several people speak, Chatterbox for one voice), "
+        "chatterbox, indextts, cosyvoice, or chatterbox-es (the es-ES finetune, for comparisons)",
     ),
 ]
 MinFactor = Annotated[
@@ -216,7 +216,7 @@ def translate(
     model: ClaudeModel = "claude-sonnet-5-5",
     voice: Voice = "es-ES-AlvaroNeural",
     tts: Tts = "edge",
-    engine: Engine = "chatterbox",
+    engine: Engine = "auto",
     batch_size: BatchSize = 30,
     chars_per_second: CharsPerSecond = None,
     rate: Rate = "-10%",
@@ -247,7 +247,7 @@ def tts(
     work: WorkRoot = Path("work"),
     voice: Voice = "es-ES-AlvaroNeural",
     tts: Tts = "edge",
-    engine: Engine = "chatterbox",
+    engine: Engine = "auto",
     min_factor: MinFactor = 0.7,
     clone_ref: CloneRef = None,
     whisper_model: WhisperModel = "small",
@@ -506,7 +506,7 @@ def dub(
     model: ClaudeModel = "claude-sonnet-5-5",
     voice: Voice = "es-ES-AlvaroNeural",
     tts: Tts = "edge",
-    engine: Engine = "chatterbox",
+    engine: Engine = "auto",
     min_factor: MinFactor = 0.7,
     clone_ref: CloneRef = None,
     keep_translation: KeepTranslation = False,

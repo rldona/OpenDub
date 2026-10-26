@@ -503,16 +503,17 @@ CHATTERBOX = {"chatterbox": "v3", "chatterbox-es": "es-es"}  # engine → clone 
 NATIVE_DURATION = ("indextts", "cosyvoice")
 
 
-AUTO_F0_HZ = 165.0  # --engine auto: references below it get IndexTTS, the rest Chatterbox
+AUTO_F0_HZ = 165.0  # a speaker's gender: references below it are a man's (voices.gender_of)
 
 
-def resolve_engine(settings: Settings, ref: Path | None = None) -> str:
+def resolve_engine(settings: Settings, ref: Path | None = None, several: bool = False) -> str:
     """The engine that speaks: edge for --tts edge, the --engine choice for --tts clone.
 
-    `auto` picks by the reference's mean F0 (it needs `ref`): IndexTTS for low
-    voices, Chatterbox for high ones, which is what was preferred by ear on the
-    two benchmark videos (one voice of each). A rule from two voices, hence
-    opt-in; Chatterbox when the F0 can't be measured.
+    `auto`, the default, picks by the dub: CosyVoice when several people speak
+    (`several`), Chatterbox for one voice. Heard blind (docs/audit/03-competencia.md
+    section 12), CosyVoice won the two-host podcast clearly (4.2 against 3.0) and
+    Chatterbox narration by a little (4.0 against 3.5). Without CosyVoice installed,
+    Chatterbox. `ref` is no longer needed; kept for the callers that pass it.
     """
     if settings.tts not in ("edge", "clone"):
         raise SystemExit(f"--tts must be edge or clone (not {settings.tts!r})")
@@ -522,10 +523,9 @@ def resolve_engine(settings: Settings, ref: Path | None = None) -> str:
         raise SystemExit(f"--engine must be {', '.join(CLONE_ENGINES)} or auto (not {settings.engine!r})")
     if settings.engine != "auto":
         return settings.engine
-    if ref is None:
-        raise ValueError("--engine auto needs the reference to measure its pitch")
-    f0 = reference.mean_f0(ref)
-    return "indextts" if f0 is not None and f0 < AUTO_F0_HZ else "chatterbox"
+    from . import cosyvoice
+
+    return "cosyvoice" if several and cosyvoice.installed(settings.cosyvoice_dir) else "chatterbox"
 
 
 def native_duration(engine: str) -> bool:
@@ -763,12 +763,12 @@ def run(wd: WorkDir, settings: Settings, force: bool = False) -> list[Clip]:
     ref_f0 = reference.mean_f0(ref) if cloned else None
     choice = None
     if cloned:
-        # logged (and kept in tts.json) to later relate the engine choice to the voice pitch
+        # logged (and kept in tts.json) to later relate the engine choice to the voices
         f0 = f"{ref_f0:.0f} Hz" if ref_f0 else "unknown"
         how = ""
         if settings.engine == "auto":
-            how = f" (auto: F0 {'below' if engine == 'indextts' else 'not below'} {AUTO_F0_HZ:.0f} Hz)"
-        choice = f"auto (F0 threshold {AUTO_F0_HZ:.0f} Hz)" if settings.engine == "auto" else "manual"
+            how = f" (auto: {'several voices' if len(by_speaker) > 1 else 'one voice'})"
+        choice = "auto (CosyVoice with several voices, Chatterbox with one)" if settings.engine == "auto" else "manual"
         log.info(f"Cloned voice: engine {engine}{how} ({engine_model(engine)}) · reference mean F0 {f0} · "
                  f"{len(segments)} segments")
     for spk, v in by_speaker.items():

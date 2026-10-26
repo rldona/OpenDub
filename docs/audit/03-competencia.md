@@ -668,6 +668,44 @@ fragmentos): **no se distingue**. Igual en 14, la versión nueva preferida en 1;
   una narración, y en narración (el vídeo con música) saca 3,4–3,5. Siguiente prueba:
   el motor (T-38).
 
+## 12. El motor en una conversación (T-38, 2026-10-26)
+
+**Montaje:**
+- El pódcast con sus frases de siempre (185), doblado con IndexTTS-2.5 y con CosyVoice
+  3, cada uno con su propia traducción a su ritmo, frente a la versión de Chatterbox V3.
+- Las tres conservan solo la música y llevan la ralentización de T-36.
+- Después, el vídeo con música con CosyVoice frente a Chatterbox, para ver si aguanta en
+  narración.
+
+| Pódcast, vídeo entero | Chatterbox | IndexTTS | CosyVoice |
+|---|---|---|---|
+| La voz llena (A / B) | 100 % / 89 % | 101 % / 100 % | 93 % / 93 % |
+| Clips acelerados · que no caben | 51 · 5 | 1 · 0 | 1 · 0 |
+| Voz a destiempo | 0,8 s | 0 s | 0 s |
+| CER de whisper | 3,1 % | 3,4 % | 3,7 % |
+
+| Escucha a ciegas | Chatterbox | IndexTTS | CosyVoice | Preferido |
+|---|---|---|---|---|
+| Conversación (`engines-talk`, pódcast, 10 fragmentos) | 3,0 | 2,7 | **4,2** | CosyVoice 8, igual 2 |
+| Narración (`engines-narration`, música, 10 fragmentos) | **4,0** | — | 3,5 | Chatterbox 5, CosyVoice 4, igual 1 |
+
+**Lectura:**
+- **En conversación CosyVoice gana con claridad**, sobre todo en la presentadora (5
+  frente a 3 en f03–f06), y no pierde ningún fragmento. Es la primera vez que el pódcast
+  pasa de un 3: lo que fallaba era la voz, no la sincronía (T-36 y T-37).
+- **En narración Chatterbox gana por poco** (4,0 frente a 3,5; 5 frente a 4).
+- En sincronía, los dos motores con duración nativa encajan casi sin acelerar.
+
+**Decisión del propietario:** *Automático* pasa a elegir **CosyVoice cuando hablan
+varias personas y Chatterbox con una sola voz**, y es el motor por defecto en la CLI y
+en la web. Sustituye a la regla por el tono de la referencia (IndexTTS por debajo de
+165 Hz), que salía de dos voces y que esta escucha descarta: IndexTTS quedó último en
+conversación. Sin CosyVoice instalado, Chatterbox.
+
+**Límites:** un oyente, un pódcast y un vídeo narrado, 10 fragmentos por escucha.
+Varias voces es un indicio de conversación, no una prueba: una entrevista con un solo
+micrófono o un vídeo narrado por dos se clasifican por el número de voces.
+
 ## Anexo · Fuentes
 
 Todas consultadas el 2026-10-25; entre paréntesis, la fecha propia de la página cuando la

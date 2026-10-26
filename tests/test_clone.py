@@ -91,8 +91,7 @@ def test_voice_rate_dispatches_on_engine(tmp_path, monkeypatch):
     assert tts.voice_rate(wd, Settings()) == tts.Pace(17.0)
     assert tts.voice_rate(wd, Settings(tts="clone")) == tts.Pace(14.0, 1.0)
     assert tts.voice_rate(wd, Settings(tts="clone", engine="indextts")) == tts.Pace(12.0, 1.0)
-    monkeypatch.setattr(reference, "mean_f0", lambda path: 139.0)
-    assert tts.voice_rate(wd, Settings(tts="clone", engine="auto")).cps == 12.0  # low voice → indextts
+    assert tts.voice_rate(wd, Settings(tts="clone", engine="auto")).cps == 14.0  # one voice → chatterbox
     with pytest.raises(SystemExit):
         tts.voice_rate(wd, Settings(tts="qwen"))
     with pytest.raises(SystemExit):

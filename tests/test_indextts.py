@@ -129,15 +129,17 @@ def test_worker_reports_missing_install(tmp_path):
         indextts._start(tmp_path / "nowhere", tmp_path / "ix.log")
 
 
-def test_engine_auto_picks_by_reference_pitch(tmp_path, monkeypatch):
-    from opendub import reference
+def test_engine_auto_picks_by_how_many_speak(tmp_path, monkeypatch):
+    from opendub import cosyvoice
 
     ref = tmp_path / "ref.wav"
     settings = Settings(tts="clone", engine="auto")
-    for f0, expected in ((139.0, "indextts"), (214.0, "chatterbox"), (None, "chatterbox")):
-        monkeypatch.setattr(reference, "mean_f0", lambda path, f0=f0: f0)
-        assert tts.resolve_engine(settings, ref) == expected
-        assert tts.Voice.clone(settings, ref).engine == expected
-    assert tts.resolve_engine(Settings(tts="edge", engine="auto")) == "edge"
-    with pytest.raises(ValueError):
-        tts.resolve_engine(settings)  # auto needs the reference
+    assert Settings().engine == "auto"  # the default
+    monkeypatch.setattr(cosyvoice, "installed", lambda home: True)
+    assert tts.resolve_engine(settings, ref, several=True) == "cosyvoice"
+    assert tts.resolve_engine(settings, ref) == "chatterbox"
+    assert tts.Voice.clone(settings, ref).engine == "chatterbox"  # one voice
+    assert tts.resolve_engine(Settings(tts="clone", engine="indextts"), ref, several=True) == "indextts"  # a choice
+    assert tts.resolve_engine(Settings(tts="edge", engine="auto"), several=True) == "edge"
+    monkeypatch.setattr(cosyvoice, "installed", lambda home: False)
+    assert tts.resolve_engine(settings, ref, several=True) == "chatterbox"  # without CosyVoice

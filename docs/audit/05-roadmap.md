@@ -54,14 +54,14 @@ Estas decisiones son del propietario, todas del 2026-10-25:
 | 2 · Traducir sin depender de la suscripción | T-28 Backend de traducción en Ollama | P1 | L | Decisión 3 |
 | | T-29 Revisar la traducción antes de sintetizar | P2 | M | Backlog 10 |
 | 3 · Calidad de voz | T-30 Clonar con la voz de cada frase (experimental) | P2 | M | Backlog 11 |
-| | T-31 Decidir el motor *Automático* | P3 | M | G-016 |
+| | T-31 Decidir el motor *Automático* (resuelto por T-38) | P3 | M | G-016 |
 | 4 · Mantenimiento | T-32 Errores de fase con código, en español | P2 | M | G-010 |
 | | T-33 Reducir la lista de mypy | P2 | S | G-024 |
 | | T-34 Subtítulos con hablante (ASS y WebVTT) | P3 | S | Backlog 12 |
 | | T-35 LAN: redes de confianza y token persistente opcional | P3 | S | Pendiente 6 |
 | 1 · Medir lo que falta (nuevo) | T-36 Llenar el hueco cuando sobra (hecho: no se oye) | P1 | M | T-26 (§9 de la auditoría 2) |
 | | T-37 Seguir el ritmo de quien habla (hecho: empate) | P1 | M | T-36 (§10 de la auditoría 2) |
-| | T-38 El motor en una conversación | **P1** | M | T-37 (§11 de la auditoría 2) |
+| | T-38 El motor en una conversación (hecho) | P1 | M | T-37 (§11 de la auditoría 2) |
 
 **Sin ticket, por ser decisiones del propietario:**
 - Usuarios: se revisa tras T-26.
@@ -71,8 +71,8 @@ Estas decisiones son del propietario, todas del 2026-10-25:
   varias voces de T-26.
 
 **Orden sugerido:**
-1. T-26, T-27, T-36 y T-37 están hechos. T-38, que salió de T-37, va primero: el
-   pódcast sigue sonando sintético.
+1. T-26, T-27, T-36, T-37 y T-38 están hechos; T-31 lo resolvió T-38. Lo siguiente,
+   T-28 (Ollama).
 2. T-27 antes que T-28: su juez de fidelidad es lo que valida Ollama frente a Sonnet.
 3. T-32 y T-33 cuando haya un hueco: no dependen de nada.
 
@@ -183,6 +183,10 @@ Estas decisiones son del propietario, todas del 2026-10-25:
 - **Aceptación:** si un motor gana con claridad en conversación, decidir con T-31 cómo
   se elige (por tipo de vídeo, por voz o a mano). Si ninguno gana, el pódcast queda en
   el límite de los motores locales y se escribe.
+- **Resultado (2026-10-26, [§12](03-competencia.md#12-el-motor-en-una-conversación-t-38-2026-10-26)):**
+  CosyVoice gana la conversación (4,2 frente a 3,0 y 2,7) y Chatterbox la narración por
+  poco (4,0 frente a 3,5). *Automático* pasa a ser CosyVoice con varias voces y
+  Chatterbox con una, y es el motor por defecto (decisión del propietario).
 
 ## Fase 2 · Traducir sin depender de la suscripción
 
@@ -263,6 +267,10 @@ Estas decisiones son del propietario, todas del 2026-10-25:
     sesión a ciegas.
   - Decidir si el umbral de 165 Hz se sostiene, se cambia o se retira *Automático*.
 - **Aceptación:** la decisión escrita en `v2-plan.md`, con sus datos (resto de G-016).
+
+- **Resuelto (2026-10-26) por T-38:** *Automático* ya no mira el tono de la referencia:
+  CosyVoice con varias voces, Chatterbox con una, y es el motor por defecto. Lo que
+  queda de G-016 es confirmarlo con más vídeos.
 
 ## Fase 4 · Mantenimiento
 

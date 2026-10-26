@@ -1,0 +1,34 @@
+{
+ "video": "R4zlpwwEpnY",
+ "version": "20261026-100538-indextts",
+ "engine": "indextts",
+ "shortened": 11,
+ "clips": 185,
+ "sped_up": 1,
+ "max_tempo": 1.138,
+ "not_fitting": 0,
+ "edge": 0,
+ "max_delay_s": 0.0,
+ "mean_delay_s": 0.0,
+ "late_voice_s": 0,
+ "fill": 1.006,
+ "under_80": 3,
+ "by_speaker": {
+  "A": {
+   "fill": 1.012,
+   "under_80": 1
+  },
+  "B": {
+   "fill": 1.0,
+   "under_80": 2
+  }
+ },
+ "lufs": -16.5,
+ "true_peak_db": -1.6,
+ "asr_clips": 185,
+ "cer_mean": 0.034,
+ "cer_p90": 0.069,
+ "cer_over_0_3": 4,
+ "p_es_mean": 0.877,
+ "whisper": "small"
+}

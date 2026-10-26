@@ -55,8 +55,8 @@ def speaker_voices(
     """(voice of each speaker, engine, main reference) for a video with several voices.
 
     Each speaker is cloned from their own reference (reference.speaker_reference)
-    with one engine for all, the one --engine resolves for the main speaker (A,
-    who speaks most); a speaker without enough clean speech, and everyone with
+    with one engine for all, the one --engine resolves (with auto, CosyVoice when
+    more than one person speaks); a speaker without enough clean speech, and everyone with
     --tts edge, speaks with the stock voice of their gender.
     """
     cloned = settings.tts == "clone"
@@ -66,7 +66,7 @@ def speaker_voices(
     main_ref = next((refs[spk] for spk in speakers if refs.get(spk)), None)
     if cloned and main_ref is None:  # nobody has a clean stretch: the usual reference
         main_ref = reference.reference(wd)
-    engine = tts.resolve_engine(settings, main_ref)
+    engine = tts.resolve_engine(settings, main_ref, several=len(speakers) > 1)
     voices = {}
     for spk in speakers:
         gender = genders.get(spk)

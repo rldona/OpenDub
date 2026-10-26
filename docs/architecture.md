@@ -67,7 +67,7 @@ The slowest phase (most of a dub's time).
 ```mermaid
 flowchart TD
     ref["Reference voice<br/>10–15 s of the separated voice, fewest pauses<br/>(one per speaker with several voices)"] --> auto
-    auto{"Engine<br/>Chatterbox by default; auto: mean F0 vs 165 Hz"}
+    auto{"Engine<br/>auto (default): CosyVoice when several people speak, Chatterbox for one"}
     auto -- "chatterbox" --> cb["Chatterbox Multilingual V3<br/>2 worker processes when the GPU has room"]
     auto -- "indextts" --> itts["IndexTTS-2.5<br/>JSON-lines worker in its own Python 3.11 venv"]
     auto -- "cosyvoice" --> cv["CosyVoice 3<br/>JSON-lines worker in its own Python 3.11 venv"]
@@ -81,8 +81,8 @@ flowchart TD
 ```
 
 - **Reference** (`reference.py`): the cleanest 10–15 s stretch of the separated
-  voice; its mean F0 picks the engine under `--engine auto` and the stock voice's
-  gender for the fallback.
+  voice; its mean F0 gives the speaker's gender (the stock voice of the fallback,
+  and the grammatical gender with several voices).
 - **Pace model** (`tts.py`): seconds = overhead + characters / characters per
   second, calibrated per voice and cached. It sets the translation's character
   budget and predicts each clip's speed factor.

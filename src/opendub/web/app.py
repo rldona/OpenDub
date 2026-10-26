@@ -45,8 +45,8 @@ class JobRequest(BaseModel):
     url: str = Field(min_length=1)
     separate: bool = True
     tts: Literal["edge", "clone"] = "clone"
-    # Chatterbox, as the CLI: "auto" (by the reference's pitch) waits for data from 8-10 dubs
-    engine: Literal["auto", "chatterbox", "indextts", "cosyvoice"] = "chatterbox"
+    # as the CLI: auto, CosyVoice when several people speak and Chatterbox for one voice
+    engine: Literal["auto", "chatterbox", "indextts", "cosyvoice"] = "auto"
     voice: str = "es-ES-AlvaroNeural"
     bg_volume: float = Field(0.0, ge=-40.0, le=12.0)
     # reuse the translation made for another engine: only TTS and the mix are redone

@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { api, redub, type EngineChoice, type Video } from "../api";
 import { useEngines } from "../App";
-import { AUTO_F0_HZ, ENGINES, engineInfo } from "../catalog";
+import { ENGINES, engineInfo } from "../catalog";
 import { Icon } from "../components";
 import { useJobs } from "../job";
 import { usePrefs } from "../prefs";
@@ -56,8 +56,6 @@ export function RedubDialog({ video, watching, onClose, onStarted }: {
   }, [video]);
 
   const installed = (id: EngineChoice) => engines?.find((e) => e.id === id)?.installed ?? true;
-  const f0 = video.reference_f0_hz;
-  const autoPick = f0 == null ? null : f0 < AUTO_F0_HZ ? "IndexTTS" : "Chatterbox";
   const label = engine === "auto" ? t("auto") : engineInfo(engine)!.name;
 
   async function start() {
@@ -88,7 +86,7 @@ export function RedubDialog({ video, watching, onClose, onStarted }: {
               <input type="radio" name="redub-engine" checked={engine === "auto"} disabled={!installed("auto")} onChange={() => setEngine("auto")} />
               <span className="stack" style={{ gap: 2 }}>
                 <span className="title">{t("auto")}</span>
-                <span className="small muted">{autoPick ? t("would_pick", { e: autoPick, f0: Math.round(f0!) }) : t("note_auto")}</span>
+                <span className="small muted">{t("note_auto")}</span>
               </span>
             </label>
             {ENGINES.map((e) => {

@@ -42,7 +42,6 @@ export const ENGINES: EngineInfo[] = [
   },
 ];
 
-export const AUTO_F0_HZ = 165; // tts.AUTO_F0_HZ: below it Automatic picks IndexTTS
 
 export function engineInfo(id: string | null | undefined): EngineInfo | undefined {
   return ENGINES.find((e) => e.id === id);

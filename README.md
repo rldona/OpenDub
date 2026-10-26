@@ -94,7 +94,7 @@ Common `dub` options:
 |---|---|---|
 | `--voice` | `es-ES-AlvaroNeural` | edge-tts voice (`es-ES-ElviraNeural`, `es-MX-JorgeNeural`…) |
 | `--tts` | `edge` | `edge`: the `--voice` voice · `clone`: the original speaker's voice, cloned from the separated vocals |
-| `--engine` | `chatterbox` | Cloning engine for `--tts clone`: `chatterbox`, `indextts`, `cosyvoice` or `auto` (by the reference's pitch, see below) |
+| `--engine` | `auto` | Cloning engine for `--tts clone`: `auto` (CosyVoice when several people speak, Chatterbox for one voice; see below), `chatterbox`, `indextts` or `cosyvoice` |
 | `--min-factor` | `0.7` | `indextts`, `cosyvoice`: lowest duration factor before shortening a sentence that doesn't fit |
 | `--keep-translation` | off | Reuses the existing translation even if it was made for another engine: only TTS and the mix are redone |
 | `--style` | none | Extra `style.json` (register, variant, glossary, notes; see below) over `work/style.json` and the video's own |
@@ -326,13 +326,19 @@ long video); `OPENDUB_CHATTERBOX_WORKERS=1` keeps it to one.
 
 ### Choosing the engine
 
-Chatterbox is the default; IndexTTS and CosyVoice are chosen per video with
-`--engine`. Chatterbox and IndexTTS split the benchmark (details in
+The default, `--engine auto`, picks by the dub: **CosyVoice when several people
+speak, Chatterbox for one voice**. Heard blind (docs/audit/03-competencia.md,
+section 12), CosyVoice won a two-host podcast clearly (4.2 against Chatterbox's
+3.0 and IndexTTS's 2.7, preferred in 8 of 10 fragments) and Chatterbox narration
+by a little (4.0 against 3.5). Without CosyVoice installed, `auto` uses
+Chatterbox. Any engine can still be chosen per video with `--engine`.
+
+Before that, Chatterbox and IndexTTS split the benchmark (details in
 [docs/v2-plan.md](docs/v2-plan.md)): IndexTTS fits its slots far better (41/42
 clips without atempo, against 30/42), and by ear it was preferred for the male
 voice but not for the female one, where Chatterbox sounded steadier (IndexTTS
-sometimes sounds as if trembling). So: `--engine indextts` for low voices, the
-default Chatterbox for high ones.
+sometimes sounds as if trembling). On those two
+single-voice videos `--engine indextts` suited the low voice, Chatterbox the high one.
 
 CosyVoice 3, benchmarked later on the same material, speaks fastest
 (~16 chars/s), so nearly every clip fits as is (42/42 in the benchmark; none of
@@ -341,12 +347,9 @@ voice. It clones cross-lingually (reference audio, no transcript) and once in a
 while garbles a sentence; the quality check catches it (in the female test
 video, one sentence ended on edge-tts after every retry).
 
-`--engine auto` applies the Chatterbox/IndexTTS rule by itself: IndexTTS when the reference's mean
-F0 is below 165 Hz, Chatterbox otherwise (or when the pitch can't be measured).
-It comes from two voices, one of each, so it is opt-in and a low female or high
-male voice may land on the wrong side; the log line and `tts.json` record the
-engine, how it was chosen and the F0, so that after 8–10 videos the rule can be
-checked before it becomes the default.
+`auto` used to pick by the reference's pitch (IndexTTS below 165 Hz): a rule
+from two voices that the podcast session retired, since IndexTTS came last in a
+conversation. The log line and `tts.json` record the engine and how it was chosen.
 
 The engines fit clips to their slot differently. Chatterbox has no length
 control, so clips that don't fit are sped up with atempo (up to `--max-tempo`)

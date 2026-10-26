@@ -123,7 +123,7 @@ def test_same_video_twice_returns_the_running_job_and_others_wait(tmp_path):
     c.post("/jobs", json={"url": VID})
     assert fake.started.wait(5)
     again = c.post("/jobs", json={"url": f"https://youtu.be/{VID}", "engine": "indextts"}).json()
-    assert again["id"] == VID and again["status"] == "running" and again["options"]["engine"] == "chatterbox"
+    assert again["id"] == VID and again["status"] == "running" and again["options"]["engine"] == "auto"
     c.post("/jobs", json={"url": VID2})
     assert [j["id"] for j in c.get("/jobs").json()] == [VID, VID2]
     assert c.get(f"/jobs/{VID2}").json()["status"] == "queued"  # one at a time
@@ -393,8 +393,8 @@ def test_engines_say_which_are_installed_and_how(tmp_path, monkeypatch, engines_
     listed = {e["id"]: e for e in engines_installed(nowhere)}
     assert list(listed) == ["auto", "chatterbox", "indextts", "cosyvoice"]
     assert not listed["cosyvoice"]["installed"] and "setup-engine cosyvoice" in listed["cosyvoice"]["setup"]
-    assert not listed["indextts"]["installed"] and not listed["auto"]["installed"]  # auto needs IndexTTS too
-    assert "setup-engine indextts" in listed["auto"]["setup"]
+    assert not listed["indextts"]["installed"]
+    assert listed["auto"]["installed"] == listed["chatterbox"]["installed"]  # CosyVoice only when installed
     assert not cosyvoice.installed(tmp_path / "cv") and indextts.paths(tmp_path / "ix")[0] == tmp_path / "ix" / "repo"
 
     # a job with an engine that isn't installed is refused with the command that installs it
@@ -564,12 +564,12 @@ def test_several_voices_need_the_diarizer(tmp_path, monkeypatch):
     assert fake.runs[-1][1].multi_speaker is True
 
 
-def test_a_dub_without_an_engine_uses_chatterbox(tmp_path):
+def test_a_dub_without_an_engine_picks_automatically(tmp_path):
     fake = FakePipeline()
     c = client(tmp_path, fake)
     assert c.post("/jobs", json={"url": VID}).status_code == 200
     wait_status(c, VID)
-    assert fake.runs[-1][1].engine == "chatterbox"
+    assert fake.runs[-1][1].engine == "auto"  # CosyVoice with several voices, Chatterbox with one
 
 
 def test_errors_carry_a_code_the_page_translates(tmp_path):
