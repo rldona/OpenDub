@@ -65,7 +65,7 @@ Estas decisiones son del propietario, todas del 2026-10-25:
 
 **Sin ticket, por ser decisiones del propietario:**
 - Usuarios: se revisa tras T-26.
-- `--cookies-from-browser` ante el bloqueo de YouTube (G-001).
+- ~~`--cookies-from-browser` ante el bloqueo de YouTube (G-001).~~ Hecho: opción documentada.
 - Retirar o conservar el afinado es-ES en la CLI.
 - Activar varias voces por defecto también en la CLI: se decide tras la parte de
   varias voces de T-26.

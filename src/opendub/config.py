@@ -70,6 +70,11 @@ class Settings:
     # Integrated loudness of the final track (EBU R128), with a -1.5 dBTP true-peak ceiling; None: as mixed
     loudness_lufs: float | None = -16.0
     max_height: int = 1080
+    # yt-dlp reads YouTube's cookies from this browser (firefox, chrome:Profile 1…) when YouTube asks
+    # to confirm you aren't a bot: the downloads go as your own session (download.cookies_option)
+    cookies_from_browser: str | None = field(
+        default_factory=lambda: os.environ.get("OPENDUB_COOKIES_FROM_BROWSER") or None
+    )
     anthropic_api_key: str | None = field(
         default_factory=lambda: os.environ.get("ANTHROPIC_API_KEY") or None
     )

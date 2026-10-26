@@ -60,7 +60,7 @@ código; los que siguen abiertos dicen qué falta y dónde.
 
 | Gap | Estado | Cómo |
 |---|---|---|
-| G-001 Bloqueo de YouTube | **Parcial** | El mensaje explica la causa (T-03), pero no hay alternativa. Ver «Pendiente» |
+| G-001 Bloqueo de YouTube | **Cerrado** | El mensaje explica la causa (T-03) y propone `--cookies-from-browser` (`OPENDUB_COOKIES_FROM_BROWSER` en la web): descargar con la sesión del propio usuario |
 | G-002 Cancelar trabajos | Cerrado | T-06 |
 | G-003 Borrar intermedios | Cerrado | T-08 |
 | G-004 Fallo sin red | Cerrado | T-03 |
@@ -143,7 +143,7 @@ lo indican.
    - **Propuesta:** ya existen las herramientas. Doblar el corpus con IndexTTS y
      con Chatterbox, pasar `dub_metrics.py` y una sesión de escucha, y decidir
      si el umbral de 165 Hz se sostiene.
-5. **Alternativa al bloqueo de YouTube** (resto de G-001).
+5. **Alternativa al bloqueo de YouTube** (resto de G-001). **Hecho (2026-10-26): el propietario decidió ofrecerla.**
    - **Situación:** el bloqueo no se elude. yt-dlp puede usar las cookies del
      navegador del propio usuario (`--cookies-from-browser`). Eso no salta la
      comprobación: descarga como el usuario con su sesión.

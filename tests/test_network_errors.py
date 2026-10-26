@@ -97,3 +97,57 @@ def test_claude_unreachable_fails_at_once(monkeypatch):
     monkeypatch.setattr(translate, "_call_cli", lambda *a: pytest.fail("no attempt without a connection"))
     with pytest.raises(SystemExit, match="Can't reach Claude"):
         translate._ask("s", "{}", [1], Settings())
+
+
+@pytest.mark.parametrize("spec, expected", [
+    ("firefox", ("firefox", None, None, None)),
+    ("Chrome:Profile 1", ("chrome", "Profile 1", None, None)),
+    ("chromium+gnomekeyring:Default", ("chromium", "Default", "GNOMEKEYRING", None)),
+    ("firefox::Personal", ("firefox", None, None, "Personal")),
+])
+def test_cookies_from_browser_take_yt_dlp_s_syntax(spec, expected):
+    assert download.cookies_option(spec) == {"cookiesfrombrowser": expected}
+    assert download.cookies_option(None) == {}
+
+
+def test_an_unknown_browser_is_refused_before_downloading():
+    with pytest.raises(SystemExit, match="give a browser"):
+        download.cookies_option("netscape")
+
+
+def test_every_youtube_request_goes_with_the_browser_s_cookies(tmp_path, monkeypatch):
+    """--cookies-from-browser, or OPENDUB_COOKIES_FROM_BROWSER for the web: the info, the media,
+    the subtitles and the thumbnail are all asked for as that session."""
+    import yt_dlp
+
+    seen = []
+
+    class Recording:
+        def __init__(self, opts):
+            seen.append(opts.get("cookiesfrombrowser"))
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *a):
+            return False
+
+        def extract_info(self, *a, **k):
+            raise yt_dlp.utils.DownloadError("ERROR: Sign in to confirm you're not a bot")
+
+        def sanitize_info(self, info):
+            return info
+
+        def download(self, urls):
+            pass
+
+    monkeypatch.setattr(yt_dlp, "YoutubeDL", Recording)
+    settings = Settings(work_root=tmp_path, cookies_from_browser="firefox")
+    with pytest.raises(SystemExit, match="--cookies-from-browser"):  # the bot check says what to try
+        download.run("dQw4w9WgXcQ", WorkDir(tmp_path, "dQw4w9WgXcQ"), settings)
+    download.thumbnail(WorkDir(tmp_path, "dQw4w9WgXcQ"), settings)
+    assert seen == [("firefox", None, None, None)] * 2
+    monkeypatch.setenv("OPENDUB_COOKIES_FROM_BROWSER", "chrome")
+    assert Settings().cookies_from_browser == "chrome"  # the web page's default
+    monkeypatch.delenv("OPENDUB_COOKIES_FROM_BROWSER")
+    assert Settings().cookies_from_browser is None

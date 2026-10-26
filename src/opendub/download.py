@@ -27,6 +27,30 @@ BOT_CHECK = "Sign in to confirm"
 _ANSI = re.compile(r"\x1b\[[0-9;]*m")
 
 
+# yt-dlp's own syntax: BROWSER[+KEYRING][:PROFILE][::CONTAINER]
+_BROWSER_SPEC = re.compile(r"(?P<name>[^+:]+)(?:\s*\+\s*(?P<keyring>[^:]+))?(?:\s*:\s*(?!:)(?P<profile>.+?))?"
+                           r"(?:\s*::\s*(?P<container>.+))?")
+
+
+def cookies_option(spec: str | None) -> dict[str, Any]:
+    """yt-dlp's cookiesfrombrowser for --cookies-from-browser (none without it). SystemExit if malformed."""
+    if not spec:
+        return {}
+    from yt_dlp.cookies import SUPPORTED_BROWSERS, SUPPORTED_KEYRINGS
+
+    m = _BROWSER_SPEC.fullmatch(spec.strip())
+    name = m["name"].strip().lower() if m else ""
+    keyring = m["keyring"].strip().upper() if m and m["keyring"] else None
+    if m is None or name not in SUPPORTED_BROWSERS or (keyring and keyring not in SUPPORTED_KEYRINGS):
+        raise SystemExit(f"--cookies-from-browser {spec!r}: give a browser ({', '.join(sorted(SUPPORTED_BROWSERS))}),"
+                         " optionally with :PROFILE, as yt-dlp does")
+    return {"cookiesfrombrowser": (name, m["profile"], keyring, m["container"])}
+
+
+def _opts(settings: Settings | None) -> dict[str, Any]:
+    return {**_BASE_OPTS, **cookies_option((settings or Settings()).cookies_from_browser)}
+
+
 def explain(e: Exception) -> SystemExit:
     """A clear message for a failed YouTube request: a bot check, no connection, or the rest."""
     text = _ANSI.sub("", str(e))  # yt-dlp colours its "ERROR:" for a terminal
@@ -34,7 +58,8 @@ def explain(e: Exception) -> SystemExit:
     if BOT_CHECK in text:
         return PhaseError("youtube_blocked", "YouTube asked to confirm this isn't a bot and refused the download. "
                           "It is a temporary block of this connection (often after many downloads in a short "
-                          "time): wait a while and try again.")
+                          "time): wait a while and try again, or download as your own YouTube session with "
+                          "--cookies-from-browser (OPENDUB_COOKIES_FROM_BROWSER in .env for the web page).")
     network = ("Unable to download", "getaddrinfo", "Name or service not known", "timed out",
                "Connection", "Network is unreachable", "Temporary failure in name resolution")
     if any(n in text for n in network):
@@ -84,9 +109,9 @@ class _ProgressHook:
         self.progress.update(self.tasks[name], completed=d.get("downloaded_bytes", 0), total=total)
 
 
-def _download_subs(raw: dict[str, Any], wd: WorkDir, kind: str, key: str) -> str | None:
+def _download_subs(raw: dict[str, Any], wd: WorkDir, kind: str, key: str, settings: Settings) -> str | None:
     opts = {
-        **_BASE_OPTS,
+        **_opts(settings),
         "skip_download": True,
         "writesubtitles": kind == "manual",
         "writeautomaticsub": kind == "auto",
@@ -100,12 +125,12 @@ def _download_subs(raw: dict[str, Any], wd: WorkDir, kind: str, key: str) -> str
     return found[0].name if found else None
 
 
-def thumbnail(wd: WorkDir) -> bool:
+def thumbnail(wd: WorkDir, settings: Settings | None = None) -> bool:
     """Save the video's thumbnail as thumbnail.jpg (for the web frontend); False if it can't."""
     if wd.thumbnail.exists():
         return True
     opts = {
-        **_BASE_OPTS,
+        **_opts(settings),
         "skip_download": True,
         "writethumbnail": True,
         "outtmpl": str(wd.path / "thumbnail.%(ext)s"),
@@ -120,10 +145,11 @@ def thumbnail(wd: WorkDir) -> bool:
     return wd.thumbnail.exists()
 
 
-def _info(url: str) -> dict[str, Any]:
-    log.info("Fetching video info…")
+def _info(url: str, settings: Settings) -> dict[str, Any]:
+    log.info("Fetching video info…" + (f" (cookies from {settings.cookies_from_browser})"
+                                      if settings.cookies_from_browser else ""))
     try:
-        with yt_dlp.YoutubeDL(_BASE_OPTS) as ydl:
+        with yt_dlp.YoutubeDL(_opts(settings)) as ydl:
             return ydl.sanitize_info(ydl.extract_info(url, download=False, process=False))
     except yt_dlp.utils.DownloadError as e:
         raise explain(e) from None
@@ -133,7 +159,7 @@ def _fetch_media(raw: dict[str, Any], wd: WorkDir, settings: Settings) -> None:
     """The video (H.264 up to --max-height when there is one) and its 16 kHz mono audio for whisper."""
     h = settings.max_height
     opts = {
-        **_BASE_OPTS,
+        **_opts(settings),
         "format": (
             f"bv*[vcodec^=avc1][height<={h}]+ba[ext=m4a]"
             f"/bv*[height<={h}]+ba/b[height<={h}]/b"
@@ -165,22 +191,22 @@ def run(url: str, wd: WorkDir, settings: Settings, force: bool = False) -> dict[
             log.info("Download cached, skipping")
         else:  # deleted to save space (storage.py): fetch the media again, nothing else changes
             log.info("The original video was deleted to save space: downloading it again…")
-            _fetch_media(_info(url), wd, settings)
+            _fetch_media(_info(url, settings), wd, settings)
         return json.loads(wd.meta.read_text())
 
     for old in wd.path.glob("subs.*"):
         old.unlink()
 
-    raw = _info(url)
+    raw = _info(url, settings)
     lang = settings.source_lang or raw.get("language")  # None: whisper will detect it
     log.info(f"[bold]{raw['title']}[/] · {raw.get('duration', 0)}s · language {lang or '?'}")
     _fetch_media(raw, wd, settings)
 
     subs: dict[str, str | None] = {"manual": None, "auto": None}
     if key := _pick_track(raw.get("subtitles") or {}, lang or "en"):
-        subs["manual"] = _download_subs(raw, wd, "manual", key)
+        subs["manual"] = _download_subs(raw, wd, "manual", key, settings)
     if key := _pick_auto_track(raw.get("automatic_captions") or {}, lang or "en"):
-        subs["auto"] = _download_subs(raw, wd, "auto", key)
+        subs["auto"] = _download_subs(raw, wd, "auto", key, settings)
     log.info(f"Manual subtitles: {subs['manual'] or '—'} · auto-generated: {subs['auto'] or '—'}")
 
     meta = {
@@ -192,6 +218,6 @@ def run(url: str, wd: WorkDir, settings: Settings, force: bool = False) -> dict[
         "subs": subs,
     }
     write_text_atomic(wd.meta, json.dumps(meta, ensure_ascii=False, indent=2))
-    thumbnail(wd)
+    thumbnail(wd, settings)
     wd.mark_done("download", params)
     return meta

@@ -32,6 +32,12 @@ Force = Annotated[bool, typer.Option("--force", help="Regenerate even if cached"
 SourceLang = Annotated[
     str | None, typer.Option("--source-lang", help="Original language (defaults to YouTube's)")
 ]
+CookiesFromBrowser = Annotated[
+    str | None,
+    typer.Option("--cookies-from-browser", help="When YouTube asks to confirm you aren't a bot: download as your "
+                 "own YouTube session, with the cookies of this browser (firefox, chrome, chrome:Profile 1…; "
+                 "OPENDUB_COOKIES_FROM_BROWSER in .env is the default, and the web page's)"),
+]
 MaxHeight = Annotated[int, typer.Option("--max-height", help="Maximum video height")]
 Subs = Annotated[
     str,
@@ -198,10 +204,12 @@ def download(
     work: WorkRoot = Path("work"),
     source_lang: SourceLang = None,
     max_height: MaxHeight = 1080,
+    cookies_from_browser: CookiesFromBrowser = None,
     force: Force = False,
 ) -> None:
     """Download the video, audio and subtitles."""
-    settings = Settings(work_root=work, source_lang=source_lang, max_height=max_height)
+    settings = Settings(work_root=work, source_lang=source_lang, max_height=max_height,
+                        cookies_from_browser=_cookies(cookies_from_browser))
     wd = _setup(url, settings)
     with phase("Download"):
         download_mod.run(url, wd, settings, force=force)
@@ -225,6 +233,11 @@ def transcribe(
     _gpu(wd)
     with phase("Transcription"):
         transcribe_mod.run(wd, settings, force=force)
+
+
+def _cookies(browser: str | None) -> str | None:
+    """--cookies-from-browser over OPENDUB_COOKIES_FROM_BROWSER (Settings' default)."""
+    return browser or Settings().cookies_from_browser
 
 
 def _claude(backend: str, model: str | None) -> str:
@@ -637,6 +650,7 @@ def dub(
     separator: Separator = "auto",
     music_volume: MusicVolume = 0.0,
     loudness: Loudness = -16.0,
+    cookies_from_browser: CookiesFromBrowser = None,
     output: Output = None,
     review: Review = False,
     force: Force = False,
@@ -654,7 +668,7 @@ def dub(
         min_tempo=min_tempo, shorten=shorten, max_tempo=max_tempo,
         bg_volume_db=bg_volume, mute_original=mute_original,
         separate=separate, separator=separator, music_volume_db=music_volume, loudness_lufs=loudness or None,
-        review=review,
+        review=review, cookies_from_browser=_cookies(cookies_from_browser),
     )
     try:
         pipeline.dub(url, settings, output=output, force=force)

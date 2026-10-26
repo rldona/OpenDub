@@ -41,7 +41,7 @@ def test_the_download_brings_back_only_the_media(tmp_path, monkeypatch):
     wd.mark_done("transcribe", {"x": 1})
     storage.delete(wd, "source")
     fetched = []
-    monkeypatch.setattr(download, "_info", lambda url: {"id": "abcdefghijk"})
+    monkeypatch.setattr(download, "_info", lambda url, settings: {"id": "abcdefghijk"})
     monkeypatch.setattr(download, "_fetch_media", lambda raw, wd_, s: fetched.append(raw["id"]))
     download.run("abcdefghijk", wd, Settings(work_root=tmp_path))
     assert fetched == ["abcdefghijk"] and wd.has("transcribe")  # nothing after it is invalidated

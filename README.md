@@ -116,6 +116,7 @@ Common `dub` options:
 | `--separator` | `auto` | `mlx` (Apple Silicon) or `torch` (CUDA or CPU); `auto` picks by platform |
 | `--subs` | `manual` | `manual`: manual subtitles or whisper · `auto`: auto-generated ones too · `none`: always whisper |
 | `--source-lang` | YouTube's | Original language (whisper detects it when unknown) |
+| `--cookies-from-browser` | off (`OPENDUB_COOKIES_FROM_BROWSER`) | When YouTube asks to confirm you aren't a bot: download as your own YouTube session, with this browser's cookies (`firefox`, `chrome`, `chrome:Profile 1`…; see below) |
 | `--whisper-model` | `small` | faster-whisper model (`medium`, `large-v3`… are slower) |
 | `--backend` / `--model` | `cli` / `claude-sonnet-5-5` | How and with which model to translate: `cli`, `api` or `ollama` (default model `qwen3.6:35b-a3b`) |
 | `--rate` | `-10%` | Native edge-tts speaking rate (more negative = slower, without stretching the audio) |
@@ -179,6 +180,21 @@ someone else: a retouch then speaks it with the right voice. On the web page it 
 ticked by default once Nemotron is installed (a single-voice video keeps one
 voice); on the CLI it is asked for with `--multi-speaker`, also by the `translate`
 and `tts` phases run on their own.
+
+### When YouTube blocks the download
+
+After many downloads in a short time YouTube may answer "Sign in to confirm you're
+not a bot" and refuse them for a while. Waiting is enough; or the download can go as
+your own YouTube session, with the cookies of a browser where you are signed in:
+
+```bash
+uv run opendub dub <url> --cookies-from-browser firefox     # chrome, chrome:Profile 1, brave…
+```
+
+For the web page, set it once in `.env` (`OPENDUB_COOKIES_FROM_BROWSER=firefox`) and
+restart it. yt-dlp reads the cookies on each download; nothing is copied or saved by
+OpenDub. Heavy downloading on a signed-in account can get that account limited by
+YouTube, so this is for the odd block, not for downloading in bulk.
 
 ### Exporting
 
