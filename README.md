@@ -279,6 +279,16 @@ to find the link. The token changes on every start, so old links stop working;
 anyone with a current link can use OpenDub on this computer, so share it only with
 your own devices. There is no mode open to the network without the token.
 
+**Only on networks you trust (your home, not a café's):** it is plain HTTP, so the
+token and everything else travel unencrypted, and anyone on the same network who
+sees them can use the page. To reach it from outside, use a VPN to your network
+(WireGuard, Tailscale) rather than opening the port.
+
+`--lan --keep-token` keeps the same token across restarts, in
+`~/.config/opendub/lan-token` (readable only by you), so the links on your devices
+keep working, e.g. with the systemd service below. Delete that file to revoke them:
+the next start makes a new one.
+
 ### Starting the web page on its own
 
 Optional, on Linux: [docs/systemd/opendub-web.service](docs/systemd/opendub-web.service)

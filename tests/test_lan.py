@@ -67,3 +67,33 @@ def test_the_cli_starts_on_every_interface_only_with_lan(tmp_path, monkeypatch, 
     assert r.exit_code == 0 and "another device:  http://" in r.output and "?token=" in r.output
     assert all(len(line) < 200 for line in r.output.splitlines())  # each link whole on its own line
     assert [h for h, _ in started] == ["127.0.0.1", "0.0.0.0"]
+
+
+def test_a_kept_token_survives_a_restart_and_only_its_owner_reads_it(tmp_path, monkeypatch):
+    from opendub import cli
+
+    monkeypatch.setenv("XDG_CONFIG_HOME", str(tmp_path / "config"))
+    first = cli.kept_token()
+    assert cli.kept_token() == first  # the next start: the same token, so the links still work
+    path = tmp_path / "config" / "opendub" / "lan-token"
+    assert path.read_text().strip() == first and len(first) >= 24
+    assert path.stat().st_mode & 0o777 == 0o600
+    path.unlink()  # revoking the links
+    assert cli.kept_token() != first
+
+
+def test_keep_token_needs_lan_and_without_it_the_token_is_new_each_time(tmp_path, monkeypatch):
+    from typer.testing import CliRunner
+
+    from opendub import cli
+
+    r = CliRunner().invoke(cli.app, ["web", "--keep-token", "--no-browser", "--work", str(tmp_path)])
+    assert r.exit_code != 0 and "--keep-token" in r.output
+    tokens = []
+    monkeypatch.setattr("opendub.web.app.serve", lambda app, port, host: tokens.append(host))
+    monkeypatch.setattr("opendub.web.app.create_app", lambda work, token=None: tokens.append(token))
+    monkeypatch.setenv("XDG_CONFIG_HOME", str(tmp_path / "config"))
+    for flags in (["--lan"], ["--lan"], ["--lan", "--keep-token"], ["--lan", "--keep-token"]):
+        assert CliRunner().invoke(cli.app, ["web", *flags, "--no-browser", "--work", str(tmp_path)]).exit_code == 0
+    made = tokens[0::2]
+    assert made[0] != made[1] and made[2] == made[3] == cli.kept_token()

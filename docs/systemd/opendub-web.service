@@ -15,7 +15,9 @@ WorkingDirectory=%h/OpenDub
 # a user service gets a short PATH: uv and the claude CLI usually live in ~/.local/bin
 Environment=PATH=%h/.local/bin:/usr/local/bin:/usr/bin:/bin
 Environment=PYTHONUNBUFFERED=1
-# add --lan to reach it from other devices: the links with the token go to the journal
+# add --lan to reach it from other devices (plain HTTP: trusted networks only); the links
+# with the token go to the journal. --lan --keep-token keeps the same token across restarts,
+# so the links saved on your devices keep working (delete ~/.config/opendub/lan-token to revoke)
 ExecStart=%h/.local/bin/uv run --frozen opendub web --no-browser
 Restart=on-failure
 RestartSec=5

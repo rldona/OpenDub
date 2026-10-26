@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import contextlib
+import os
 import secrets
 import sys
 from pathlib import Path
@@ -498,7 +499,11 @@ def web(
     port: Annotated[int, typer.Option("--port", help="Port to listen on")] = 8000,
     browser: Annotated[bool, typer.Option("--browser/--no-browser", help="Open the page in the browser")] = True,
     lan: Annotated[bool, typer.Option("--lan", help="Also answer other devices on the network, with the access "
-                                      "token this prints (in the link, then kept in a cookie)")] = False,
+                                      "token this prints (in the link, then kept in a cookie). Plain HTTP: "
+                                      "only on networks you trust")] = False,
+    keep_token: Annotated[bool, typer.Option("--keep-token", help="With --lan: keep the same token across "
+                                             "restarts (in ~/.config/opendub/lan-token; delete it to revoke the "
+                                             "links), e.g. for the systemd service")] = False,
 ) -> None:
     """Local web frontend: paste a URL, follow the progress, watch and fix the dubs."""
     try:
@@ -506,7 +511,10 @@ def web(
     except ImportError:
         raise SystemExit("The web frontend needs its optional dependencies: uv sync --extra web")
     require_ffmpeg()
-    token = secrets.token_urlsafe(24) if lan else None  # a new one each start: old links stop working
+    if keep_token and not lan:
+        raise typer.BadParameter("--keep-token keeps the --lan token: use them together")
+    # a new token each start (old links stop working), or the kept one
+    token = (kept_token() if keep_token else secrets.token_urlsafe(24)) if lan else None
     url = f"http://127.0.0.1:{port}/" + (f"?token={token}" if token else "")
     if browser:
         import threading
@@ -521,6 +529,28 @@ def web(
             print(f"  another device:  http://{address}:{port}/?token={token}", flush=True)
         log.warning("Anyone with this link can use OpenDub on this computer: share it only with your own devices")
     serve(create_app(work, token=token), port, host="0.0.0.0" if lan else "127.0.0.1")
+
+
+def token_file() -> Path:
+    """Where --keep-token keeps the --lan token: $XDG_CONFIG_HOME/opendub/lan-token."""
+    config = Path(os.environ.get("XDG_CONFIG_HOME") or Path.home() / ".config")
+    return config / "opendub" / "lan-token"
+
+
+def kept_token() -> str:
+    """The --lan token kept across restarts, made on first use, readable only by this user."""
+    path = token_file()
+    if path.exists():
+        token = path.read_text(encoding="utf-8").strip()
+        if len(token) >= 24:
+            return token
+    path.parent.mkdir(parents=True, exist_ok=True)
+    token = secrets.token_urlsafe(24)
+    fd = os.open(path, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600)
+    with open(fd, "w", encoding="utf-8") as f:
+        f.write(token + "\n")
+    path.chmod(0o600)  # an existing file keeps its mode through O_CREAT
+    return token
 
 
 def lan_addresses() -> list[str]:

@@ -58,7 +58,7 @@ Estas decisiones son del propietario, todas del 2026-10-25:
 | 4 · Mantenimiento | T-32 Errores de fase con código, en español (hecho) | P2 | M | G-010 |
 | | T-33 Reducir la lista de mypy (hecho) | P2 | S | G-024 |
 | | T-34 Subtítulos con hablante (ASS y WebVTT) (hecho) | P3 | S | Backlog 12 |
-| | T-35 LAN: redes de confianza y token persistente opcional | P3 | S | Pendiente 6 |
+| | T-35 LAN: redes de confianza y token persistente opcional (hecho) | P3 | S | Pendiente 6 |
 | 1 · Medir lo que falta (nuevo) | T-36 Llenar el hueco cuando sobra (hecho: no se oye) | P1 | M | T-26 (§9 de la auditoría 2) |
 | | T-37 Seguir el ritmo de quien habla (hecho: empate) | P1 | M | T-36 (§10 de la auditoría 2) |
 | | T-38 El motor en una conversación (hecho) | P1 | M | T-37 (§11 de la auditoría 2) |
@@ -71,7 +71,8 @@ Estas decisiones son del propietario, todas del 2026-10-25:
   varias voces de T-26.
 
 **Orden sugerido:**
-1. T-26 a T-30 y T-36 a T-38 están hechos; T-31 lo resolvió T-38. Quedan T-32 a T-35.
+1. Todos los tickets están hechos (T-31 lo resolvió T-38). Quedan las decisiones del
+   propietario de arriba.
 2. T-27 antes que T-28: su juez de fidelidad es lo que valida Ollama frente a Sonnet.
 3. T-32 y T-33 cuando haya un hueco: no dependen de nada.
 
@@ -359,6 +360,13 @@ Estas decisiones son del propietario, todas del 2026-10-25:
 - **Aceptación:**
   - Con el token persistente, un enlace sigue valiendo tras reiniciar.
   - Sin la opción, todo funciona como hoy.
+- **Resultado (2026-10-26):**
+  - El README avisa de que `--lan` es HTTP sin cifrar, solo para redes de confianza, y
+    recomienda una VPN para llegar desde fuera.
+  - `--lan --keep-token` (un interruptor en lugar de `--lan-token-file`) guarda el
+    token en `~/.config/opendub/lan-token` con permisos 600; borrarlo revoca los
+    enlaces.
+  - Tests: el token sigue igual tras reiniciar y sin la opción cambia en cada arranque.
 
 ---
 
