@@ -1,5 +1,5 @@
-import type { ReactNode } from "react";
-import type { Status } from "./api";
+import { useState, type CSSProperties, type ReactNode } from "react";
+import { media, type Status } from "./api";
 import { engineShort } from "./catalog";
 import { usePrefs } from "./prefs";
 
@@ -89,4 +89,14 @@ export function Loading() {
       {t("loading")}
     </p>
   );
+}
+
+/** A video's thumbnail; until there is one (a dub still downloading), the grey box alone.
+ *  `retry` changes (e.g. the job's phase) ask for it again. */
+export function Thumb({ id, retry, style, lazy }: { id: string; retry?: string; style?: CSSProperties; lazy?: boolean }) {
+  const [failed, setFailed] = useState<string | null>(null);
+  const attempt = retry ?? "";
+  if (failed === attempt) return <div className="thumb" style={style} aria-hidden="true" />;
+  const src = media.thumbnail(id) + (attempt ? `?r=${encodeURIComponent(attempt)}` : "");
+  return <img className="thumb" style={style} src={src} alt="" loading={lazy ? "lazy" : undefined} onError={() => setFailed(attempt)} />;
 }

@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { api, media, redub, type Engine, type Issue, type Speaker, type Style, type Translation, type Video, type VersionDetail, type VideoStyle } from "../api";
 import { engineShort } from "../catalog";
-import { Loading, PlayIcon, StatusBadge } from "../components";
+import { Loading, PlayIcon, StatusBadge, Thumb } from "../components";
 import { duration, seconds, when } from "../format";
 import type { Key } from "../i18n";
 import { useJobs } from "../job";
@@ -254,7 +254,7 @@ export function VideoPage({ id }: { id: string }) {
             </div>
           ) : (
             <div className="stack">
-              <img className="thumb" style={{ width: "100%", borderRadius: 12 }} src={media.thumbnail(id)} alt="" />
+              <Thumb id={id} style={{ width: "100%", borderRadius: 12 }} />
               <div className="row"><StatusBadge status={video.status} /><span className="muted">{t("not_dubbed")}</span></div>
             </div>
           )}

@@ -1,8 +1,8 @@
 import { useEffect, useMemo, useState, type FormEvent } from "react";
-import { api, media, redub, type EngineChoice, type JobOptions, type Video } from "../api";
+import { api, redub, type EngineChoice, type JobOptions, type Video } from "../api";
 import { useEngines } from "../App";
 import { ENGINES, engineShort } from "../catalog";
-import { EngineTag, StatusBadge } from "../components";
+import { EngineTag, StatusBadge, Thumb } from "../components";
 import { clock, duration, when } from "../format";
 import { overall, PHASES, timing, useJobs, useNow, type LiveJob } from "../job";
 import { usePrefs } from "../prefs";
@@ -181,7 +181,7 @@ export function NowDubbing() {
   return (
     <section className="card stack" aria-labelledby="now" style={{ padding: "16px 20px", gap: 12 }}>
       <div className="row" style={{ gap: "10px 16px" }}>
-        <img className="thumb" style={{ width: 88 }} src={media.thumbnail(job.id)} alt="" />
+        <Thumb id={job.id} retry={`${job.status}:${job.active ?? ""}`} style={{ width: 88, flex: "none" }} />
         <div style={{ flex: "999 1 280px", minWidth: 0 }}>
           <h2 id="now" className={`kicker ${job.status === "error" ? "danger-text" : ""}`}>{heading}</h2>
           <a href={`#/video/${job.id}`} style={{ display: "block", color: "var(--text)", fontWeight: 650, textDecoration: "none", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
@@ -282,7 +282,7 @@ function VideoTable({ videos, onChanged }: { videos: Video[] | null; onChanged: 
                   <tr key={v.id}>
                     <td>
                       <a href={`#/video/${v.id}`} className="row" style={{ gap: 12, flexWrap: "nowrap", color: "var(--text)", textDecoration: "none" }}>
-                        <img className="thumb" style={{ width: 88, flex: "none" }} src={media.thumbnail(v.id)} alt="" loading="lazy" />
+                        <Thumb id={v.id} style={{ width: 88, flex: "none" }} lazy />
                         <span>
                           <span style={{ display: "block", fontWeight: 650 }}>{v.title ?? v.id}</span>
                           <span className="small faint">{duration(v.duration)}</span>
