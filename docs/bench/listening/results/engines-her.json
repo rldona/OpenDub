@@ -1,0 +1,250 @@
+{
+ "name": "engines-her",
+ "sources": [
+  "cosyvoice",
+  "indextts"
+ ],
+ "criteria": [
+  "overall"
+ ],
+ "seed": 6,
+ "videos": [
+  "R4zlpwwEpnY@230-380"
+ ],
+ "answers": {
+  "f01": {
+   "ratings": {
+    "1": {
+     "overall": 3
+    },
+    "2": {
+     "overall": 5
+    }
+   },
+   "prefer": "2"
+  },
+  "f02": {
+   "ratings": {
+    "1": {
+     "overall": 3
+    },
+    "2": {
+     "overall": 5
+    }
+   },
+   "prefer": "2"
+  },
+  "f03": {
+   "ratings": {
+    "1": {
+     "overall": 5
+    },
+    "2": {
+     "overall": 4
+    }
+   },
+   "prefer": "1"
+  },
+  "f04": {
+   "ratings": {
+    "1": {
+     "overall": 3
+    },
+    "2": {
+     "overall": 5
+    }
+   },
+   "prefer": "2"
+  },
+  "f05": {
+   "ratings": {
+    "1": {
+     "overall": 3
+    },
+    "2": {
+     "overall": 5
+    }
+   },
+   "prefer": "2"
+  },
+  "f06": {
+   "ratings": {
+    "1": {
+     "overall": 5
+    },
+    "2": {
+     "overall": 3
+    }
+   },
+   "prefer": "1"
+  },
+  "f07": {
+   "ratings": {
+    "1": {
+     "overall": 3
+    },
+    "2": {
+     "overall": 5
+    }
+   },
+   "prefer": "2"
+  },
+  "f08": {
+   "ratings": {
+    "1": {
+     "overall": 5
+    },
+    "2": {
+     "overall": 3
+    }
+   },
+   "prefer": "1"
+  }
+ },
+ "revealed": {
+  "f01": {
+   "video": "R4zlpwwEpnY",
+   "start": 243.71,
+   "end": 256.63,
+   "versions": {
+    "cosyvoice": "20261026-101919-cosyvoice",
+    "indextts": "20261026-100538-indextts"
+   },
+   "ratings": {
+    "indextts": {
+     "overall": 3
+    },
+    "cosyvoice": {
+     "overall": 5
+    }
+   },
+   "prefer": "cosyvoice"
+  },
+  "f02": {
+   "video": "R4zlpwwEpnY",
+   "start": 258.23,
+   "end": 270.15,
+   "versions": {
+    "cosyvoice": "20261026-101919-cosyvoice",
+    "indextts": "20261026-100538-indextts"
+   },
+   "ratings": {
+    "indextts": {
+     "overall": 3
+    },
+    "cosyvoice": {
+     "overall": 5
+    }
+   },
+   "prefer": "cosyvoice"
+  },
+  "f03": {
+   "video": "R4zlpwwEpnY",
+   "start": 272.23,
+   "end": 282.29,
+   "versions": {
+    "cosyvoice": "20261026-101919-cosyvoice",
+    "indextts": "20261026-100538-indextts"
+   },
+   "ratings": {
+    "cosyvoice": {
+     "overall": 5
+    },
+    "indextts": {
+     "overall": 4
+    }
+   },
+   "prefer": "cosyvoice"
+  },
+  "f04": {
+   "video": "R4zlpwwEpnY",
+   "start": 288.61,
+   "end": 302.71,
+   "versions": {
+    "cosyvoice": "20261026-101919-cosyvoice",
+    "indextts": "20261026-100538-indextts"
+   },
+   "ratings": {
+    "indextts": {
+     "overall": 3
+    },
+    "cosyvoice": {
+     "overall": 5
+    }
+   },
+   "prefer": "cosyvoice"
+  },
+  "f05": {
+   "video": "R4zlpwwEpnY",
+   "start": 303.05,
+   "end": 317.49,
+   "versions": {
+    "cosyvoice": "20261026-101919-cosyvoice",
+    "indextts": "20261026-100538-indextts"
+   },
+   "ratings": {
+    "indextts": {
+     "overall": 3
+    },
+    "cosyvoice": {
+     "overall": 5
+    }
+   },
+   "prefer": "cosyvoice"
+  },
+  "f06": {
+   "video": "R4zlpwwEpnY",
+   "start": 317.87,
+   "end": 329.01,
+   "versions": {
+    "cosyvoice": "20261026-101919-cosyvoice",
+    "indextts": "20261026-100538-indextts"
+   },
+   "ratings": {
+    "cosyvoice": {
+     "overall": 5
+    },
+    "indextts": {
+     "overall": 3
+    }
+   },
+   "prefer": "cosyvoice"
+  },
+  "f07": {
+   "video": "R4zlpwwEpnY",
+   "start": 329.47,
+   "end": 340.95,
+   "versions": {
+    "cosyvoice": "20261026-101919-cosyvoice",
+    "indextts": "20261026-100538-indextts"
+   },
+   "ratings": {
+    "indextts": {
+     "overall": 3
+    },
+    "cosyvoice": {
+     "overall": 5
+    }
+   },
+   "prefer": "cosyvoice"
+  },
+  "f08": {
+   "video": "R4zlpwwEpnY",
+   "start": 364.79,
+   "end": 379.03,
+   "versions": {
+    "cosyvoice": "20261026-101919-cosyvoice",
+    "indextts": "20261026-100538-indextts"
+   },
+   "ratings": {
+    "cosyvoice": {
+     "overall": 5
+    },
+    "indextts": {
+     "overall": 3
+    }
+   },
+   "prefer": "cosyvoice"
+  }
+ }
+}

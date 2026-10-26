@@ -702,7 +702,15 @@ en la web. Sustituye a la regla por el tono de la referencia (IndexTTS por debaj
 165 Hz), que salía de dos voces y que esta escucha descarta: IndexTTS quedó último en
 conversación. Sin CosyVoice instalado, Chatterbox.
 
-**Límites:** un oyente, un pódcast y un vídeo narrado, 10 fragmentos por escucha.
+**Confirmación** (`engines-her`, otro tramo del pódcast, 230–380 s, solo la presentadora,
+8 fragmentos): CosyVoice 5,0 frente a IndexTTS 3,1, preferido en los 8. Se hizo porque, al
+ver el vídeo entero, el oyente notó que IndexTTS encajaba mejor con la expresión de ella y
+que CosyVoice tenía pausas extrañas. Medido: CosyVoice hace menos pausas dentro de las
+frases que la original (52 frente a 92) y solo 7 de 0,7 s o más, casi todas del
+presentador; llena el 93 % del tiempo de ella, IndexTTS el 100 %. A ciegas, la decisión se
+sostiene.
+
+**Límites:** un oyente, un pódcast y un vídeo narrado, 8–10 fragmentos por escucha.
 Varias voces es un indicio de conversación, no una prueba: una entrevista con un solo
 micrófono o un vídeo narrado por dos se clasifican por el número de voces.
 
