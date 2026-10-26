@@ -30,6 +30,7 @@ class Settings:
     engine: str = "auto"  # cloning engine for --tts clone: auto (by the dub's voices) | chatterbox | indextts | cosyvoice
     min_factor: float = 0.7  # indextts, cosyvoice: lowest duration factor before shortening the sentence
     clone_ref: Path | None = None  # fixed reference for cloned clips that fail the quality check
+    ref_per_sentence: bool = False  # experimental (T-30): clone each long, clean sentence from its own voice
     indextts_dir: Path = field(  # IndexTTS install (its own venv), see `setup-indextts`
         default_factory=lambda: Path(
             os.environ.get("OPENDUB_INDEXTTS_DIR") or Path.home() / ".local/share/opendub/indextts"

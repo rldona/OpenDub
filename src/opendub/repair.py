@@ -126,8 +126,9 @@ def repair_clones(f: Fitting) -> set[int]:
     """Redo the cloned clips that fail the quality check without switching voices mid-video.
 
     Fallback chain, each step only for the clips the previous one could not fix:
-    another seed → a sentence shortened by Claude → the fixed reference
-    (--clone-ref) → edge-tts. Returns the ids that ended up with edge-tts.
+    (--ref-per-sentence: the speaker's reference →) another seed → a sentence
+    shortened by Claude → the fixed reference (--clone-ref) → edge-tts. Returns the
+    ids that ended up with edge-tts.
 
     A retouch checks just its clips (f.only), judged against the whole video's
     speed; hand-edited texts (f.fixed) skip the shorter-sentence step.
@@ -137,7 +138,7 @@ def repair_clones(f: Fitting) -> set[int]:
     settings, voices, clips = f.settings, f.voices, f.clips
     candidates = {i for i in (set(clips) if f.only is None else f.only) if voices[i].engine != "edge"}
     bad = clone_failures(f.wd, candidates, clips, settings) if candidates else set()  # stock voices aren't checked
-    steps = ["another seed", "a shorter sentence", "the fixed reference", "edge-tts"]
+    steps = ["the speaker's reference", "another seed", "a shorter sentence", "the fixed reference", "edge-tts"]
     for step in steps:
         if not bad:
             return set()
@@ -145,9 +146,14 @@ def repair_clones(f: Fitting) -> set[int]:
             continue
         if step == "the fixed reference" and not settings.clone_ref:
             continue
+        if step == "the speaker's reference" and not any(voices[i].pace_ref for i in bad):
+            continue
         log.warning(f"Quality check: {len(bad)} cloned clip(s) failed, retrying with {step}…")
         texts = {i: clips[i].text for i in bad}
-        if step == "another seed":
+        if step == "the speaker's reference":  # a sentence's own voice failed: back to the speaker's
+            new_voices = {i: replace(voices[i], ref=voices[i].pace_ref, pace_ref=None, label=voices[i].engine)
+                          for i in bad if voices[i].pace_ref}
+        elif step == "another seed":
             new_voices = {i: replace(voices[i], seed=voices[i].seed + 1, label=f"{voices[i].engine} (seed+1)")
                           for i in bad}
         elif step == "a shorter sentence":

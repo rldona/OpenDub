@@ -714,6 +714,31 @@ sostiene.
 Varias voces es un indicio de conversación, no una prueba: una entrevista con un solo
 micrófono o un vídeo narrado por dos se clasifican por el número de voces.
 
+## 13. Clonar con la voz de cada frase (T-30, 2026-10-26)
+
+**Qué se probó:** `--ref-per-sentence` clona cada frase de 3 s o más, sin otra persona
+encima, desde su propia voz original (al ritmo calibrado de su hablante; si falla el
+control de calidad, vuelve primero a la referencia del hablante). Los dos tramos de
+siempre, con el motor que elige *Automático* y la misma traducción.
+
+| | Una referencia por hablante | Voz de cada frase |
+|---|---|---|
+| Frases con su propia voz | — | pódcast 130 de 185 · música 99 de 111 |
+| CER de whisper (pódcast / música) | 3,7 % / 1,3 % | 3,7 % / 2,0 % |
+| Música: acelerados · voz a destiempo | 55 · 46 s | 38 · 0 s |
+
+**Escucha a ciegas** (`own-voice`, 15 fragmentos):
+
+| | Por hablante | Por frase | Preferido |
+|---|---|---|---|
+| Música (8) | 3,50 | 3,50 | 4 frente a 4 |
+| Pódcast (7) | 3,43 | 3,71 | por frase 3, por hablante 1, igual 3 |
+
+**Lectura:** empate en narración y una ventaja pequeña en conversación, dentro del ruido
+de un oyente. No pasa a ser el modo por defecto; queda como opción experimental. Si la
+ventaja en conversación se confirmara, podría activarse solo con varias voces, como el
+motor.
+
 ## Anexo · Fuentes
 
 Todas consultadas el 2026-10-25; entre paréntesis, la fecha propia de la página cuando la

@@ -416,7 +416,8 @@ def issues(wd: WorkDir, version: str | None = None) -> list[dict[str, Any]]:
         add("glossary", clip_id, f'glossary: "{term.source}" → "{term.expected}"')
     for clip in clips.values():
         label = clip.get("voice") or ""
-        if engine and engine != "edge" and label not in (engine, "edge"):
+        # a sentence spoken with its own voice (--ref-per-sentence) was chosen, not repaired
+        if engine and engine != "edge" and label not in (engine, "edge") and not label.endswith("(own voice)"):
             add("repaired", clip["id"], f"redone by the quality check: {label}")
     order = {"fallback": 0, "floor": 1, "overflow": 2, "abnormal": 3, "glossary": 4, "repaired": 5, "delayed": 6}
     return sorted(out, key=lambda i: (order[i["kind"]], i["start"] or 0))

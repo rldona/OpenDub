@@ -101,6 +101,30 @@ def speaker_reference(wd: WorkDir, speaker: str) -> Path | None:
     return path
 
 
+def sentence_reference(wd: WorkDir, seg: Segment, min_s: float, turns: list | None = None) -> Path | None:
+    """The sentence's own voice, cut from the separated vocals, as its reference (T-30), or None.
+
+    None when it lasts under `min_s` (too little to clone from) or, with several voices,
+    when someone else speaks over more than OVERLAP_S of it.
+    """
+    if seg.duration < min_s:
+        return None
+    if turns:
+        others = sum(max(0.0, min(end, seg.end) - max(start, seg.start))
+                     for start, end, speaker in turns if speaker != seg.speaker)
+        if others > OVERLAP_S:
+            return None
+    folder = wd.path / "sentence_refs"
+    folder.mkdir(exist_ok=True)
+    path = folder / f"{seg.id:04d}.wav"
+    ffmpeg("-ss", f"{seg.start:.3f}", "-to", f"{seg.end:.3f}", "-i", str(wd.vocals),
+           "-ac", "1", "-ar", str(SAMPLE_RATE), str(path))
+    return path
+
+
+OVERLAP_S = 0.3  # seconds of another speaker a sentence's own reference tolerates
+
+
 def mean_f0(path: Path) -> float | None:
     """Mean fundamental frequency (Hz) of the voiced frames of a recording, or None.
 

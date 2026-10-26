@@ -100,6 +100,7 @@ class Pace:
 
 
 SEED = 0  # cloned voices: base seed, so a rerun reproduces the same clips
+SENTENCE_REF_MIN = 3.0  # --ref-per-sentence: shorter sentences are cloned from the speaker's reference
 
 
 @dataclass(frozen=True)
@@ -115,6 +116,9 @@ class Voice:
     factor: float = 1.0  # engines with a native duration control: duration factor (<1 = shorter)
     stock: str | None = None  # several voices: the stock voice of the speaker's gender (last resort)
     gender: str | None = None  # several voices: "female" | "male", from the speaker's pitch
+    # --ref-per-sentence: the speaker's reference while `ref` is the sentence's own voice; its
+    # calibrated pace is the clip's, and it is the first fallback when the clip fails the check
+    pace_ref: Path | None = None
 
     @classmethod
     def edge(cls, settings: Settings) -> Voice:
@@ -407,6 +411,8 @@ def cloned_speaking_rate(settings: Settings, voice: Voice) -> Pace:
     CosyVoice 1.0); Chatterbox at its only pace.
     """
     factor = calibration_factor(voice.engine)
+    if voice.pace_ref:  # a sentence's own voice speaks at its speaker's pace: never calibrated alone
+        voice = replace(voice, ref=voice.pace_ref, pace_ref=None)
     cache = settings.work_root / "voice_rates.json"
     rates = json.loads(cache.read_text()) if cache.exists() else {}
     key = cloned_rate_key(voice.engine, voice.ref)
@@ -727,6 +733,8 @@ def _params(settings: Settings, segments: list[Segment], engine: str, ref: Path 
         }
         if native_duration(engine):
             params["min_factor"] = settings.min_factor
+    if settings.ref_per_sentence and ref is not None:
+        params["ref_per_sentence"] = SENTENCE_REF_MIN
     if seeds:  # only then: dubs without takes keep their cache
         params["takes"] = sorted(seeds.items())
     if by_speaker:  # several voices: whose each sentence is, and how each one speaks
@@ -833,8 +841,10 @@ def run(wd: WorkDir, settings: Settings, force: bool = False) -> list[Clip]:
         log.info(f"Fitted with the native duration factor: {fitted} (min {min(c.factor for c in result):.2f}) · "
                  f"below the {settings.min_factor:.2f} floor: {len(below_floor)}")
     if cloned:
-        repaired = sum(1 for c in result if c.voice not in (engine, "edge"))
-        log.info(f"Cloned clips redone by the quality check: {repaired} · fell back to edge-tts: {len(fell_back)}")
+        own = sum(1 for c in result if c.voice.endswith("(own voice)"))  # --ref-per-sentence, not a repair
+        repaired = sum(1 for c in result if c.voice not in (engine, "edge") and not c.voice.endswith("(own voice)"))
+        log.info(f"Cloned clips redone by the quality check: {repaired} · fell back to edge-tts: {len(fell_back)}"
+                 + (f" · spoken with their own voice: {own}" if settings.ref_per_sentence else ""))
     if fell_back:
         log.warning(f"{len(fell_back)} clip(s) use edge-tts instead of the cloned voice (see overflow.log)")
     if still_bad:

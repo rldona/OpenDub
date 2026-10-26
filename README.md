@@ -105,6 +105,7 @@ Common `dub` options:
 | `--engine` | `auto` | Cloning engine for `--tts clone`: `auto` (CosyVoice when several people speak, Chatterbox for one voice; see below), `chatterbox`, `indextts` or `cosyvoice` |
 | `--min-factor` | `0.7` | `indextts`, `cosyvoice`: lowest duration factor before shortening a sentence that doesn't fit |
 | `--keep-translation` | off | Reuses the existing translation even if it was made for another engine: only TTS and the mix are redone |
+| `--ref-per-sentence` | off | Experimental: clones each sentence of 3 s or more, with nobody else over it, from its own original voice (at its speaker's pace; the speaker's reference is the first fallback). Heard blind it tied with one reference per speaker |
 | `--review` | off | Stops after the translation, to read and edit it (`translation.json`, or the web's editor) before the voice; the same command without it goes on from there |
 | `--style` | none | Extra `style.json` (register, variant, glossary, notes; see below) over `work/style.json` and the video's own |
 | `--clone-ref` | none | Fixed Spanish recording to clone from when a cloned clip fails the quality check |

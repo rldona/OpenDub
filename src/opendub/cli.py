@@ -90,6 +90,11 @@ CloneRef = Annotated[
     Path | None,
     typer.Option("--clone-ref", help="Fixed Spanish reference recording for cloned clips that fail the quality check"),
 ]
+RefPerSentence = Annotated[
+    bool,
+    typer.Option("--ref-per-sentence", help="Experimental: clone each sentence of 3 s or more from its own original "
+                 "voice (more expressive, maybe less steady), the rest from the speaker's reference"),
+]
 MultiSpeaker = Annotated[
     bool,
     typer.Option(
@@ -273,6 +278,7 @@ def tts(
     engine: Engine = "auto",
     min_factor: MinFactor = 0.7,
     clone_ref: CloneRef = None,
+    ref_per_sentence: RefPerSentence = False,
     whisper_model: WhisperModel = "small",
     rate: Rate = "-10%",
     min_tempo: MinTempo = 0.9,
@@ -287,7 +293,7 @@ def tts(
     """Generate one voice clip per segment and fit it to its slot. Requires `translate` (and `separate` with --tts
     clone, `diarize` with --multi-speaker)."""
     settings = Settings(
-        work_root=work, voice=voice, tts=tts, engine=engine, min_factor=min_factor, clone_ref=clone_ref,
+        work_root=work, voice=voice, tts=tts, engine=engine, min_factor=min_factor, clone_ref=clone_ref, ref_per_sentence=ref_per_sentence,
         whisper_model=whisper_model, rate=rate,
         min_tempo=min_tempo, max_tempo=max_tempo, shorten=shorten, backend=backend, claude_model=_claude(backend, model), ollama_model=_ollama(backend, model),
         style_file=style, multi_speaker=multi_speaker,
@@ -371,6 +377,7 @@ def retouch(
         typer.Option("--take", help="Segment id to speak again with another take (repeat it for several)"),
     ] = None,
     clone_ref: CloneRef = None,
+    ref_per_sentence: RefPerSentence = False,
     min_factor: MinFactor = 0.7,
     whisper_model: WhisperModel = "small",
     voice: Voice = "es-ES-AlvaroNeural",
@@ -391,7 +398,7 @@ def retouch(
     With the dub's own engine. Hand-edited sentences are never shortened. Requires a dub.
     """
     settings = Settings(
-        work_root=work, clone_ref=clone_ref, min_factor=min_factor, whisper_model=whisper_model, voice=voice,
+        work_root=work, clone_ref=clone_ref, ref_per_sentence=ref_per_sentence, min_factor=min_factor, whisper_model=whisper_model, voice=voice,
         rate=rate, max_tempo=max_tempo, shorten=shorten, backend=backend, claude_model=_claude(backend, model), ollama_model=_ollama(backend, model),
         bg_volume_db=bg_volume, mute_original=mute_original, separate=separate, music_volume_db=music_volume,
         loudness_lufs=loudness or None, retouch=tuple(take or ()),
@@ -532,6 +539,7 @@ def dub(
     engine: Engine = "auto",
     min_factor: MinFactor = 0.7,
     clone_ref: CloneRef = None,
+    ref_per_sentence: RefPerSentence = False,
     keep_translation: KeepTranslation = False,
     multi_speaker: MultiSpeaker = False,
     style: StyleFile = None,
@@ -559,7 +567,7 @@ def dub(
     settings = Settings(
         work_root=work, source_lang=source_lang, max_height=max_height,
         subs=subs, whisper_model=whisper_model, backend=backend, claude_model=_claude(backend, model), ollama_model=_ollama(backend, model),
-        voice=voice, tts=tts, engine=engine, min_factor=min_factor, clone_ref=clone_ref,
+        voice=voice, tts=tts, engine=engine, min_factor=min_factor, clone_ref=clone_ref, ref_per_sentence=ref_per_sentence,
         keep_translation=keep_translation, multi_speaker=multi_speaker, style_file=style, batch_size=batch_size, chars_per_second=chars_per_second, rate=rate,
         min_tempo=min_tempo, shorten=shorten, max_tempo=max_tempo,
         bg_volume_db=bg_volume, mute_original=mute_original,

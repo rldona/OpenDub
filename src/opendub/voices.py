@@ -14,6 +14,7 @@ from pathlib import Path
 
 from . import reference, tts
 from .config import Settings
+from .log import log
 from .models import Segment
 from .workdir import WorkDir
 
@@ -83,6 +84,33 @@ def segment_voices(
     wd: WorkDir, settings: Settings, segments: list[Segment], seeds: dict[int, int],
 ) -> tuple[dict[int, tts.Voice], str, Path | None, dict[str, tts.Voice]]:
     """(voice of each segment, engine, main reference, voice of each speaker — empty with one voice)."""
+    voices, engine, ref, by_speaker = _segment_voices(wd, settings, segments, seeds)
+    if settings.ref_per_sentence and settings.tts == "clone":
+        voices = sentence_voices(wd, segments, voices)
+    return voices, engine, ref, by_speaker
+
+
+def sentence_voices(wd: WorkDir, segments: list[Segment], voices: dict[int, tts.Voice]) -> dict[int, tts.Voice]:
+    """--ref-per-sentence (T-30, experimental): each cloned sentence long and clean enough is
+    cloned from its own original voice, at its speaker's pace; the rest keep the speaker's."""
+    turns = json.loads(wd.diarization.read_text(encoding="utf-8"))["turns"] if wd.diarization.exists() else None
+    out = dict(voices)
+    own = 0
+    for seg in segments:
+        v = voices[seg.id]
+        if v.engine == "edge" or v.ref is None:
+            continue
+        path = reference.sentence_reference(wd, seg, tts.SENTENCE_REF_MIN, turns if seg.speaker else None)
+        if path:
+            out[seg.id] = replace(v, ref=path, pace_ref=v.ref, label=f"{v.engine} (own voice)")
+            own += 1
+    log.info(f"Reference per sentence: {own} of {len(segments)} sentences cloned from their own voice")
+    return out
+
+
+def _segment_voices(
+    wd: WorkDir, settings: Settings, segments: list[Segment], seeds: dict[int, int],
+) -> tuple[dict[int, tts.Voice], str, Path | None, dict[str, tts.Voice]]:
     if multi_speaker(settings, segments):
         by_speaker, engine, ref = speaker_voices(wd, settings, segments)
         main = next(iter(by_speaker.values()))

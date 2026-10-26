@@ -135,3 +135,52 @@ def test_quality_check_never_shortens_a_tiny_text(tmp_path, monkeypatch):
     assert asked == [2]  # "Yo" is never sent to be shortened (it came back as "Y")
     assert [(i, label) for i, label, _ in rendered[1]] == [(2, "chatterbox (shortened)")]
     assert (1, "edge", "Yo") in rendered[-1]  # still says "Yo" on the last resort
+
+
+def test_a_sentence_s_own_voice_is_its_reference_when_long_and_clean(tmp_path, monkeypatch):
+    from opendub import voices as voices_mod
+
+    wd = WorkDir(tmp_path, "vid")
+    wd.vocals.parent.mkdir(parents=True, exist_ok=True)
+    wd.vocals.write_bytes(b"vocals")
+    cuts = []
+    monkeypatch.setattr(reference, "ffmpeg", lambda *args: cuts.append(args) or open(args[-1], "wb").write(b"cut"))
+    segs = [Segment(1, 0.0, 4.0, "Long enough and clean.", "A"), Segment(2, 4.5, 6.0, "Too short.", "A"),
+            Segment(3, 7.0, 11.0, "Long, but Bea talks over it.", "A")]
+    turns = [[0.0, 6.0, "A"], [7.0, 11.0, "A"], [8.0, 9.0, "B"]]
+    (wd.path / "diarization.json").write_text(__import__("json").dumps({"turns": turns, "speakers": {}}))
+    speaker_ref = tmp_path / "clone_ref_A.wav"
+    voice = tts.Voice("chatterbox", "es-ES-AlvaroNeural", "-10%", ref=speaker_ref, label="chatterbox")
+    got = voices_mod.sentence_voices(wd, segs, {s.id: voice for s in segs})
+    assert got[1].ref == wd.path / "sentence_refs" / "0001.wav" and got[1].pace_ref == speaker_ref
+    assert got[1].label == "chatterbox (own voice)"
+    assert got[2] == voice and got[3] == voice  # too short; someone else over it
+    assert [a[a.index("-ss") + 1] for a in cuts] == ["0.000"]
+
+
+def test_a_sentence_s_own_voice_speaks_at_its_speaker_s_pace(tmp_path, monkeypatch):
+    settings = Settings(tts="clone", work_root=tmp_path)
+    speaker_ref, own = tmp_path / "ref_A.wav", tmp_path / "own.wav"
+    speaker_ref.write_bytes(b"speaker")
+    own.write_bytes(b"own sentence")
+    (tmp_path / "voice_rates.json").write_text(__import__("json").dumps(
+        {tts.cloned_rate_key("chatterbox", speaker_ref): {"cps": 15.0, "overhead": 0.4}}))
+    monkeypatch.setattr(tts, "_calibrate", lambda *a: pytest.fail("a sentence's own voice was calibrated"))
+    voice = tts.Voice("chatterbox", "es-ES-AlvaroNeural", "-10%", ref=own, pace_ref=speaker_ref)
+    assert tts.cloned_speaking_rate(settings, voice) == tts.Pace(15.0, 0.4)
+
+
+def test_a_failed_own_voice_goes_back_to_the_speaker_s_reference_first(tmp_path, monkeypatch):
+    wd = WorkDir(tmp_path, "vid")
+    seg = Segment(1, 0.0, 4.0, "Una frase con su propia voz.")
+    speaker_ref, own = tmp_path / "ref.wav", tmp_path / "own.wav"
+    settings = Settings(tts="clone", shorten=False)
+    voices = {1: tts.Voice("chatterbox", "es-ES-AlvaroNeural", "-10%", ref=own, pace_ref=speaker_ref,
+                           label="chatterbox (own voice)")}
+    clips = {1: _clip(seg, voices[1])}
+    rendered = []
+    monkeypatch.setattr(repair, "clone_failures", lambda wd_, ids, c, s: {i for i in ids if c[i].voice != "chatterbox"})
+    monkeypatch.setattr(tts, "_render_each", lambda wd_, jobs, slots, s, regenerate=False: (
+        rendered.append([(v.label, v.ref) for _, v in jobs]) or [_clip(sg, v) for sg, v in jobs]))
+    assert repair.repair_clones(repair.Fitting(wd, clips, voices, {}, {1: seg}, settings)) == set()
+    assert rendered == [[("chatterbox", speaker_ref)]] and voices[1].pace_ref is None

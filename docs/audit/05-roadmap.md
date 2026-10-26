@@ -53,7 +53,7 @@ Estas decisiones son del propietario, todas del 2026-10-25:
 | | T-27 Fidelidad de la traducción completa | P1 | S | G-005 |
 | 2 · Traducir sin depender de la suscripción | T-28 Backend de traducción en Ollama (hecho) | P1 | L | Decisión 3 |
 | | T-29 Revisar la traducción antes de sintetizar (hecho) | P2 | M | Backlog 10 |
-| 3 · Calidad de voz | T-30 Clonar con la voz de cada frase (experimental) | P2 | M | Backlog 11 |
+| 3 · Calidad de voz | T-30 Clonar con la voz de cada frase (hecho: empate) | P2 | M | Backlog 11 |
 | | T-31 Decidir el motor *Automático* (resuelto por T-38) | P3 | M | G-016 |
 | 4 · Mantenimiento | T-32 Errores de fase con código, en español | P2 | M | G-010 |
 | | T-33 Reducir la lista de mypy | P2 | S | G-024 |
@@ -71,7 +71,7 @@ Estas decisiones son del propietario, todas del 2026-10-25:
   varias voces de T-26.
 
 **Orden sugerido:**
-1. T-26, T-27, T-28, T-29, T-36, T-37 y T-38 están hechos; T-31 lo resolvió T-38.
+1. T-26 a T-30 y T-36 a T-38 están hechos; T-31 lo resolvió T-38. Quedan T-32 a T-35.
 2. T-27 antes que T-28: su juez de fidelidad es lo que valida Ollama frente a Sonnet.
 3. T-32 y T-33 cuando haya un hueco: no dependen de nada.
 
@@ -281,6 +281,10 @@ Estas decisiones son del propietario, todas del 2026-10-25:
     existe.
   - Solo pasa a ser el modo por defecto si gana.
 - **Depende de:** nada. Mejor después de T-26, que puede cambiar la prioridad.
+- **Resultado (2026-10-26, [§13](03-competencia.md#13-clonar-con-la-voz-de-cada-frase-t-30-2026-10-26)):**
+  `--ref-per-sentence` en `dub`, `tts` y `retouch`. A ciegas, empate en narración (3,50
+  frente a 3,50) y ventaja pequeña en conversación (3,71 frente a 3,43). No gana con
+  claridad: queda experimental, desactivado por defecto.
 
 ### T-31 · Decidir el motor *Automático* (P3, M)
 

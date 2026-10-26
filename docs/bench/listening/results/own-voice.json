@@ -1,0 +1,454 @@
+{
+ "name": "own-voice",
+ "sources": [
+  "speaker",
+  "own"
+ ],
+ "criteria": [
+  "overall"
+ ],
+ "seed": 7,
+ "videos": [
+  "VD6xJq8NguY@263-413",
+  "R4zlpwwEpnY@484-634"
+ ],
+ "answers": {
+  "f01": {
+   "ratings": {
+    "1": {
+     "overall": 4
+    },
+    "2": {
+     "overall": 3
+    }
+   },
+   "prefer": "1"
+  },
+  "f02": {
+   "ratings": {
+    "1": {
+     "overall": 3
+    },
+    "2": {
+     "overall": 4
+    }
+   },
+   "prefer": "2"
+  },
+  "f03": {
+   "ratings": {
+    "1": {
+     "overall": 3
+    },
+    "2": {
+     "overall": 4
+    }
+   },
+   "prefer": "2"
+  },
+  "f04": {
+   "ratings": {
+    "1": {
+     "overall": 4
+    },
+    "2": {
+     "overall": 3
+    }
+   },
+   "prefer": "1"
+  },
+  "f05": {
+   "ratings": {
+    "1": {
+     "overall": 3
+    },
+    "2": {
+     "overall": 4
+    }
+   },
+   "prefer": "2"
+  },
+  "f06": {
+   "ratings": {
+    "1": {
+     "overall": 4
+    },
+    "2": {
+     "overall": 3
+    }
+   },
+   "prefer": "1"
+  },
+  "f07": {
+   "ratings": {
+    "1": {
+     "overall": 4
+    },
+    "2": {
+     "overall": 3
+    }
+   },
+   "prefer": "1"
+  },
+  "f08": {
+   "ratings": {
+    "1": {
+     "overall": 3
+    },
+    "2": {
+     "overall": 4
+    }
+   },
+   "prefer": "2"
+  },
+  "f09": {
+   "ratings": {
+    "1": {
+     "overall": 4
+    },
+    "2": {
+     "overall": 4
+    }
+   },
+   "prefer": "same"
+  },
+  "f10": {
+   "ratings": {
+    "1": {
+     "overall": 3
+    },
+    "2": {
+     "overall": 4
+    }
+   },
+   "prefer": "2"
+  },
+  "f11": {
+   "ratings": {
+    "1": {
+     "overall": 3
+    },
+    "2": {
+     "overall": 4
+    }
+   },
+   "prefer": "2"
+  },
+  "f12": {
+   "ratings": {
+    "1": {
+     "overall": 3
+    },
+    "2": {
+     "overall": 4
+    }
+   },
+   "prefer": "2"
+  },
+  "f13": {
+   "ratings": {
+    "1": {
+     "overall": 3
+    },
+    "2": {
+     "overall": 3
+    }
+   },
+   "prefer": "same"
+  },
+  "f14": {
+   "ratings": {
+    "1": {
+     "overall": 4
+    },
+    "2": {
+     "overall": 4
+    }
+   },
+   "prefer": "same"
+  },
+  "f15": {
+   "ratings": {
+    "1": {
+     "overall": 4
+    },
+    "2": {
+     "overall": 3
+    }
+   },
+   "prefer": "1"
+  }
+ },
+ "revealed": {
+  "f01": {
+   "video": "VD6xJq8NguY",
+   "start": 272.12,
+   "end": 283.32,
+   "versions": {
+    "speaker": "work/_bench/ownv/speaker/VD6xJq8NguY.mp4",
+    "own": "work/_bench/ownv/own/VD6xJq8NguY.mp4"
+   },
+   "ratings": {
+    "speaker": {
+     "overall": 4
+    },
+    "own": {
+     "overall": 3
+    }
+   },
+   "prefer": "speaker"
+  },
+  "f02": {
+   "video": "VD6xJq8NguY",
+   "start": 283.32,
+   "end": 296.43,
+   "versions": {
+    "speaker": "work/_bench/ownv/speaker/VD6xJq8NguY.mp4",
+    "own": "work/_bench/ownv/own/VD6xJq8NguY.mp4"
+   },
+   "ratings": {
+    "speaker": {
+     "overall": 3
+    },
+    "own": {
+     "overall": 4
+    }
+   },
+   "prefer": "own"
+  },
+  "f03": {
+   "video": "VD6xJq8NguY",
+   "start": 308.55,
+   "end": 322.06,
+   "versions": {
+    "speaker": "work/_bench/ownv/speaker/VD6xJq8NguY.mp4",
+    "own": "work/_bench/ownv/own/VD6xJq8NguY.mp4"
+   },
+   "ratings": {
+    "speaker": {
+     "overall": 3
+    },
+    "own": {
+     "overall": 4
+    }
+   },
+   "prefer": "own"
+  },
+  "f04": {
+   "video": "VD6xJq8NguY",
+   "start": 328.83,
+   "end": 339.24,
+   "versions": {
+    "speaker": "work/_bench/ownv/speaker/VD6xJq8NguY.mp4",
+    "own": "work/_bench/ownv/own/VD6xJq8NguY.mp4"
+   },
+   "ratings": {
+    "speaker": {
+     "overall": 4
+    },
+    "own": {
+     "overall": 3
+    }
+   },
+   "prefer": "speaker"
+  },
+  "f05": {
+   "video": "VD6xJq8NguY",
+   "start": 339.24,
+   "end": 349.25,
+   "versions": {
+    "speaker": "work/_bench/ownv/speaker/VD6xJq8NguY.mp4",
+    "own": "work/_bench/ownv/own/VD6xJq8NguY.mp4"
+   },
+   "ratings": {
+    "own": {
+     "overall": 3
+    },
+    "speaker": {
+     "overall": 4
+    }
+   },
+   "prefer": "speaker"
+  },
+  "f06": {
+   "video": "VD6xJq8NguY",
+   "start": 368.74,
+   "end": 379.86,
+   "versions": {
+    "speaker": "work/_bench/ownv/speaker/VD6xJq8NguY.mp4",
+    "own": "work/_bench/ownv/own/VD6xJq8NguY.mp4"
+   },
+   "ratings": {
+    "own": {
+     "overall": 4
+    },
+    "speaker": {
+     "overall": 3
+    }
+   },
+   "prefer": "own"
+  },
+  "f07": {
+   "video": "VD6xJq8NguY",
+   "start": 379.86,
+   "end": 390.37,
+   "versions": {
+    "speaker": "work/_bench/ownv/speaker/VD6xJq8NguY.mp4",
+    "own": "work/_bench/ownv/own/VD6xJq8NguY.mp4"
+   },
+   "ratings": {
+    "speaker": {
+     "overall": 4
+    },
+    "own": {
+     "overall": 3
+    }
+   },
+   "prefer": "speaker"
+  },
+  "f08": {
+   "video": "VD6xJq8NguY",
+   "start": 401.69,
+   "end": 412.69,
+   "versions": {
+    "speaker": "work/_bench/ownv/speaker/VD6xJq8NguY.mp4",
+    "own": "work/_bench/ownv/own/VD6xJq8NguY.mp4"
+   },
+   "ratings": {
+    "speaker": {
+     "overall": 3
+    },
+    "own": {
+     "overall": 4
+    }
+   },
+   "prefer": "own"
+  },
+  "f09": {
+   "video": "R4zlpwwEpnY",
+   "start": 490.45,
+   "end": 504.07,
+   "versions": {
+    "speaker": "work/_bench/ownv/speaker/R4zlpwwEpnY.mp4",
+    "own": "work/_bench/ownv/own/R4zlpwwEpnY.mp4"
+   },
+   "ratings": {
+    "speaker": {
+     "overall": 4
+    },
+    "own": {
+     "overall": 4
+    }
+   },
+   "prefer": "same"
+  },
+  "f10": {
+   "video": "R4zlpwwEpnY",
+   "start": 518.59,
+   "end": 529.87,
+   "versions": {
+    "speaker": "work/_bench/ownv/speaker/R4zlpwwEpnY.mp4",
+    "own": "work/_bench/ownv/own/R4zlpwwEpnY.mp4"
+   },
+   "ratings": {
+    "speaker": {
+     "overall": 3
+    },
+    "own": {
+     "overall": 4
+    }
+   },
+   "prefer": "own"
+  },
+  "f11": {
+   "video": "R4zlpwwEpnY",
+   "start": 529.87,
+   "end": 541.81,
+   "versions": {
+    "speaker": "work/_bench/ownv/speaker/R4zlpwwEpnY.mp4",
+    "own": "work/_bench/ownv/own/R4zlpwwEpnY.mp4"
+   },
+   "ratings": {
+    "speaker": {
+     "overall": 3
+    },
+    "own": {
+     "overall": 4
+    }
+   },
+   "prefer": "own"
+  },
+  "f12": {
+   "video": "R4zlpwwEpnY",
+   "start": 548.85,
+   "end": 559.97,
+   "versions": {
+    "speaker": "work/_bench/ownv/speaker/R4zlpwwEpnY.mp4",
+    "own": "work/_bench/ownv/own/R4zlpwwEpnY.mp4"
+   },
+   "ratings": {
+    "speaker": {
+     "overall": 3
+    },
+    "own": {
+     "overall": 4
+    }
+   },
+   "prefer": "own"
+  },
+  "f13": {
+   "video": "R4zlpwwEpnY",
+   "start": 560.45,
+   "end": 572.33,
+   "versions": {
+    "speaker": "work/_bench/ownv/speaker/R4zlpwwEpnY.mp4",
+    "own": "work/_bench/ownv/own/R4zlpwwEpnY.mp4"
+   },
+   "ratings": {
+    "own": {
+     "overall": 3
+    },
+    "speaker": {
+     "overall": 3
+    }
+   },
+   "prefer": "same"
+  },
+  "f14": {
+   "video": "R4zlpwwEpnY",
+   "start": 583.45,
+   "end": 595.23,
+   "versions": {
+    "speaker": "work/_bench/ownv/speaker/R4zlpwwEpnY.mp4",
+    "own": "work/_bench/ownv/own/R4zlpwwEpnY.mp4"
+   },
+   "ratings": {
+    "own": {
+     "overall": 4
+    },
+    "speaker": {
+     "overall": 4
+    }
+   },
+   "prefer": "same"
+  },
+  "f15": {
+   "video": "R4zlpwwEpnY",
+   "start": 612.65,
+   "end": 625.03,
+   "versions": {
+    "speaker": "work/_bench/ownv/speaker/R4zlpwwEpnY.mp4",
+    "own": "work/_bench/ownv/own/R4zlpwwEpnY.mp4"
+   },
+   "ratings": {
+    "speaker": {
+     "overall": 4
+    },
+    "own": {
+     "overall": 3
+    }
+   },
+   "prefer": "speaker"
+  }
+ }
+}
