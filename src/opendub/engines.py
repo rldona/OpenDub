@@ -129,6 +129,56 @@ def speak(key: str, start, text: str, ref: Path, out: Path, factor: float, seed:
     return False
 
 
+def pool_size(env: str, min_vram_gb: float) -> int:
+    """Worker processes to speak with side by side: 2 on a GPU with `min_vram_gb` or more, else 1.
+
+    One clip doesn't use the whole GPU, so two processes speak faster than one (each loads its
+    own copy of the model). The environment variable `env` overrides it.
+    """
+    import os
+
+    if os.environ.get(env):
+        return max(1, int(os.environ[env]))
+    try:
+        import torch
+
+        if torch.cuda.is_available() and torch.cuda.get_device_properties(0).total_memory / 2**30 >= min_vram_gb:
+            return 2
+    except ImportError:
+        pass
+    return 1
+
+
+def speak_batch(key: str, start, jobs: list[tuple[str, Path, Path, float, int]], size: int,
+                done=lambda: None) -> None:
+    """Speak (text, ref, out, factor, seed) jobs on `size` workers of `key`, side by side: each takes
+    the next job as soon as it is free. `start(k)` starts worker k; worker 0 is `key`'s own, the one
+    speak() uses, so a later single clip (a quality-check retry) finds it loaded."""
+    from concurrent.futures import ThreadPoolExecutor
+    from queue import Empty, Queue
+
+    pending: Queue = Queue()
+    for job in jobs:
+        pending.put(job)
+
+    def serve(k: int) -> None:
+        while True:
+            try:
+                text, ref, out, factor, seed = pending.get_nowait()
+            except Empty:
+                return
+            speak(key if k == 0 else f"{key}#{k}", lambda: start(k), text, ref, out, factor, seed)
+            done()
+
+    size = max(1, min(size, len(jobs)))
+    if size == 1:
+        serve(0)
+        return
+    with ThreadPoolExecutor(max_workers=size) as pool:
+        for future in [pool.submit(serve, k) for k in range(size)]:
+            future.result()  # re-raise a worker's failure
+
+
 def _beep(out: Path, seconds: float = 0.1, rate: int = 24000) -> None:
     n = int(seconds * rate)
     samples = (int(3000 * math.sin(2 * math.pi * 1000 * i / rate)) for i in range(n))
@@ -140,8 +190,8 @@ def _beep(out: Path, seconds: float = 0.1, rate: int = 24000) -> None:
 
 
 def shutdown(key: str | None = None) -> None:
-    """Stop one worker (or all of them) and free its GPU memory; the next clip starts a new one."""
-    for k in [key] if key else list(_workers):
+    """Stop one engine's workers (or all of them) and free their GPU memory; the next clip starts a new one."""
+    for k in [w for w in _workers if w == key or w.startswith(f"{key}#")] if key else list(_workers):
         if (w := _workers.pop(k, None)) is not None:
             w.close()
 

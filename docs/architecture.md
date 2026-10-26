@@ -70,7 +70,7 @@ flowchart TD
     auto{"Engine<br/>auto (default): CosyVoice when several people speak, Chatterbox for one"}
     auto -- "chatterbox" --> cb["Chatterbox Multilingual V3<br/>2 worker processes when the GPU has room"]
     auto -- "indextts" --> itts["IndexTTS-2.5<br/>JSON-lines worker in its own Python 3.11 venv"]
-    auto -- "cosyvoice" --> cv["CosyVoice 3<br/>JSON-lines worker in its own Python 3.11 venv"]
+    auto -- "cosyvoice" --> cv["CosyVoice 3<br/>JSON-lines workers in its own Python 3.11 venv<br/>2 side by side on a 16 GB GPU"]
     cb --> fit
     itts --> fit
     cv --> fit

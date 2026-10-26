@@ -319,7 +319,7 @@ def _synthesize_jobs(jobs: list[tuple[str, Path, Voice]], settings: Settings) ->
         return
     from . import clone, cosyvoice, indextts
 
-    # One GPU model: clips go one after another
+    # Chatterbox and CosyVoice speak several clips side by side; IndexTTS one after another
     with Progress(
         "[progress.description]{task.description}", BarColumn(), MofNCompleteColumn(),
         TimeElapsedColumn(), console=console, transient=True,
@@ -332,17 +332,17 @@ def _synthesize_jobs(jobs: list[tuple[str, Path, Voice]], settings: Settings) ->
             if batch:
                 clone.synthesize_batch(batch, settings.work_root / "chatterbox.log", lambda: progress.advance(task),
                                        variant)
+        # CosyVoice too, on its own pool of workers (cosyvoice.synthesize_batch)
+        batch_cv = [(spell_numbers(text), voice.cloned_ref(), path, voice.factor, voice.seed)
+                    for text, path, voice in cloned if voice.engine == "cosyvoice"]
+        if batch_cv:
+            cosyvoice.synthesize_batch(settings.cosyvoice_dir, settings.work_root / "cosyvoice.log", batch_cv,
+                                       lambda: progress.advance(task))
         for text, path, voice in cloned:
-            said = spell_numbers(text)  # cloned voices misread figures and "2x2"
-            if voice.engine in CHATTERBOX:
-                continue
-            if voice.engine == "indextts":
+            if voice.engine == "indextts":  # 7.4 GB: one at a time
                 indextts.synthesize(settings.indextts_dir, settings.work_root / "indextts.log",
-                                    said, voice.cloned_ref(), path, voice.factor, voice.seed)
-            elif voice.engine == "cosyvoice":
-                cosyvoice.synthesize(settings.cosyvoice_dir, settings.work_root / "cosyvoice.log",
-                                     said, voice.cloned_ref(), path, voice.factor, voice.seed)
-            progress.advance(task)
+                                    spell_numbers(text), voice.cloned_ref(), path, voice.factor, voice.seed)
+                progress.advance(task)
 
 
 async def _synthesize_all(jobs: list[tuple[str, Path]], voice: str, rate: str) -> None:

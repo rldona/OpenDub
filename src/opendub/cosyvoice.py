@@ -74,13 +74,27 @@ def synthesize(home: Path, log_path: Path, text: str, ref: Path, out: Path, fact
     engines.speak(MODEL, lambda: _start(home, log_path), text, ref, out, factor, seed)
 
 
-def _start(home: Path, log_path: Path) -> engines.Worker:
+# Like Chatterbox, one clip doesn't fill the GPU: two workers speak side by side, each with its own
+# CosyVoice. On an 11-minute video (111 clips, RTX 5080) the voice phase went from 438 s to 255 s, its
+# VRAM peak (the quality check's whisper included) from 7.8 to 13.1 GB: only on a card with room for
+# it (a 16 GB card reports 15.9). OPENDUB_COSYVOICE_WORKERS overrides it
+POOL_MIN_VRAM_GB = 15
+
+
+def synthesize_batch(home: Path, log_path: Path, jobs: list[tuple[str, Path, Path, float, int]],
+                     done=lambda: None) -> None:
+    """Speak (text, ref, out, factor, seed) jobs on pool_size() workers, side by side."""
+    size = engines.pool_size("OPENDUB_COSYVOICE_WORKERS", POOL_MIN_VRAM_GB)
+    engines.speak_batch(MODEL, lambda k: _start(home, log_path, k), jobs, size, done)
+
+
+def _start(home: Path, log_path: Path, k: int = 0) -> engines.Worker:
     repo, python, model_dir = paths(home)
     if not installed(home):
         raise PhaseError("engine_missing", f"CosyVoice is not installed in {home}. {SETUP_HINT}",
                          engine="CosyVoice 3", cmd="uv run opendub setup-engine cosyvoice")
     # cwd = repo: the worker imports cosyvoice (and its Matcha-TTS submodule) from there
-    return engines.Worker(MODEL, python, WORKER, [str(model_dir)], repo, log_path)
+    return engines.Worker(MODEL if k == 0 else f"{MODEL} #{k + 1}", python, WORKER, [str(model_dir)], repo, log_path)
 
 
 def shutdown() -> None:

@@ -66,12 +66,51 @@ def test_cosyvoice_is_a_native_duration_engine(tmp_path, monkeypatch):
     assert tts._raw_path(wd, voice, "Hola.") != tts._raw_path(wd, voice.__class__(**{**voice.__dict__, "factor": 0.8}), "Hola.")
 
     calls = []
-    monkeypatch.setattr(cosyvoice, "synthesize", lambda *args: calls.append(args))
+    monkeypatch.setattr(cosyvoice, "synthesize_batch", lambda home, log_path, jobs, done: calls.append((home, log_path, jobs)))
     out = tmp_path / "x.raw.wav"
     tts._synthesize_jobs([("Son 3 terremotos.", out, voice.__class__(**{**voice.__dict__, "factor": 0.8}))], settings)
-    home, log_path, text, ref_, out_, factor, seed = calls[0]
+    home, log_path, jobs = calls[0]
     assert home == tmp_path / "cv" and log_path == tmp_path / "cosyvoice.log"
+    text, ref_, out_, factor, seed = jobs[0]
     assert text == "Son tres terremotos." and factor == 0.8 and out_ == out  # figures spelled out
+
+
+def test_a_batch_is_spoken_by_two_workers_side_by_side(tmp_path, monkeypatch):
+    import threading
+    import time
+
+    from opendub import engines
+
+    started, busy, most = [], [0], [0]
+    lock = threading.Lock()
+
+    class FakeWorker:
+        def __init__(self, k):
+            started.append(k)
+
+        def request(self, text, ref, out, factor, seed, timeout=None, **extra):
+            with lock:
+                busy[0] += 1
+                most[0] = max(most[0], busy[0])
+            time.sleep(0.05)
+            out.write_text(text)
+            with lock:
+                busy[0] -= 1
+
+        def close(self):
+            pass
+
+    monkeypatch.setattr(engines, "_workers", {})
+    monkeypatch.setenv("OPENDUB_COSYVOICE_WORKERS", "2")
+    monkeypatch.setattr(cosyvoice, "_start", lambda home, log_path, k=0: FakeWorker(k))
+    jobs = [(f"Frase {i}.", tmp_path / "ref.wav", tmp_path / f"{i}.wav", 1.0, 0) for i in range(6)]
+    done = []
+    cosyvoice.synthesize_batch(tmp_path / "cv", tmp_path / "cv.log", jobs, lambda: done.append(1))
+    assert sorted(started) == [0, 1] and most[0] == 2 and len(done) == 6
+    assert all((tmp_path / f"{i}.wav").read_text() == f"Frase {i}." for i in range(6))
+    assert set(engines._workers) == {cosyvoice.MODEL, f"{cosyvoice.MODEL}#1"}
+    cosyvoice.shutdown()  # both: their GPU memory is freed
+    assert engines._workers == {}
 
 
 def test_cosyvoice_not_installed_says_how_to_install(tmp_path):

@@ -377,7 +377,10 @@ chain that keeps the same voice as long as possible:
 `tts.json` records which of these produced each clip. Chatterbox adds Resemble
 AI's inaudible Perth watermark to everything it generates. On a GPU with 12 GB or
 more, Chatterbox speaks with two processes side by side (about 1.25× faster on a
-long video); `OPENDUB_CHATTERBOX_WORKERS=1` keeps it to one.
+long video); `OPENDUB_CHATTERBOX_WORKERS=1` keeps it to one. CosyVoice does the same
+on a GPU with 16 GB (1.7× faster: 438 s to 255 s on an 11-minute video, with a
+13.1 GB peak); `OPENDUB_COSYVOICE_WORKERS=1` keeps it to one. IndexTTS (7.4 GB)
+always speaks one clip at a time.
 
 ### Choosing the engine
 
