@@ -218,6 +218,9 @@ export const api = {
   jobs: () => call<JobSummary[]>("/jobs"),
   job: (id: string) => call<JobSummary>(`/jobs/${id}`),
   cancel: (id: string) => call<JobSummary>(`/jobs/${id}/cancel`, { method: "POST" }),
+  /** More engines for a video being dubbed: after its job, one after another, with its options. */
+  queueAfter: (id: string, engines: Engine[]) =>
+    call<JobSummary>(`/jobs/${id}/then`, { method: "POST", body: JSON.stringify({ engines }) }),
   submit: (options: JobOptions) => call<JobSummary>("/jobs", { method: "POST", body: JSON.stringify(options) }),
   videos: () => call<Video[]>("/videos"),
   video: (id: string) => call<Video>(`/videos/${id}`),

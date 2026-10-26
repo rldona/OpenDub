@@ -179,6 +179,18 @@ class JobManager:
         saved = self.saved(vid)
         return saved.get("status") if saved else None
 
+    def queue_after(self, vid: str, engines: list[str]) -> Job | None:
+        """Dub a video that is being dubbed with more engines, after its job, with its options: they
+        join its `then` (in order, without repeats). None when the video has no job queued or running."""
+        with self._lock:
+            job = self._jobs.get(vid)
+            if not job or job.status not in ACTIVE or job.cancelling:
+                return None
+            then = job.options.then
+            then.extend(e for e in engines if e != job.options.engine and e not in then)
+            self._save(job)
+            return job
+
     def cancel(self, vid: str) -> Job | None:
         """Cancel a video's job: a queued one never runs; a running one stops at its next progress
         tick, phase or Claude call, its child processes (ffmpeg, claude, the engines) terminated.

@@ -264,7 +264,7 @@ export function VideoPage({ id }: { id: string }) {
         </div>
         <div className="row">
           {versions.length > 1 && <a className="btn" href={`#/compare/${id}`}>{t("compare_btn")}</a>}
-          {translation && <button type="button" className="btn primary" disabled={busy} onClick={() => setDialog(true)}>{t("redub_btn")}</button>}
+          {translation && <button type="button" className="btn primary" onClick={() => setDialog(true)}>{busy ? t("queue_btn") : t("redub_btn")}</button>}
         </div>
       </div>
 
@@ -567,7 +567,7 @@ export function VideoPage({ id }: { id: string }) {
       )}
 
       {dialog && (
-        <RedubDialog video={video} watching={detail?.engine ?? null}
+        <RedubDialog video={video} watching={detail?.engine ?? null} running={busy ? job?.engine ?? null : null}
           onClose={() => setDialog(false)}
           onStarted={() => { setDialog(false); setNote(null); void load(); }} />
       )}

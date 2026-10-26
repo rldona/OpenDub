@@ -62,6 +62,10 @@ class SubtitlesUpload(BaseModel):
     text: str = Field(max_length=5_000_000)
 
 
+class EnginesRequest(BaseModel):
+    engines: list[Literal["chatterbox", "indextts", "cosyvoice"]] = Field(min_length=1, max_length=3)
+
+
 class RetouchRequest(BaseModel):
     takes: list[int] = []  # sentences to speak again with another take; edited ones always are
 
@@ -193,6 +197,23 @@ def create_app(work_root: Path = Path("work"), runner: Runner | None = None,
         if not saved:
             raise fail(404, "no_job", "No job for this video")
         return saved
+
+    @app.post("/jobs/{vid}/then")
+    def queue_after(vid: str, req: EnginesRequest) -> dict:
+        """More engines for a video being dubbed: dubbed after its job, one after another, with its options."""
+        for choice in req.engines:
+            engine = next(e for e in videos.engines() if e["id"] == choice)
+            if not engine["installed"]:
+                raise fail(422, "not_installed",
+                           f"{engine['name']} is not installed. Install it with: {engine['setup']}",
+                           engine=engine["name"], cmd=engine["setup"])
+        running = manager.get(check_id(vid))
+        if running and running.options.tts != "clone":
+            raise fail(422, "not_cloned", "Dubbing with several engines needs the cloned voice")
+        job = manager.queue_after(vid, list(req.engines))
+        if not job:
+            raise fail(404, "no_job", "No job for this video")
+        return job.summary()
 
     @app.post("/jobs/{vid}/cancel")
     def cancel_job(vid: str) -> dict:

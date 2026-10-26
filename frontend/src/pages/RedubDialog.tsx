@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { api, redub, type EngineChoice, type Video } from "../api";
+import { api, redub, type Engine, type EngineChoice, type Video } from "../api";
 import { useEngines } from "../App";
 import { ENGINES, engineInfo, pickOptions, togglePick } from "../catalog";
 import { Icon } from "../components";
@@ -10,9 +10,11 @@ import { errorText } from "../errors";
 
 /** Dub the video again: the engine, several voices or one, and whether to keep its translation. Every version
  * is kept. */
-export function RedubDialog({ video, watching, onClose, onStarted }: {
+export function RedubDialog({ video, watching, running, onClose, onStarted }: {
   video: Video;
   watching: string | null;
+  // the engine of the job dubbing it now, if one is: then the dialog only adds engines to its queue
+  running?: string | null;
   onClose: () => void;
   onStarted: () => void;
 }) {
@@ -22,8 +24,9 @@ export function RedubDialog({ video, watching, onClose, onStarted }: {
   const { refresh } = useJobs();
   const ref = useRef<HTMLDialogElement>(null);
   // one or more engines (each its own version, one after another), or Automatic
+  const queueing = !!running;
   const [picked, setPicked] = useState<EngineChoice[]>(() => {
-    const other = ENGINES.find((e) => e.id !== watching);
+    const other = ENGINES.find((e) => e.id !== (running ?? watching));
     return [other?.id ?? "auto"];
   });
   const [keep, setKeep] = useState(true);
@@ -57,11 +60,18 @@ export function RedubDialog({ video, watching, onClose, onStarted }: {
   }, [video]);
 
   const installed = (id: EngineChoice) => engines?.find((e) => e.id === id)?.installed ?? true;
-  const label = picked.length > 1 ? t("redub_with_n", { n: picked.length })
+  const label = queueing ? t("queue_n", { n: picked.length })
+    : picked.length > 1 ? t("redub_with_n", { n: picked.length })
     : t("redub_with", { e: picked[0] === "auto" ? t("auto") : engineInfo(picked[0])!.name });
 
   async function start() {
     try {
+      if (queueing) {
+        await api.queueAfter(video.id, picked.filter((p): p is Engine => p !== "auto"));
+        refresh();
+        onStarted();
+        return;
+      }
       await redub(video.id, defaults, { tts: "clone", ...pickOptions(picked), keep_translation: keep && !retranslates,
         multi_speaker: several });
       refresh();
@@ -76,8 +86,8 @@ export function RedubDialog({ video, watching, onClose, onStarted }: {
       <div className="stack" style={{ gap: 18 }}>
         <div className="spread" style={{ alignItems: "flex-start", flexWrap: "nowrap" }}>
           <div>
-            <h2 id="redub-title" style={{ fontSize: 20 }}>{t("redub_title")}</h2>
-            <p className="small muted" style={{ margin: "2px 0 0" }}>{video.title}</p>
+            <h2 id="redub-title" style={{ fontSize: 20 }}>{queueing ? t("queue_title") : t("redub_title")}</h2>
+            <p className="small muted" style={{ margin: "2px 0 0" }}>{queueing ? t("queue_hint") : video.title}</p>
           </div>
           <button type="button" className="icon-btn" aria-label={t("close")} onClick={() => ref.current?.close()}><Icon name="close" /></button>
         </div>
@@ -85,7 +95,7 @@ export function RedubDialog({ video, watching, onClose, onStarted }: {
         <fieldset style={{ margin: 0, padding: 0, border: 0 }}>
           <legend style={{ padding: 0, marginBottom: 10, fontWeight: 650 }}>{t("engine")}</legend>
           <div className="grid-2">
-            <label className="radio-card">
+            <label className="radio-card" hidden={queueing}>
               <input type="checkbox" checked={picked.includes("auto")} disabled={!installed("auto")}
                 onChange={() => setPicked(togglePick(picked, "auto"))} />
               <span className="stack" style={{ gap: 2 }}>
@@ -117,27 +127,31 @@ export function RedubDialog({ video, watching, onClose, onStarted }: {
           </div>
         </fieldset>
 
-        <label className="radio-card" style={{ gap: 12 }}
-          title={diarizer && !diarizer.installed ? t("install_hint", { e: "Nemotron 3 Diarization", cmd: diarizer.setup ?? "" }) : undefined}>
-          <input type="checkbox" checked={several} disabled={!diarizer?.installed} onChange={(e) => setMulti(e.target.checked)}
-            style={{ width: 18, height: 18 }} />
-          <span className="stack" style={{ gap: 2 }}>
-            <span style={{ fontWeight: 650 }}>{t("several_voices")}</span>
-            <span className="small muted">
-              {diarizer && !diarizer.installed ? t("not_installed") : t("several_voices_hint")}
-              {retranslates ? ` · ${t("several_voices_retranslate")}` : ""}
-            </span>
-          </span>
-        </label>
+        {!queueing && (
+          <>
+            <label className="radio-card" style={{ gap: 12 }}
+              title={diarizer && !diarizer.installed ? t("install_hint", { e: "Nemotron 3 Diarization", cmd: diarizer.setup ?? "" }) : undefined}>
+              <input type="checkbox" checked={several} disabled={!diarizer?.installed} onChange={(e) => setMulti(e.target.checked)}
+                style={{ width: 18, height: 18 }} />
+              <span className="stack" style={{ gap: 2 }}>
+                <span style={{ fontWeight: 650 }}>{t("several_voices")}</span>
+                <span className="small muted">
+                  {diarizer && !diarizer.installed ? t("not_installed") : t("several_voices_hint")}
+                  {retranslates ? ` · ${t("several_voices_retranslate")}` : ""}
+                </span>
+              </span>
+            </label>
 
-        <label className="radio-card" style={{ gap: 12 }}>
-          <input type="checkbox" checked={keep && !retranslates} disabled={retranslates} onChange={(e) => setKeep(e.target.checked)}
-            style={{ width: 18, height: 18 }} />
-          <span className="stack" style={{ gap: 2 }}>
-            <span style={{ fontWeight: 650 }}>{t("keep_translation")}</span>
-            <span className="small muted">{t("keep_translation_hint")}</span>
-          </span>
-        </label>
+            <label className="radio-card" style={{ gap: 12 }}>
+              <input type="checkbox" checked={keep && !retranslates} disabled={retranslates} onChange={(e) => setKeep(e.target.checked)}
+                style={{ width: 18, height: 18 }} />
+              <span className="stack" style={{ gap: 2 }}>
+                <span style={{ fontWeight: 650 }}>{t("keep_translation")}</span>
+                <span className="small muted">{t("keep_translation_hint")}</span>
+              </span>
+            </label>
+          </>
+        )}
 
         {error && <p className="error" role="alert">{error}</p>}
         <div className="spread">

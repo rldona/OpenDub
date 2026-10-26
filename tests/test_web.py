@@ -676,3 +676,20 @@ def test_several_engines_dub_one_after_another_and_a_failure_stops_the_rest(tmp_
     assert [s.engine for _, s in failing.runs] == ["indextts"]  # the rest isn't dubbed
 
     assert c.post("/jobs", json={"url": VID, "tts": "edge", "then": ["cosyvoice"]}).status_code == 422
+
+
+def test_more_engines_join_the_queue_of_a_video_being_dubbed(tmp_path):
+    fake = FakePipeline()
+    fake.hold = True
+    c = client(tmp_path, fake)
+    c.post("/jobs", json={"url": VID, "engine": "cosyvoice"})
+    assert fake.started.wait(5)
+    r = c.post(f"/jobs/{VID}/then", json={"engines": ["indextts", "cosyvoice", "indextts"]})
+    assert r.status_code == 200 and r.json()["options"]["then"] == ["indextts"]  # no repeats, not the running one
+    fake.release.set()
+    end = time.monotonic() + 5
+    while len(fake.runs) < 2 and time.monotonic() < end:
+        time.sleep(0.02)
+    wait_status(c, VID)
+    assert [s.engine for _, s in fake.runs] == ["cosyvoice", "indextts"]
+    assert c.post(f"/jobs/{VID}/then", json={"engines": ["chatterbox"]}).status_code == 404  # nothing running
