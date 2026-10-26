@@ -30,3 +30,16 @@ export function differences(a: VersionDetail | null, b: VersionDetail | null) {
   }
   return out.sort((p, q) => p.id - q.id);
 }
+
+/** How B follows A, `drift` seconds behind it (negative: ahead): a jump only past a second, else a
+ *  slightly faster or slower B until it catches up. A jump makes the browser fetch and decode from
+ *  there, which costs time and so more drift: jumping at every small drift is what made B stutter. */
+export function followB(drift: number): { jump: boolean; rate: number } {
+  if (Math.abs(drift) > JUMP_S) return { jump: true, rate: 1 };
+  if (Math.abs(drift) < CLOSE_S) return { jump: false, rate: 1 };
+  return { jump: false, rate: 1 + Math.max(-MAX_NUDGE, Math.min(MAX_NUDGE, drift * 0.5)) };
+}
+
+const JUMP_S = 1.0;
+const CLOSE_S = 0.04;
+const MAX_NUDGE = 0.08;

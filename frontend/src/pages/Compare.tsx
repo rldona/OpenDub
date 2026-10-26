@@ -5,7 +5,7 @@ import { Loading, PauseIcon, PlayIcon } from "../components";
 import { duration, when } from "../format";
 import { useJobs } from "../job";
 import { usePrefs } from "../prefs";
-import { differences, type SideDiff } from "../compare";
+import { differences, followB, type SideDiff } from "../compare";
 import { issueClass, issueText } from "./Video";
 
 type Side = "a" | "b";
@@ -89,12 +89,16 @@ function Comparison({ video, lang }: { video: Video; lang: "en" | "es" }) {
     v.currentTime = Math.max(0, start - 0.2);
     void v.play();
   });
-  const follow = () => {
+  /** B follows A: nudged faster or slower while playing (followB), put in place when A jumps or pauses. */
+  const follow = (jumped = false) => {
     const lead = refs.a.current;
     const other = refs.b.current;
     if (!lead || !other) return;
     setTime(lead.currentTime);
-    if (Math.abs(other.currentTime - lead.currentTime) > 0.25) other.currentTime = lead.currentTime;
+    const { jump, rate } = jumped || lead.paused ? { jump: Math.abs(other.currentTime - lead.currentTime) > 0.04, rate: 1 }
+      : followB(lead.currentTime - other.currentTime);
+    if (jump) other.currentTime = lead.currentTime;
+    if (other.playbackRate !== rate) other.playbackRate = rate;
     if (lead.paused !== other.paused) {
       if (lead.paused) other.pause(); else void other.play();
     }
@@ -115,8 +119,9 @@ function Comparison({ video, lang }: { video: Video; lang: "en" | "es" }) {
       <div className="player" style={{ outline: hear === side ? "2px solid var(--accent)" : "none" }}>
         <video ref={refs[side]} key={value} preload="metadata" src={media.video(video.id, versions.find((o) => o.version === value)?.current ? null : value)}
           muted={hear !== side} controls={side === "a"}
-          onPlay={() => side === "a" && setPlaying(true)} onPause={() => side === "a" && setPlaying(false)}
-          onTimeUpdate={side === "a" ? follow : undefined} onSeeked={side === "a" ? follow : undefined} />
+          onPlay={() => side === "a" && setPlaying(true)}
+          onPause={() => { if (side === "a") { setPlaying(false); follow(true); } }}
+          onTimeUpdate={side === "a" ? () => follow() : undefined} onSeeked={side === "a" ? () => follow(true) : undefined} />
         <span className="badge" style={{ position: "absolute", top: 10, left: 10, background: hear === side ? "var(--accent)" : "rgba(0,0,0,0.6)", color: hear === side ? "var(--on-accent)" : "#fff" }}>
           {hear === side ? t("hearing") : t("muted")}
         </span>

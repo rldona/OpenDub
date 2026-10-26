@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { VersionDetail } from "./api";
-import { differences } from "./compare";
+import { differences, followB } from "./compare";
 
 const version = (clips: [number, string, number][], issues: number[] = []): VersionDetail => ({
   version: "v", engine: "chatterbox", date: null, current: false,
@@ -20,5 +20,20 @@ describe("compare", () => {
     expect(d[1].a.text).toBe("Adiós.");
     expect(d[1].b.text).toBe("Hasta luego.");
     expect(differences(null, b)).toEqual([]);
+  });
+});
+
+describe("followB", () => {
+  it("nudges B instead of jumping while the drift is small", () => {
+    expect(followB(0.02)).toEqual({ jump: false, rate: 1 });
+    expect(followB(0.1).jump).toBe(false);
+    expect(followB(0.1).rate).toBeCloseTo(1.05);
+    expect(followB(0.5)).toEqual({ jump: false, rate: 1.08 }); // behind: faster, at most 8%
+    expect(followB(-0.5)).toEqual({ jump: false, rate: 0.92 }); // ahead: slower
+  });
+
+  it("jumps only past a second", () => {
+    expect(followB(1.5)).toEqual({ jump: true, rate: 1 });
+    expect(followB(-2)).toEqual({ jump: true, rate: 1 });
   });
 });
